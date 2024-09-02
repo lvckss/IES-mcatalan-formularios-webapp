@@ -8,7 +8,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ setActiveTab, activeTab }) => {
   return (
-    <aside className="bg-background border-r border-border p-4 hidden md:flex flex-col gap-4">
+    <aside className="bg-background border-r border-border p-4 hidden md:flex flex-col gap-4 text-xl">
       <a href="#" className="flex items-center gap-2">
         <Package2Icon className="h-6 w-6" />
         <span className="font-semibold">Gestor de Certificados</span>

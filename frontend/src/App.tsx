@@ -5,8 +5,6 @@ import Header from "./components/Header"
 import Estudiantes from "./components/Estudiantes"
 import Certificados from "./components/Certificados"
 
-import { api } from '@/lib/api';
-
 function App() {
 
   const [activeTab, setActiveTab] = useState<'Estudiantes' | 'Certificados'>('Estudiantes');
