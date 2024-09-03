@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import Sidebar from "./components/Sidebar"
 import Header from "./components/Header"
-import Estudiantes from "./components/Estudiantes"
+import Estudiantes from "./components/Students"
 import Certificados from "./components/Certificados"
 
 function App() {
