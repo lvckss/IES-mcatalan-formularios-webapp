@@ -3,7 +3,8 @@ import { useState } from 'react';
 import Sidebar from "./components/Sidebar"
 import Header from "./components/Header"
 import Estudiantes from "./components/Students"
-import Certificados from "./components/Certificados"
+import Certificados from "./components/Certificates"
+import { ThemeProvider } from "@/components/theme-provider"
 
 function App() {
 
@@ -21,13 +22,15 @@ function App() {
   };
 
   return (
-    <div className="flex min-h-screen w-full">
+    <ThemeProvider defaultTheme='light' storageKey='vite-ui-theme'>
+      <div className="flex min-h-screen w-full">
       <Sidebar setActiveTab={setActiveTab} activeTab={activeTab}/>
       <div className="flex flex-1 flex-col">
         <Header activeTab={activeTab as 'students' | 'certificates'} />
         {renderContent()}
       </div>
     </div>
+    </ThemeProvider>
   );
 }
 

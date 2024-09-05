@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import StudentTable from './StudentTable';
-import StudentFilters from './StudentFilters';
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { UserRoundPlus } from 'lucide-react';
+import AddStudentButton from './AddStudentButton';
 
 interface Student {
     id_alumno: number;
@@ -51,16 +49,12 @@ const Estudiantes: React.FC = () => {
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Todos los Estudiantes</h2>
           </div>
-          <StudentTable students={students} filters={filters} />
+          <StudentTable students={students} filters={filters} onFilterChange={handleFilterChange} />
         </div>
       </div>
-      <h1 className='mb-2 font-bold'>Filtros de búsqueda:</h1>
-      <StudentFilters filters={filters} onFilterChange={handleFilterChange} />
       <Separator />
       <div className="flex justify-center my-8">
-        <Button variant="outline">
-          <UserRoundPlus className="mr-2 h-5 w-5" />Añadir estudiante
-        </Button>
+        <AddStudentButton />
       </div>
     </main>
   );
