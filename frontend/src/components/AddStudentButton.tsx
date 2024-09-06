@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -33,19 +32,19 @@ const AddStudentButton: React.FC = () => {
     const [selectedModules, setSelectedModules] = useState<Record<number, ModuleStatus>>({})
 
     useEffect(() => {
-        if (selectedCiclo) {
-            const separatorTimer = setTimeout(() => setShowSeparator(true), 300)
-            const modulesTimer = setTimeout(() => setShowModules(true), 600)
+        if (selectedCiclo && selectedCiclo !== "unassigned") {
+            const separatorTimer = setTimeout(() => setShowSeparator(true), 300);
+            const modulesTimer = setTimeout(() => setShowModules(true), 600);
             return () => {
-                clearTimeout(separatorTimer)
-                clearTimeout(modulesTimer)
-          }
+                clearTimeout(separatorTimer);
+                clearTimeout(modulesTimer);
+            };
         } else {
-          setShowSeparator(false)
-          setShowModules(false)
-          setSelectedModules({})
+            setShowSeparator(false);
+            setShowModules(false);
+            setSelectedModules({});
         }
-    }, [selectedCiclo])
+    }, [selectedCiclo]);
 
     const handleModuleToggle = (moduleId: number) => {
         setSelectedModules(prev => {
@@ -67,17 +66,17 @@ const AddStudentButton: React.FC = () => {
     }
 
     return (
-        <Dialog>
-            <DialogTrigger>
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
                 <Button variant="outline">
                     <UserRoundPlus className="mr-2 h-5 w-5" />Añadir estudiante
                 </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className={`sm:max-w-[450px] ${selectedCiclo && selectedCiclo !== "unassigned" ? 'sm:max-w-[900px]' : ''} transition-all duration-300 ease-in-out h-[650px] overflow-hidden`}>
                 <DialogHeader>
                     <DialogTitle className="text-xl font-semibold mb-4">Añadir nuevo estudiante</DialogTitle>
                 </DialogHeader>
-                <div className="flex flex-wrap gap-8">
+                <div className="flex flex-wrap gap-8 h-[calc(100%-7rem)]">
                     <div className="flex-1 min-w-[300px] max-w-[450px]">
                         <form className="space-y-4">
                             <FormField label="Nombre" name="nombre" />
@@ -93,7 +92,7 @@ const AddStudentButton: React.FC = () => {
                                         <SelectValue placeholder="Seleccionar ciclo" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="">Ninguno</SelectItem>
+                                        <SelectItem value="unassigned">Ninguno</SelectItem>
                                         {ciclosFormativos.map((ciclo) => (
                                             <SelectItem key={ciclo.id} value={ciclo.id.toString()}>
                                                 {ciclo.nombre_ciclo} ({ciclo.nivel})
@@ -110,14 +109,14 @@ const AddStudentButton: React.FC = () => {
                         className={`h-auto transition-opacity duration-300 ease-in-out ${showSeparator ? 'opacity-100' : 'opacity-0'}`}
                     />
                     <div 
-                        className={`flex-1 min-w-[300px] max-w-[450px] transition-all duration-300 ease-in-out ${
+                        className={`flex-1 min-w-[300px] transition-all duration-300 ease-in-out ${
                         showModules ? 'opacity-100' : 'opacity-0 w-0 overflow-hidden'
                         }`}
                     >
                         { selectedCiclo && (
                             <>
                                 <h3 className="text-lg font-semibold mb-4">Módulos</h3>
-                                <div className="space-y-3">
+                                <div className="space-y-3 max-h-[400px] overflow-y-auto">
                                     {modulos
                                         .filter(m => m.ciclo_asignado === parseInt(selectedCiclo))
                                         .map((module) => (
@@ -127,7 +126,7 @@ const AddStudentButton: React.FC = () => {
                                                     checked={module.id in selectedModules}
                                                     onCheckedChange={() => handleModuleToggle(module.id)}
                                                 />
-                                                <label htmlFor="{`module-${module.id}`}" className="text-sm font-medium leading-none">
+                                                <label htmlFor={`module-${module.id}`} className="text-sm font-medium leading-none">
                                                     {module.codigo_modulo} - {module.nombre_modulo} ({module.duracion} horas)
                                                 </label>
                                                 <div className="w-[140px]">
@@ -154,6 +153,9 @@ const AddStudentButton: React.FC = () => {
                             </>
                         )}
                     </div>
+                </div>
+                <div className="flex justify-end mt-6">
+                    <Button type="submit" className="px-6">Guardar estudiante</Button>
                 </div>
             </DialogContent>
         </Dialog>
