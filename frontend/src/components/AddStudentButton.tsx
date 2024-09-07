@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
 import { UserRoundPlus } from "lucide-react"
 import FormField from './FormField';
+import DatePicker from './DatePicker';
 
 
 const ciclosFormativos = [
@@ -65,6 +66,10 @@ const AddStudentButton: React.FC = () => {
         }))
     }
 
+    const handleDateChange = (date: Date | undefined) => {
+        console.log("Selected date:", date)
+    }
+
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
@@ -72,7 +77,7 @@ const AddStudentButton: React.FC = () => {
                     <UserRoundPlus className="mr-2 h-5 w-5" />Añadir estudiante
                 </Button>
             </DialogTrigger>
-            <DialogContent className={`sm:max-w-[450px] ${selectedCiclo && selectedCiclo !== "unassigned" ? 'sm:max-w-[900px]' : ''} transition-all duration-300 ease-in-out h-[650px] overflow-hidden`}>
+            <DialogContent className={` ${selectedCiclo && selectedCiclo !== "unassigned" ? 'sm:max-w-[900px]' : 'sm:max-w-[450px]'} transition-all duration-300 ease-in-out overflow-hidden`}>
                 <DialogHeader>
                     <DialogTitle className="text-xl font-semibold mb-4">Añadir nuevo estudiante</DialogTitle>
                 </DialogHeader>
@@ -83,7 +88,12 @@ const AddStudentButton: React.FC = () => {
                             <FormField label="Apellido 1" name="apellido1" />
                             <FormField label="Apellido 2" name="apellido2" />
                             <FormField label="ID Legal" name="id_legal" />
-                            <FormField label="Fecha de nacimiento" name="fecha_nacimiento" type="date" />
+                            <DatePicker 
+                                label="Fecha de nacimiento" 
+                                name="fecha_nacimiento" 
+                                onChange={handleDateChange}
+                            />
+                            {/* <FormField label="Fecha de nacimiento" name="fecha_nacimiento" type="date" /> */}
                             <FormField label="Código de Expediente" name="codigo_expediente" />
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="ciclo_formativo" className="text-right font-medium">Ciclo Formativo</Label>
@@ -92,7 +102,7 @@ const AddStudentButton: React.FC = () => {
                                         <SelectValue placeholder="Seleccionar ciclo" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="unassigned">Ninguno</SelectItem>
+                                        <SelectItem value="unassigned">Seleccionar ciclo</SelectItem>
                                         {ciclosFormativos.map((ciclo) => (
                                             <SelectItem key={ciclo.id} value={ciclo.id.toString()}>
                                                 {ciclo.nombre_ciclo} ({ciclo.nivel})
@@ -109,7 +119,7 @@ const AddStudentButton: React.FC = () => {
                         className={`h-auto transition-opacity duration-300 ease-in-out ${showSeparator ? 'opacity-100' : 'opacity-0'}`}
                     />
                     <div 
-                        className={`flex-1 min-w-[300px] transition-all duration-300 ease-in-out ${
+                        className={`flex-1 transition-all duration-300 ease-in-out ${
                         showModules ? 'opacity-100' : 'opacity-0 w-0 overflow-hidden'
                         }`}
                     >
