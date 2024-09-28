@@ -1,169 +1,125 @@
 import React from 'react';
+import {
+  Column,
+  ColumnDef,
+  ColumnFiltersState,
+  RowData,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable
+} from '@tanstack/react-table';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { UserCircle } from 'lucide-react';
-import { Student } from '@/interfaces';
 import { Input } from "@/components/ui/input";
-import FilterInput from '@/components/FilterInput';
-
+import { Student } from '@/interfaces';
 
 interface StudentTableProps {
   students: Student[];
-  filters: {
-    apellido1: string;
-    apellido2: string;
-    nombre: string;
-    id_legal: string;
-    fecha_nacimiento: string;
-    code_expediente: string;
-  };
-  onFilterChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-const StudentTable: React.FC<StudentTableProps> = ({ students, filters, onFilterChange }) => {
-  const filteredStudents = students.filter((student) =>
-    student.apellido1.toLowerCase().includes(filters.apellido1.toLowerCase()) &&
-    student.apellido2.toLowerCase().includes(filters.apellido2.toLowerCase()) &&
-    student.nombre.toLowerCase().includes(filters.nombre.toLowerCase()) &&
-    student.id_legal.toLowerCase().includes(filters.id_legal.toLowerCase()) &&
-    student.fecha_nacimiento.includes(filters.fecha_nacimiento) &&
-    student.code_expediente.toLowerCase().includes(filters.code_expediente.toLowerCase())
+const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
+  console.log('Students Data:', students);
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+
+  const columns = React.useMemo<ColumnDef<Student>[]>(
+    () => [
+      {
+        accessorKey: 'apellido1',
+        header: 'Apellido 1',
+      },
+      {
+        accessorKey: 'apellido2',
+        header: 'Apellido 2',
+      },
+      {
+        accessorKey: 'nombre',
+        header: 'Nombre',
+      },
+      {
+        accessorKey: 'fecha_nacimiento',
+        header: 'Fecha de Nacimiento',
+        // Custom cell rendering for date formatting
+        cell: info => new Date(info.getValue<string>()).toLocaleDateString(),
+      },
+      {
+        accessorKey: 'id_legal',
+        header: 'ID Legal',
+      },
+      {
+        accessorKey: 'codigo_expediente',
+        header: 'Código de Expediente',
+      },
+    ],
+    []
   );
 
+  const table = useReactTable({
+    data: students,
+    columns,
+    filterFns: {},
+    state: {
+      columnFilters,
+    },
+    onColumnFiltersChange: setColumnFilters,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+
+  });
+
   return (
-    <div className='border rounded-lg mb-4'>
-        <div className='relative'>
-          <Table>
-            <TableHeader className='bg-gray-50'>
+    <ScrollArea className="max-h-[60vh] border rounded-lg mb-4">
+      <Table className="w-full">
+        <TableHeader className="sticky top-0 z-10 bg-gray-50">
+          {table.getHeaderGroups().map((headerGroup) => (
+            <React.Fragment key={headerGroup.id}>
               <TableRow>
-              <TableHead className="w-[20%] py-2 px-2 text-sm font-medium rounded-tl-lg text-center">Apellido 1</TableHead>
-                <TableHead className="w-[15%] py-2 px-2 text-sm font-medium text-center">Apellido 2</TableHead>
-                <TableHead className="w-[10%] py-2 px-2 text-sm font-medium text-center">Nombre</TableHead>
-                <TableHead className="w-[12%] py-2 px-2 text-sm font-medium text-center">Fecha de nacimiento</TableHead>
-                <TableHead className="w-[10%] py-2 px-2 text-sm font-medium text-center">Enseñanza</TableHead>
-                <TableHead className="w-[12%] py-2 px-2 text-sm font-medium text-center">ID legal</TableHead>
-                <TableHead className="w-[15%] py-2 px-2 text-sm font-medium text-center">Código de expediente</TableHead>
-                <TableHead className="w-[6%] py-2 px-2 text-sm font-medium rounded-tr-lg"></TableHead>
-              </TableRow>
-              <TableRow className="bg-gray-50">
-                <TableCell className="py-1 px-2">
-                <FilterInput
-                    placeholder=". . ."
-                    name="apellido1"
-                    value={filters.apellido1}
-                    onFilterChange={onFilterChange}
-                  />
-                </TableCell>
-                <TableCell className="py-1 px-2">
-                  <FilterInput
-                    placeholder=". . ."
-                    name="apellido2"
-                    value={filters.apellido2}
-                    onFilterChange={onFilterChange}
-                  />
-                </TableCell>
-                <TableCell className="py-1 px-2">
-                 <FilterInput
-                    placeholder=". . ."
-                    name="nombre"
-                    value={filters.nombre}
-                    onFilterChange={onFilterChange}
-                  />
-                </TableCell>
-                <TableCell className="py-1 px-2">
-                  <FilterInput
-                    placeholder="Ejemplo: 2000-05-15    . . ."
-                    name="fecha_nacimiento"
-                    value={filters.fecha_nacimiento}
-                    onFilterChange={onFilterChange}
-                  />
-                </TableCell>
-                <TableCell className="py-1 px-2">
-                  <Input placeholder="TO-DO" className="h-7 text-xs bg-background" />
-                </TableCell>
-                <TableCell className="py-1 px-2">
-                  <FilterInput
-                    placeholder=". . ."
-                    name="id_legal"
-                    value={filters.id_legal}
-                    onFilterChange={onFilterChange}
-                  />
-                </TableCell>
-                <TableCell className="py-1 px-2">
-                  <FilterInput
-                    placeholder=". . ."
-                    name="code_expediente"
-                    value={filters.code_expediente}
-                    onFilterChange={onFilterChange}
-                  />
-                </TableCell>
-                <TableCell className="py-1 px-2"></TableCell>
-              </TableRow>
-            </TableHeader>
-          </Table>
-          <ScrollArea className="h-[60vh]">
-            <Table>
-              <TableBody>
-                {filteredStudents.map((student) => (
-                  <TableRow key={student.id_alumno}>
-                    <TableCell className='w-[20%] py-1 px-2 text-xs'>{student.apellido1.toUpperCase()}</TableCell>
-                    <TableCell className='w-[15%] py-1 px-2 text-xs'>{student.apellido2.toUpperCase()}</TableCell>
-                    <TableCell className='w-[10%] py-1 px-2 text-xs'>{student.nombre}</TableCell>
-                    <TableCell className='w-[12%] py-1 px-2 text-xs'>{new Date(student.fecha_nacimiento).toLocaleDateString()}</TableCell>
-                    <TableCell className='w-[10%] py-1 px-2 text-xs'>{student.nombre}</TableCell>
-                    <TableCell className='w-[12%] py-1 px-2 text-xs'>{student.id_legal}</TableCell>
-                    <TableCell className='w-[15%] py-1 px-2 text-xs'>{student.code_expediente}</TableCell>
-                    <TableCell className='w-[6%] py-1 px-2'>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className='h-5 w-5'>
-                            <UserCircle className="h-5 w-5" />
-                            <span className="sr-only">Ver toda la info</span>
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Información del Estudiante</DialogTitle>
-                          </DialogHeader> 
-                          <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-4 items-center gap-4">
-                              <span className="font-bold">Apellido1:</span>
-                              <span className="col-span-3">{student.apellido1}</span>
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                              <span className="font-bold">Apellido2:</span>
-                              <span className="col-span-3">{student.apellido2}</span>
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                              <span className="font-bold">Nombre:</span>
-                              <span className="col-span-3">{student.nombre}</span>
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                              <span className="font-bold">ID Legal:</span>
-                              <span className="col-span-3">{student.id_legal}</span>
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                              <span className="font-bold">Fecha de Nacimiento:</span>
-                              <span className="col-span-3">{new Date(student.fecha_nacimiento).toLocaleDateString()}</span>
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                              <span className="font-bold">Código de Expediente:</span>
-                              <span className="col-span-3">{student.code_expediente}</span>
-                            </div>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
-                    </TableCell>
-                  </TableRow>
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id} style={{ width: header.column.getSize() }}>
+                    {header.isPlaceholder ? null : (
+                      flexRender(
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )
+                    )}
+                  </TableHead>
                 ))}
-              </TableBody>
-            </Table>
-          </ScrollArea>
-        </div>
-    </div>
+              </TableRow>
+              <TableRow>
+                {headerGroup.headers.map((header) => (
+                  <TableHead className='bg-gray-50' key={`${header.id}-filter`} style={{ width: header.column.getSize() }}>
+                    {header.column.getCanFilter() ? (
+                      <Input
+                        value={(header.column.getFilterValue() as string) ?? ''}
+                        onChange={(e) =>
+                          header.column.setFilterValue(e.target.value)
+                        }
+                        placeholder=". . ."
+                        className="h-7 w-[calc(100%-0.5rem)] text-xs px-2 py-1 m-1 bg-white"
+                      />
+                    ) : null}
+                  </TableHead>
+                ))}
+              </TableRow>
+            </React.Fragment>
+          ))}
+        </TableHeader>
+        <TableBody>
+          {table.getRowModel().rows.map((row) => (
+            <TableRow key={row.id}>
+              {row.getVisibleCells().map((cell) => (
+                <TableCell key={cell.id} style={{ width: cell.column.getSize() }}>
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </ScrollArea>
   );
-};
+}
 
 export default StudentTable;

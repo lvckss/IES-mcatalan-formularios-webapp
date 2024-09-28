@@ -1,4 +1,4 @@
-export interface Certificado {
+export type Certificado = {
     id_certificado: number;
     id_alumno: number;
     fecha_expedicion: string;
@@ -9,7 +9,7 @@ export interface Certificado {
     requisito_academico: boolean;
 }
 
-export interface Calificacion {
+export type Calificacion = {
     id_calificacion: number;
     id_alumno: number;
     id_modulo: number;
@@ -20,7 +20,7 @@ export interface Calificacion {
     ano_escolar: string;
 }
 
-export interface Modulo {
+export type Modulo = {
     id_modulo: number;
     codigo_modulo: string;
     nombre_modulo: string;
@@ -28,22 +28,18 @@ export interface Modulo {
     duracion: number;
 }
 
-export interface CicloFormativo {
+export type CicloFormativo = {
     id_ciclo: number;
     nombre_ciclo: string;
     nivel: string;
 }
 
-export interface Student {
-    id_alumno: number;
+export type Student = {
+    id_student: number;
     apellido1: string;
     apellido2: string;
     nombre: string;
     id_legal: string;
     fecha_nacimiento: string;
-    code_expediente: string;
-    certificados?: Certificado[];
-    calificaciones?: Calificacion[];
-    modulos?: Modulo[];
-    ciclo_formativo?: CicloFormativo;
+    codigo_expediente: string;
 }

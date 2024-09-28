@@ -77,7 +77,7 @@ const AddStudentButton: React.FC = () => {
                     <UserRoundPlus className="mr-2 h-5 w-5" />Añadir estudiante
                 </Button>
             </DialogTrigger>
-            <DialogContent className={` ${selectedCiclo && selectedCiclo !== "unassigned" ? 'sm:max-w-[900px]' : 'sm:max-w-[450px]'} transition-all duration-300 ease-in-out overflow-hidden`}>
+            <DialogContent className={` ${selectedCiclo && selectedCiclo !== "unassigned" ? 'sm:max-w-[1000px]' : 'sm:max-w-[450px]'} transition-all duration-300 ease-in-out overflow-hidden`}>
                 <DialogHeader>
                     <DialogTitle className="text-xl font-semibold mb-4">Añadir nuevo estudiante</DialogTitle>
                 </DialogHeader>
@@ -139,7 +139,7 @@ const AddStudentButton: React.FC = () => {
                                                 <label htmlFor={`module-${module.id}`} className="text-sm font-medium leading-none">
                                                     {module.codigo_modulo} - {module.nombre_modulo} ({module.duracion} horas)
                                                 </label>
-                                                <div className="w-[140px]">
+                                                <div className="w-[140px] p-2">
                                                     {module.id in selectedModules ? (
                                                         <Select
                                                         value={selectedModules[module.id] || ""}
