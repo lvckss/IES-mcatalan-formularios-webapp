@@ -77,12 +77,12 @@ const AddStudentButton: React.FC = () => {
                     <UserRoundPlus className="mr-2 h-5 w-5" />Añadir estudiante
                 </Button>
             </DialogTrigger>
-            <DialogContent className={` ${selectedCiclo && selectedCiclo !== "unassigned" ? 'sm:max-w-[1000px]' : 'sm:max-w-[450px]'} transition-all duration-300 ease-in-out overflow-hidden`}>
+            <DialogContent className={` ${selectedCiclo && selectedCiclo !== "unassigned" ? 'sm:max-w-[900px]' : 'sm:max-w-[450px]'} transition-all duration-300 ease-in-out overflow-hidden`}>
                 <DialogHeader>
                     <DialogTitle className="text-xl font-semibold mb-4">Añadir nuevo estudiante</DialogTitle>
                 </DialogHeader>
                 <div className="flex flex-wrap gap-8 h-[calc(100%-7rem)]">
-                    <div className="flex-1 min-w-[300px] max-w-[450px]">
+                    <div className="flex-1 min-w-[330px] max-w-[450px]">
                         <form className="space-y-4">
                             <FormField label="Nombre" name="nombre" />
                             <FormField label="Apellido 1" name="apellido1" />
