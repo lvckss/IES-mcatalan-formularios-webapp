@@ -7,12 +7,12 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api'
 
 async function getTotalStudents() {
-  const result = await api.alumnos.$get();
+  const result = await api.students.$get();
   if (!result.ok) {
     throw new Error('Error fetching students');
   }
   const data = await result.json();
-  return data.alumnos;
+  return data.students;
 }
 
 const Estudiantes: React.FC = () => {

@@ -1,14 +1,14 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { createModuloSchema } from "../models/modulo";
-import { getModulos, createModulo, getModuloById, deleteModulo } from "../controllers/modulosController";
+import { type Modulo, createModuloSchema } from "../models/modulo";
+/* import { getModulos, createModulo, getModuloById, deleteModulo } from "../controllers/modulosController"; */
+import modulos from "../fakedata/modulos.json";
 
 export const modulosRoute = new Hono()
     .get("/", async (c) => {
-        const result = await getModulos();
-        return c.json({ modulos: result });
+        return c.json(modulos);
     })
-    .post("/", zValidator("json", createModuloSchema), async (c) => {
+    /* .post("/", zValidator("json", createModuloSchema), async (c) => {
         const modulo = await c.req.valid("json");
         const result = await createModulo(modulo);
         c.status(201);
@@ -29,4 +29,4 @@ export const modulosRoute = new Hono()
             return c.notFound();
         }
         return c.json({ modulo: result[0] });
-    });
+    }); */

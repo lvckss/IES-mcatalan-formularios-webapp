@@ -8,26 +8,30 @@ import { ciclosFormativosRoute } from './routes/ciclosFormativosRoute';
 import { firmantesRoute } from './routes/firmantesRoute';
 import { modulosRoute } from './routes/modulosRoute';
 import { regulacionesRoute } from './routes/regulacionesRoute';
+import { api } from '../frontend/src/lib/api';
 
 const app = new Hono();
 
 app.use(logger());
 
 app.get("/health", c => {
-    return c.json({"message": "más sanito que una manzana"});
+    return c.json({ "message": "más sanito que una manzana" });
 });
 
-const apiRoutes = app.basePath("/api").route("/alumnos", studentsRoute);
+const apiRoutes = app.basePath("/api")
+    .route("/students", studentsRoute)
+    .route("/modulos", modulosRoute)
 
-/* apiRoutes.route("/alumnos", alumnosRoute);
+/* 
 apiRoutes.route("/calificaciones", calificacionesRoute);
 apiRoutes.route("/certificados", certificadosRoute);
 apiRoutes.route("/ciclosFormativos", ciclosFormativosRoute);
 apiRoutes.route("/firmantes", firmantesRoute);
 apiRoutes.route("/modulos", modulosRoute);
-apiRoutes.route("/regulaciones", regulacionesRoute); */
+apiRoutes.route("/regulaciones", regulacionesRoute);
+*/
 
-// permitimos que el backend sirva archivos estáticos de producción
+// permitimos que el backend sirva archivos estáticos para la producción
 app.get('*', serveStatic({ root: './frontend/dist' }))
 app.get('*', serveStatic({ path: './frontend/dist/index.html' }))
 

@@ -1,0 +1,893 @@
+{
+    "modulos": [
+        {
+            "nombre": "Técnicas generales de laboratorio (1º)",
+            "cod_mod": "1368",
+            "cod_ciclo": "SAN301_LOE",
+            "ciclo": "Anatomía Patológica y Citodiagnóstico",
+            "curso": 1
+        },
+        {
+            "nombre": "Gestión de muestras biológicas (1º)",
+            "cod_mod": "1367",
+            "cod_ciclo": "SAN301_LOE",
+            "ciclo": "Anatomía Patológica y Citodiagnóstico",
+            "curso": 1
+        },
+        {
+            "nombre": "Biología molecular y citogenética (1º)",
+            "cod_mod": "1369",
+            "cod_ciclo": "SAN301_LOE",
+            "ciclo": "Anatomía Patológica y Citodiagnóstico",
+            "curso": 1
+        },
+        {
+            "nombre": "Fisiopatología general (1º)",
+            "cod_mod": "1370",
+            "cod_ciclo": "SAN301_LOE",
+            "ciclo": "Anatomía Patológica y Citodiagnóstico",
+            "curso": 1
+        },
+        {
+            "nombre": "Necropsias (2º)",
+            "cod_mod": "1379",
+            "cod_ciclo": "SAN301_LOE",
+            "ciclo": "Anatomía Patológica y Citodiagnóstico",
+            "curso": 2
+        },
+        {
+            "nombre": "Procesamiento citológico y tisular (2º)",
+            "cod_mod": "1380",
+            "cod_ciclo": "SAN301_LOE",
+            "ciclo": "Anatomía Patológica y Citodiagnóstico",
+            "curso": 2
+        },
+        {
+            "nombre": "Citología ginecológica (2º)",
+            "cod_mod": "1381",
+            "cod_ciclo": "SAN301_LOE",
+            "ciclo": "Anatomía Patológica y Citodiagnóstico",
+            "curso": 2
+        },
+        {
+            "nombre": "Citología general (2º)",
+            "cod_mod": "1382",
+            "cod_ciclo": "SAN301_LOE",
+            "ciclo": "Anatomía Patológica y Citodiagnóstico",
+            "curso": 2
+        },
+        {
+            "nombre": "Proyecto de Anatomía Patológica y citodiagnóstico (2º)",
+            "cod_mod": "1383",
+            "cod_ciclo": "SAN301_LOE",
+            "ciclo": "Anatomía Patológica y Citodiagnóstico",
+            "curso": 2
+        },
+        {
+            "nombre": "Formación y orientación laboral (1º)",
+            "cod_mod": "1384",
+            "cod_ciclo": "SAN301_LOE",
+            "ciclo": "Anatomía Patológica y Citodiagnóstico",
+            "curso": 1
+        },
+        {
+            "nombre": "Empresa e iniciativa emprendedora (1º)",
+            "cod_mod": "1385",
+            "cod_ciclo": "SAN301_LOE",
+            "ciclo": "Anatomía Patológica y Citodiagnóstico",
+            "curso": 1
+        },
+        {
+            "nombre": "Formación en centros de trabajo (2º)",
+            "cod_mod": "1386",
+            "cod_ciclo": "SAN301_LOE",
+            "ciclo": "Anatomía Patológica y Citodiagnóstico",
+            "curso": 2
+        },
+        {
+            "nombre": "Lengua extranjera profesional: inglés1 (1º)",
+            "cod_mod": "A109",
+            "cod_ciclo": "SAN301_LOE",
+            "ciclo": "Anatomía Patológica y Citodiagnóstico",
+            "curso": 1
+        },
+        {
+            "nombre": "Lengua extranjera profesional: inglés2 (2º)",
+            "cod_mod": "A110",
+            "cod_ciclo": "SAN301_LOE",
+            "ciclo": "Anatomía Patológica y Citodiagnóstico",
+            "curso": 2
+        },
+        {
+            "nombre": "Actividades físico-deportivas de equipo (2º)",
+            "cod_mod": "007",
+            "cod_ciclo": "AFD301_LOGSE",
+            "ciclo": "Animación de Actividades Físicas y Deportivas",
+            "curso": 2
+        },
+        {
+            "nombre": "Primeros auxilios y socorrismo acuático (2º)",
+            "cod_mod": "008",
+            "cod_ciclo": "AFD301_LOGSE",
+            "ciclo": "Animación de Actividades Físicas y Deportivas",
+            "curso": 2
+        },
+        {
+            "nombre": "Organización y gestión de una pequeña empresa de actividades de tiempo libre y socioeducativas (2º)",
+            "cod_mod": "009",
+            "cod_ciclo": "AFD301_LOGSE",
+            "ciclo": "Animación de Actividades Físicas y Deportivas",
+            "curso": 2
+        },
+        {
+            "nombre": "Actividades físicas para personas con discapacidades (2º)",
+            "cod_mod": "010",
+            "cod_ciclo": "AFD301_LOGSE",
+            "ciclo": "Animación de Actividades Físicas y Deportivas",
+            "curso": 2
+        },
+        {
+            "nombre": "Formación y orientación laboral (2º)",
+            "cod_mod": "011",
+            "cod_ciclo": "AFD301_LOGSE",
+            "ciclo": "Animación de Actividades Físicas y Deportivas",
+            "curso": 2
+        },
+        {
+            "nombre": "Fundamentos biológicos y bases del acondicionamiento físico (1º)",
+            "cod_mod": "002",
+            "cod_ciclo": "AFD301_LOGSE",
+            "ciclo": "Animación de Actividades Físicas y Deportivas",
+            "curso": 1
+        },
+        {
+            "nombre": "Formación en centros de trabajo (2º)",
+            "cod_mod": "012",
+            "cod_ciclo": "AFD301_LOGSE",
+            "ciclo": "Animación de Actividades Físicas y Deportivas",
+            "curso": 2
+        },
+        {
+            "nombre": "Animación y dinámica de grupos (1º)",
+            "cod_mod": "006",
+            "cod_ciclo": "AFD301_LOGSE",
+            "ciclo": "Animación de Actividades Físicas y Deportivas",
+            "curso": 1
+        },
+        {
+            "nombre": "Actividades físico-deportivas con implementos (1º)",
+            "cod_mod": "003",
+            "cod_ciclo": "AFD301_LOGSE",
+            "ciclo": "Animación de Actividades Físicas y Deportivas",
+            "curso": 1
+        },
+        {
+            "nombre": "Juegos y actividades físicas recreativas para animación (1º)",
+            "cod_mod": "004",
+            "cod_ciclo": "AFD301_LOGSE",
+            "ciclo": "Animación de Actividades Físicas y Deportivas",
+            "curso": 1
+        },
+        {
+            "nombre": "Actividades físico-deportivas individuales (1º)",
+            "cod_mod": "001",
+            "cod_ciclo": "AFD301_LOGSE",
+            "ciclo": "Animación de Actividades Físicas y Deportivas",
+            "curso": 1
+        },
+        {
+            "nombre": "Metodología didáctica de las actividades físico-deportivas (1º)",
+            "cod_mod": "005",
+            "cod_ciclo": "AFD301_LOGSE",
+            "ciclo": "Animación de Actividades Físicas y Deportivas",
+            "curso": 1
+        },
+        {
+            "nombre": "Conducción de grupos a caballo y cuidados equinos básicos (1º)",
+            "cod_mod": "002",
+            "cod_ciclo": "AFD201_LOGSE",
+            "ciclo": "Conducción de Actividades Físico-Deportivas en el Medio Natural",
+            "curso": 1
+        },
+        {
+            "nombre": "Formación en centros d etrabajo (1º)",
+            "cod_mod": "009",
+            "cod_ciclo": "AFD201_LOGSE",
+            "ciclo": "Conducción de Actividades Físico-Deportivas en el Medio Natural",
+            "curso": 1
+        },
+        {
+            "nombre": "Formación y orientación laboral (1º)",
+            "cod_mod": "008",
+            "cod_ciclo": "AFD201_LOGSE",
+            "ciclo": "Conducción de Actividades Físico-Deportivas en el Medio Natural",
+            "curso": 1
+        },
+        {
+            "nombre": "Dinámica de grupos (1º)",
+            "cod_mod": "007",
+            "cod_ciclo": "AFD201_LOGSE",
+            "ciclo": "Conducción de Actividades Físico-Deportivas en el Medio Natural",
+            "curso": 1
+        },
+        {
+            "nombre": "Actividades físicas para personas con discapacidades (1º)",
+            "cod_mod": "006",
+            "cod_ciclo": "AFD201_LOGSE",
+            "ciclo": "Conducción de Actividades Físico-Deportivas en el Medio Natural",
+            "curso": 1
+        },
+        {
+            "nombre": "Fundamentos biológicos, salud y primeros auxilios (1º)",
+            "cod_mod": "004",
+            "cod_ciclo": "AFD201_LOGSE",
+            "ciclo": "Conducción de Actividades Físico-Deportivas en el Medio Natural",
+            "curso": 1
+        },
+        {
+            "nombre": "Conducción de grupos en bicicleta (1º)",
+            "cod_mod": "003",
+            "cod_ciclo": "AFD201_LOGSE",
+            "ciclo": "Conducción de Actividades Físico-Deportivas en el Medio Natural",
+            "curso": 1
+        },
+        {
+            "nombre": "Desplazamiento, estancia y seguridad en el medio terrestre (1º)",
+            "cod_mod": "001",
+            "cod_ciclo": "AFD201_LOGSE",
+            "ciclo": "Conducción de Actividades Físico-Deportivas en el Medio Natural",
+            "curso": 1
+        },
+        {
+            "nombre": "Administración, gestión y comercialización en la pequeña empresa (1º)",
+            "cod_mod": "005",
+            "cod_ciclo": "AFD201_LOGSE",
+            "ciclo": "Conducción de Actividades Físico-Deportivas en el Medio Natural",
+            "curso": 1
+        },
+        {
+            "nombre": "Operaciones administrativas y documentación sanitaria (1º)",
+            "cod_mod": "005",
+            "cod_ciclo": "SAN201_LOGSE",
+            "ciclo": "Cuidados Auxiliares de Enfermería",
+            "curso": 1
+        },
+        {
+            "nombre": "Técnicas básicas de enfermería (1º)",
+            "cod_mod": "001",
+            "cod_ciclo": "SAN201_LOGSE",
+            "ciclo": "Cuidados Auxiliares de Enfermería",
+            "curso": 1
+        },
+        {
+            "nombre": "Higiene del medio hospitalario y limpieza de material (1º)",
+            "cod_mod": "002",
+            "cod_ciclo": "SAN201_LOGSE",
+            "ciclo": "Cuidados Auxiliares de Enfermería",
+            "curso": 1
+        },
+        {
+            "nombre": "Promoción de la salud y apoyo psicológico al paciente (1º)",
+            "cod_mod": "003",
+            "cod_ciclo": "SAN201_LOGSE",
+            "ciclo": "Cuidados Auxiliares de Enfermería",
+            "curso": 1
+        },
+        {
+            "nombre": "Técnicas de ayuda odontológica\/estomatológica (1º)",
+            "cod_mod": "004",
+            "cod_ciclo": "SAN201_LOGSE",
+            "ciclo": "Cuidados Auxiliares de Enfermería",
+            "curso": 1
+        },
+        {
+            "nombre": "Formación en centros de trabajo (2º)",
+            "cod_mod": "008",
+            "cod_ciclo": "SAN201_LOGSE",
+            "ciclo": "Cuidados Auxiliares de Enfermería",
+            "curso": 2
+        },
+        {
+            "nombre": "Formación y orientación laboral (1º)",
+            "cod_mod": "007",
+            "cod_ciclo": "SAN201_LOGSE",
+            "ciclo": "Cuidados Auxiliares de Enfermería",
+            "curso": 1
+        },
+        {
+            "nombre": "Relaciones en el equipo de trabajo (1º)",
+            "cod_mod": "006",
+            "cod_ciclo": "SAN201_LOGSE",
+            "ciclo": "Cuidados Auxiliares de Enfermería",
+            "curso": 1
+        },
+        {
+            "nombre": "Bases de Datos (1º)",
+            "cod_mod": "0484",
+            "cod_ciclo": "IFC302_LOE",
+            "ciclo": "Desarrollo de Aplicaciones Multiplataforma",
+            "curso": 1
+        },
+        {
+            "nombre": "Sistemas informáticos (1º)",
+            "cod_mod": "0483",
+            "cod_ciclo": "IFC302_LOE",
+            "ciclo": "Desarrollo de Aplicaciones Multiplataforma",
+            "curso": 1
+        },
+        {
+            "nombre": "Sistemas de gestión empresarial (2º)",
+            "cod_mod": "0491",
+            "cod_ciclo": "IFC302_LOE",
+            "ciclo": "Desarrollo de Aplicaciones Multiplataforma",
+            "curso": 2
+        },
+        {
+            "nombre": "Programación (1º)",
+            "cod_mod": "0485",
+            "cod_ciclo": "IFC302_LOE",
+            "ciclo": "Desarrollo de Aplicaciones Multiplataforma",
+            "curso": 1
+        },
+        {
+            "nombre": "Formación y orientación laboral (1º)",
+            "cod_mod": "0493",
+            "cod_ciclo": "IFC302_LOE",
+            "ciclo": "Desarrollo de Aplicaciones Multiplataforma",
+            "curso": 1
+        },
+        {
+            "nombre": "Lengua extranjera profesional: inglés2 (2º)",
+            "cod_mod": "A051",
+            "cod_ciclo": "IFC302_LOE",
+            "ciclo": "Desarrollo de Aplicaciones Multiplataforma",
+            "curso": 2
+        },
+        {
+            "nombre": "Formación en centros de trabajo (2º)",
+            "cod_mod": "0495",
+            "cod_ciclo": "IFC302_LOE",
+            "ciclo": "Desarrollo de Aplicaciones Multiplataforma",
+            "curso": 2
+        },
+        {
+            "nombre": "Empresa e iniciativa emprendedora (2º)",
+            "cod_mod": "0494",
+            "cod_ciclo": "IFC302_LOE",
+            "ciclo": "Desarrollo de Aplicaciones Multiplataforma",
+            "curso": 2
+        },
+        {
+            "nombre": "Lenguajes de marcas y sistemas de gestión de información (1º)",
+            "cod_mod": "0373",
+            "cod_ciclo": "IFC302_LOE",
+            "ciclo": "Desarrollo de Aplicaciones Multiplataforma",
+            "curso": 1
+        },
+        {
+            "nombre": "Entornos de desarrollo (1º)",
+            "cod_mod": "0487",
+            "cod_ciclo": "IFC302_LOE",
+            "ciclo": "Desarrollo de Aplicaciones Multiplataforma",
+            "curso": 1
+        },
+        {
+            "nombre": "Programación de servicios y procesos (2º)",
+            "cod_mod": "0490",
+            "cod_ciclo": "IFC302_LOE",
+            "ciclo": "Desarrollo de Aplicaciones Multiplataforma",
+            "curso": 2
+        },
+        {
+            "nombre": "Programación multimedia y dispositivos móviles (2º)",
+            "cod_mod": "0489",
+            "cod_ciclo": "IFC302_LOE",
+            "ciclo": "Desarrollo de Aplicaciones Multiplataforma",
+            "curso": 2
+        },
+        {
+            "nombre": "Desarrollo de interfaces (2º)",
+            "cod_mod": "0488",
+            "cod_ciclo": "IFC302_LOE",
+            "ciclo": "Desarrollo de Aplicaciones Multiplataforma",
+            "curso": 2
+        },
+        {
+            "nombre": "Acceso a datos (2º)",
+            "cod_mod": "0486",
+            "cod_ciclo": "IFC302_LOE",
+            "ciclo": "Desarrollo de Aplicaciones Multiplataforma",
+            "curso": 2
+        },
+        {
+            "nombre": "Lengua extranjera profesional: inglés1 (1º)",
+            "cod_mod": "A050",
+            "cod_ciclo": "IFC302_LOE",
+            "ciclo": "Desarrollo de Aplicaciones Multiplataforma",
+            "curso": 1
+        },
+        {
+            "nombre": "Proyecto de Desarrollo de Aplicaciones Multiplataforma (2º)",
+            "cod_mod": "0492",
+            "cod_ciclo": "IFC302_LOE",
+            "ciclo": "Desarrollo de Aplicaciones Multiplataforma",
+            "curso": 2
+        },
+        {
+            "nombre": "Fisiopatología aplicada a la dietética (1º)",
+            "cod_mod": "002",
+            "cod_ciclo": "SAN302_LOGSE",
+            "ciclo": "Dietética",
+            "curso": 1
+        },
+        {
+            "nombre": "Control alimentario (1º)",
+            "cod_mod": "003",
+            "cod_ciclo": "SAN302_LOGSE",
+            "ciclo": "Dietética",
+            "curso": 1
+        },
+        {
+            "nombre": "Organización y gestión del área de trabajo asignada en la unidad\/gabinete de dietética (1º)",
+            "cod_mod": "004",
+            "cod_ciclo": "SAN302_LOGSE",
+            "ciclo": "Dietética",
+            "curso": 1
+        },
+        {
+            "nombre": "Relaciones en el entorno de trabajo (1º)",
+            "cod_mod": "005",
+            "cod_ciclo": "SAN302_LOGSE",
+            "ciclo": "Dietética",
+            "curso": 1
+        },
+        {
+            "nombre": "Formación en centros de trabajo (2º)",
+            "cod_mod": "010",
+            "cod_ciclo": "SAN302_LOGSE",
+            "ciclo": "Dietética",
+            "curso": 2
+        },
+        {
+            "nombre": "Formación y orientación laboral (1º)",
+            "cod_mod": "006",
+            "cod_ciclo": "SAN302_LOGSE",
+            "ciclo": "Dietética",
+            "curso": 1
+        },
+        {
+            "nombre": "Educación sanitaria y promoción de la salud (2º)",
+            "cod_mod": "009",
+            "cod_ciclo": "SAN302_LOGSE",
+            "ciclo": "Dietética",
+            "curso": 2
+        },
+        {
+            "nombre": "Dietoterapia (2º)",
+            "cod_mod": "007",
+            "cod_ciclo": "SAN302_LOGSE",
+            "ciclo": "Dietética",
+            "curso": 2
+        },
+        {
+            "nombre": "Microbiología e higiene alimentaria (2º)",
+            "cod_mod": "008",
+            "cod_ciclo": "SAN302_LOGSE",
+            "ciclo": "Dietética",
+            "curso": 2
+        },
+        {
+            "nombre": "Alimentación equilibrada (1º)",
+            "cod_mod": "001",
+            "cod_ciclo": "SAN302_LOGSE",
+            "ciclo": "Dietética",
+            "curso": 1
+        },
+        {
+            "nombre": "Juegos y actividades físico-recreativas y de animación (1º)",
+            "cod_mod": "1138",
+            "cod_ciclo": "AFD301_LOE",
+            "ciclo": "Enseñanza y Animación Sociodeportiva",
+            "curso": 1
+        },
+        {
+            "nombre": "Actividades físico-deportivas para la inclusión social (2º)",
+            "cod_mod": "1142",
+            "cod_ciclo": "AFD301_LOE",
+            "ciclo": "Enseñanza y Animación Sociodeportiva",
+            "curso": 2
+        },
+        {
+            "nombre": "Actividades de ocio y tiempo libre (2º)",
+            "cod_mod": "1123",
+            "cod_ciclo": "AFD301_LOE",
+            "ciclo": "Enseñanza y Animación Sociodeportiva",
+            "curso": 2
+        },
+        {
+            "nombre": "Dinamización grupal (1º)",
+            "cod_mod": "1124",
+            "cod_ciclo": "AFD301_LOE",
+            "ciclo": "Enseñanza y Animación Sociodeportiva",
+            "curso": 1
+        },
+        {
+            "nombre": "Valoración de la condición física e intervención en accidentes (1º)",
+            "cod_mod": "1136",
+            "cod_ciclo": "AFD301_LOE",
+            "ciclo": "Enseñanza y Animación Sociodeportiva",
+            "curso": 1
+        },
+        {
+            "nombre": "Planificación de la animación sociodeportiva (2º)",
+            "cod_mod": "1137",
+            "cod_ciclo": "AFD301_LOE",
+            "ciclo": "Enseñanza y Animación Sociodeportiva",
+            "curso": 2
+        },
+        {
+            "nombre": "Actividades físico-deportivas de equipo (2º)",
+            "cod_mod": "1140",
+            "cod_ciclo": "AFD301_LOE",
+            "ciclo": "Enseñanza y Animación Sociodeportiva",
+            "curso": 2
+        },
+        {
+            "nombre": "Actividades físico-deportivas de implementos (2º)",
+            "cod_mod": "1141",
+            "cod_ciclo": "AFD301_LOE",
+            "ciclo": "Enseñanza y Animación Sociodeportiva",
+            "curso": 2
+        },
+        {
+            "nombre": "Formación en centros de trabajo (2º)",
+            "cod_mod": "1147",
+            "cod_ciclo": "AFD301_LOE",
+            "ciclo": "Enseñanza y Animación Sociodeportiva",
+            "curso": 2
+        },
+        {
+            "nombre": "Metodología de la enseñanza de actividades físico-deportivas (1º)",
+            "cod_mod": "1143",
+            "cod_ciclo": "AFD301_LOE",
+            "ciclo": "Enseñanza y Animación Sociodeportiva",
+            "curso": 1
+        },
+        {
+            "nombre": "Proyecto de Enseñanza y Animación Sociodeportiva (2º)",
+            "cod_mod": "1144",
+            "cod_ciclo": "AFD301_LOE",
+            "ciclo": "Enseñanza y Animación Sociodeportiva",
+            "curso": 2
+        },
+        {
+            "nombre": "Formación y orientación laboral (1º)",
+            "cod_mod": "1145",
+            "cod_ciclo": "AFD301_LOE",
+            "ciclo": "Enseñanza y Animación Sociodeportiva",
+            "curso": 1
+        },
+        {
+            "nombre": "Empresa e iniciativa emprendedora (2º)",
+            "cod_mod": "1146",
+            "cod_ciclo": "AFD301_LOE",
+            "ciclo": "Enseñanza y Animación Sociodeportiva",
+            "curso": 2
+        },
+        {
+            "nombre": "Lengua extranjera profesional: inglés1 (1º)",
+            "cod_mod": "A142",
+            "cod_ciclo": "AFD301_LOE",
+            "ciclo": "Enseñanza y Animación Sociodeportiva",
+            "curso": 1
+        },
+        {
+            "nombre": "Lengua extranjera profesional: inglés2 (2º)",
+            "cod_mod": "A143",
+            "cod_ciclo": "AFD301_LOE",
+            "ciclo": "Enseñanza y Animación Sociodeportiva",
+            "curso": 2
+        },
+        {
+            "nombre": "Actividades físico-deportivas individuales (1º)",
+            "cod_mod": "1139",
+            "cod_ciclo": "AFD301_LOE",
+            "ciclo": "Enseñanza y Animación Sociodeportiva",
+            "curso": 1
+        },
+        {
+            "nombre": "Oficina de farmacia (1º)",
+            "cod_mod": "0100",
+            "cod_ciclo": "SAN202_LOE",
+            "ciclo": "Farmacia y Parafarmacia",
+            "curso": 1
+        },
+        {
+            "nombre": "Formulación magistral (2º)",
+            "cod_mod": "0104",
+            "cod_ciclo": "SAN202_LOE",
+            "ciclo": "Farmacia y Parafarmacia",
+            "curso": 2
+        },
+        {
+            "nombre": "Primeros auxilios (1º)",
+            "cod_mod": "0020",
+            "cod_ciclo": "SAN202_LOE",
+            "ciclo": "Farmacia y Parafarmacia",
+            "curso": 1
+        },
+        {
+            "nombre": "Anatomofisiología y Patología básicas (1º)",
+            "cod_mod": "0061",
+            "cod_ciclo": "SAN202_LOE",
+            "ciclo": "Farmacia y Parafarmacia",
+            "curso": 1
+        },
+        {
+            "nombre": "Formación en centros de trabajo (2º)",
+            "cod_mod": "0108",
+            "cod_ciclo": "SAN202_LOE",
+            "ciclo": "Farmacia y Parafarmacia",
+            "curso": 2
+        },
+        {
+            "nombre": "Promoción de la salud (2º)",
+            "cod_mod": "0105",
+            "cod_ciclo": "SAN202_LOE",
+            "ciclo": "Farmacia y Parafarmacia",
+            "curso": 2
+        },
+        {
+            "nombre": "Dispensación de productos parafarmacéuticos (2º)",
+            "cod_mod": "0102",
+            "cod_ciclo": "SAN202_LOE",
+            "ciclo": "Farmacia y Parafarmacia",
+            "curso": 2
+        },
+        {
+            "nombre": "Formación y orientación laboral (1º)",
+            "cod_mod": "0106",
+            "cod_ciclo": "SAN202_LOE",
+            "ciclo": "Farmacia y Parafarmacia",
+            "curso": 1
+        },
+        {
+            "nombre": "Operaciones básicas de laboratorio (1º)",
+            "cod_mod": "0103",
+            "cod_ciclo": "SAN202_LOE",
+            "ciclo": "Farmacia y Parafarmacia",
+            "curso": 1
+        },
+        {
+            "nombre": "Dispensación de productos farmacéuticos (1º)",
+            "cod_mod": "0101",
+            "cod_ciclo": "SAN202_LOE",
+            "ciclo": "Farmacia y Parafarmacia",
+            "curso": 1
+        },
+        {
+            "nombre": "Disposición y venta de productos (1º)",
+            "cod_mod": "0099",
+            "cod_ciclo": "SAN202_LOE",
+            "ciclo": "Farmacia y Parafarmacia",
+            "curso": 1
+        },
+        {
+            "nombre": "Empresa e iniciativa emprendedora (2º)",
+            "cod_mod": "0107",
+            "cod_ciclo": "SAN202_LOE",
+            "ciclo": "Farmacia y Parafarmacia",
+            "curso": 2
+        },
+        {
+            "nombre": "Socorrismo en el medio natural (2º)",
+            "cod_mod": "1337",
+            "cod_ciclo": "AFD201_LOE",
+            "ciclo": "Guía en el Medio Natural y de Tiempo Libre",
+            "curso": 2
+        },
+        {
+            "nombre": "Técnicas de natación (1º)",
+            "cod_mod": "1336",
+            "cod_ciclo": "AFD201_LOE",
+            "ciclo": "Guía en el Medio Natural y de Tiempo Libre",
+            "curso": 1
+        },
+        {
+            "nombre": "Empresa e iniciativa emprendedora (2º)",
+            "cod_mod": "1341",
+            "cod_ciclo": "AFD201_LOE",
+            "ciclo": "Guía en el Medio Natural y de Tiempo Libre",
+            "curso": 2
+        },
+        {
+            "nombre": "Formación y orientación laboral (1º)",
+            "cod_mod": "1340",
+            "cod_ciclo": "AFD201_LOE",
+            "ciclo": "Guía en el Medio Natural y de Tiempo Libre",
+            "curso": 1
+        },
+        {
+            "nombre": "Formación en centros de trabajo (2º)",
+            "cod_mod": "1342",
+            "cod_ciclo": "AFD201_LOE",
+            "ciclo": "Guía en el Medio Natural y de Tiempo Libre",
+            "curso": 2
+        },
+        {
+            "nombre": "Guía en el medio natural acuático (2º)",
+            "cod_mod": "1338",
+            "cod_ciclo": "AFD201_LOE",
+            "ciclo": "Guía en el Medio Natural y de Tiempo Libre",
+            "curso": 2
+        },
+        {
+            "nombre": "Guía de bicicleta (1º)",
+            "cod_mod": "1334",
+            "cod_ciclo": "AFD201_LOE",
+            "ciclo": "Guía en el Medio Natural y de Tiempo Libre",
+            "curso": 1
+        },
+        {
+            "nombre": "Guía de baja y media montaña (1º)",
+            "cod_mod": "1333",
+            "cod_ciclo": "AFD201_LOE",
+            "ciclo": "Guía en el Medio Natural y de Tiempo Libre",
+            "curso": 1
+        },
+        {
+            "nombre": "Organización de itinerarios (1º)",
+            "cod_mod": "1329",
+            "cod_ciclo": "AFD201_LOE",
+            "ciclo": "Guía en el Medio Natural y de Tiempo Libre",
+            "curso": 1
+        },
+        {
+            "nombre": "Atención a grupos (1º)",
+            "cod_mod": "1328",
+            "cod_ciclo": "AFD201_LOE",
+            "ciclo": "Guía en el Medio Natural y de Tiempo Libre",
+            "curso": 1
+        },
+        {
+            "nombre": "Guía ecuestre (2º)",
+            "cod_mod": "1327",
+            "cod_ciclo": "AFD201_LOE",
+            "ciclo": "Guía en el Medio Natural y de Tiempo Libre",
+            "curso": 2
+        },
+        {
+            "nombre": "Técnicas de equitación (1º)",
+            "cod_mod": "1325",
+            "cod_ciclo": "AFD201_LOE",
+            "ciclo": "Guía en el Medio Natural y de Tiempo Libre",
+            "curso": 1
+        },
+        {
+            "nombre": "Maniobras con cuerdas (2º)",
+            "cod_mod": "1339",
+            "cod_ciclo": "AFD201_LOE",
+            "ciclo": "Guía en el Medio Natural y de Tiempo Libre",
+            "curso": 2
+        },
+        {
+            "nombre": "Técnicas de tiempo libre (2º)",
+            "cod_mod": "1335",
+            "cod_ciclo": "AFD201_LOE",
+            "ciclo": "Guía en el Medio Natural y de Tiempo Libre",
+            "curso": 2
+        },
+        {
+            "nombre": "Técnicas de radiología simple (2º)",
+            "cod_mod": "1349",
+            "cod_ciclo": "SAN305_LOE",
+            "ciclo": "Imagen para el Diagnóstico y Medicina Nuclear",
+            "curso": 2
+        },
+        {
+            "nombre": "Proyecto de Imagen para el Diagnóstico y Medicina Nuclear (2º)",
+            "cod_mod": "1355",
+            "cod_ciclo": "SAN305_LOE",
+            "ciclo": "Imagen para el Diagnóstico y Medicina Nuclear",
+            "curso": 2
+        },
+        {
+            "nombre": "Técnicas de imagen en medicina nuclear (2º)",
+            "cod_mod": "1353",
+            "cod_ciclo": "SAN305_LOE",
+            "ciclo": "Imagen para el Diagnóstico y Medicina Nuclear",
+            "curso": 2
+        },
+        {
+            "nombre": "Técnicas de imagen por resonancia magnética (2º)",
+            "cod_mod": "1352",
+            "cod_ciclo": "SAN305_LOE",
+            "ciclo": "Imagen para el Diagnóstico y Medicina Nuclear",
+            "curso": 2
+        },
+        {
+            "nombre": "Lengua extranjera profesional: inglés2 (2º)",
+            "cod_mod": "A116",
+            "cod_ciclo": "SAN305_LOE",
+            "ciclo": "Imagen para el Diagnóstico y Medicina Nuclear",
+            "curso": 2
+        },
+        {
+            "nombre": "Técnicas de radiología especial (2º)",
+            "cod_mod": "1350",
+            "cod_ciclo": "SAN305_LOE",
+            "ciclo": "Imagen para el Diagnóstico y Medicina Nuclear",
+            "curso": 2
+        },
+        {
+            "nombre": "Formación y orientación laboral (1º)",
+            "cod_mod": "1356",
+            "cod_ciclo": "SAN305_LOE",
+            "ciclo": "Imagen para el Diagnóstico y Medicina Nuclear",
+            "curso": 1
+        },
+        {
+            "nombre": "Técnicas de radiofarmacia (2º)",
+            "cod_mod": "1354",
+            "cod_ciclo": "SAN305_LOE",
+            "ciclo": "Imagen para el Diagnóstico y Medicina Nuclear",
+            "curso": 2
+        },
+        {
+            "nombre": "Formación en centros de trabajo (2º)",
+            "cod_mod": "1358",
+            "cod_ciclo": "SAN305_LOE",
+            "ciclo": "Imagen para el Diagnóstico y Medicina Nuclear",
+            "curso": 2
+        },
+        {
+            "nombre": "Protección radiológica (1º)",
+            "cod_mod": "1348",
+            "cod_ciclo": "SAN305_LOE",
+            "ciclo": "Imagen para el Diagnóstico y Medicina Nuclear",
+            "curso": 1
+        },
+        {
+            "nombre": "Fundamentos físicos y equipos (1º)",
+            "cod_mod": "1346",
+            "cod_ciclo": "SAN305_LOE",
+            "ciclo": "Imagen para el Diagnóstico y Medicina Nuclear",
+            "curso": 1
+        },
+        {
+            "nombre": "Atención al paciente (1º)",
+            "cod_mod": "1345",
+            "cod_ciclo": "SAN305_LOE",
+            "ciclo": "Imagen para el Diagnóstico y Medicina Nuclear",
+            "curso": 1
+        },
+        {
+            "nombre": "Anatomía por la imagen ( 1º )",
+            "cod_mod": "1347",
+            "cod_ciclo": "SAN305_LOE",
+            "ciclo": "Imagen para el Diagnóstico y Medicina Nuclear",
+            "curso": 1
+        },
+        {
+            "nombre": "Empresa e iniciativa emprendedora ( 1º)",
+            "cod_mod": "1357",
+            "cod_ciclo": "SAN305_LOE",
+            "ciclo": "Imagen para el Diagnóstico y Medicina Nuclear",
+            "curso": 1
+        },
+        {
+            "nombre": "Técnicas de tomografía computarizada y ecografía (2º)",
+            "cod_mod": "1351",
+            "cod_ciclo": "SAN305_LOE",
+            "ciclo": "Imagen para el Diagnóstico y Medicina Nuclear",
+            "curso": 2
+        },
+        {
+            "nombre": "Lengua extranjera profesional: inglés1 (1º)",
+            "cod_mod": "A115",
+            "cod_ciclo": "SAN305_LOE",
+            "ciclo": "Imagen para el Diagnóstico y Medicina Nuclear",
+            "curso": 1
+        }
+    ]
+}
