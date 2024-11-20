@@ -1,21 +1,18 @@
 import React from 'react';
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
+import { Input } from "@/components/ui/input";
+
+import { Student } from '@/interfaces';
+
+import { useVirtualizer } from '@tanstack/react-virtual';
 import {
-  Column,
   ColumnDef,
   ColumnFiltersState,
-  RowData,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
   useReactTable
 } from '@tanstack/react-table';
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
-import { Input } from "@/components/ui/input";
-import { Student } from '@/interfaces';
-
-import { useVirtualizer, Virtualizer } from '@tanstack/react-virtual';
 
 interface StudentTableProps {
   students: Student[];
@@ -39,10 +36,12 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
       {
         accessorKey: 'nombre',
         header: 'Nombre',
+        size: 100,
       },
       {
         accessorKey: 'fecha_nacimiento',
         header: 'Fecha de Nacimiento',
+        size: 160,
         // Custom cell rendering for date formatting
         cell: info => new Date(info.getValue<string>()).toLocaleDateString(),
       },
@@ -107,7 +106,7 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
                         value={(header.column.getFilterValue() as string) ?? ''}
                         onChange={e => header.column.setFilterValue(e.target.value)}
                         placeholder=". . ."
-                        className="h-7 w-[calc(100%-0.5rem)] text-xs px-2 py-1 m-1 bg-white"
+                        className="h-7 w-[calc(100%-0.5rem)] text-xs px-2 py-1 bg-white"
                       />
                     )}
                   </TableHead>
@@ -128,6 +127,7 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
                 return (
                   <TableRow
                     key={row.id}
+                    className='border-none'
                     style={{
                       height: `${virtualRow.size}px`,
                       transform: `translateY(${virtualRow.start - index * virtualRow.size}px)`,
@@ -135,7 +135,7 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
                   >
                     {row.getVisibleCells().map((cell) => {
                       return (
-                        <TableCell key={cell.id}>
+                        <TableCell key={cell.id} style={{ width: cell.column.getSize() }}>
                           {flexRender(
                             cell.column.columnDef.cell,
                             cell.getContext()

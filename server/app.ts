@@ -21,7 +21,7 @@ app.get("/health", c => {
 const apiRoutes = app.basePath("/api")
     .route("/students", studentsRoute)
     .route("/modulos", modulosRoute)
-
+    .route("/ciclos", ciclosFormativosRoute);
 /* 
 apiRoutes.route("/calificaciones", calificacionesRoute);
 apiRoutes.route("/certificados", certificadosRoute);

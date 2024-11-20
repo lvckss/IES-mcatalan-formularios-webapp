@@ -1,14 +1,16 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { createCicloFormativoSchema } from "../models/cicloFormativo";
+/* import { createCicloFormativoSchema } from "../models/cicloFormativo"; */
 import { getCiclosFormativos, createCicloFormativo, getCicloFormativoById, deleteCicloFormativo } from "../controllers/ciclosFormativosController";
+
+import ciclos_unicos from "../fakedata/ciclos.json";
 
 export const ciclosFormativosRoute = new Hono()
     .get("/", async (c) => {
-        const result = await getCiclosFormativos();
-        return c.json({ ciclosFormativos: result });
+        /* const result = await getCiclosFormativos(); */
+        return c.json({ ciclos_unicos });
     })
-    .post("/", zValidator("json", createCicloFormativoSchema), async (c) => {
+    /* .post("/", zValidator("json", createCicloFormativoSchema), async (c) => {
         const cicloFormativo = await c.req.valid("json");
         const result = await createCicloFormativo(cicloFormativo);
         c.status(201);
@@ -29,4 +31,4 @@ export const ciclosFormativosRoute = new Hono()
             return c.notFound();
         }
         return c.json({ cicloFormativo: result[0] });
-    });
+    }); */

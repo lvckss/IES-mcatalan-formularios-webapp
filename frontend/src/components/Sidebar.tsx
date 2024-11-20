@@ -1,6 +1,6 @@
 import React from 'react';
 import { UsersIcon, FileIcon, AwardIcon, LayoutDashboardIcon, Package2Icon } from '@/components/icons/index';
-import logo from '../assets/ies-mcatalan-logo.png';
+import logo from '@/assets/ies-mcatalan-logo.png';
 
 interface SidebarProps {
   setActiveTab: (tab: 'Estudiantes' | 'Certificados') => void;

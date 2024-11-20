@@ -1,0 +1,44 @@
+{
+    "ciclos": [
+        {
+            "codigo": "SAN301_LOE",
+            "nombre": "Anatomía Patológica y Citodiagnóstico"
+        },
+        {
+            "codigo": "AFD301_LOGSE",
+            "nombre": "Animación de Actividades Físicas y Deportivas"
+        },
+        {
+            "codigo": "AFD201_LOGSE",
+            "nombre": "Conducción de Actividades Físico-Deportivas en el Medio Natural"
+        },
+        {
+            "codigo": "SAN201_LOGSE",
+            "nombre": "Cuidados Auxiliares de Enfermería"
+        },
+        {
+            "codigo": "IFC302_LOE",
+            "nombre": "Desarrollo de Aplicaciones Multiplataforma"
+        },
+        {
+            "codigo": "SAN302_LOGSE",
+            "nombre": "Dietética"
+        },
+        {
+            "codigo": "AFD301_LOE",
+            "nombre": "Enseñanza y Animación Sociodeportiva"
+        },
+        {
+            "codigo": "SAN202_LOE",
+            "nombre": "Farmacia y Parafarmacia"
+        },
+        {
+            "codigo": "AFD201_LOE",
+            "nombre": "Guía en el Medio Natural y de Tiempo Libre"
+        },
+        {
+            "codigo": "SAN305_LOE",
+            "nombre": "Imagen para el Diagnóstico y Medicina Nuclear"
+        }
+    ]
+}

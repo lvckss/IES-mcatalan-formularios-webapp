@@ -4,7 +4,7 @@ import { type Student, StudentSchema, createStudentSchema } from "../models/stud
 /* import { getAlumnos, createAlumno, getAlumnoById, deleteAlumno } from "../controllers/alumnosController"; */
 import { resolveTypeReferenceDirective } from "typescript";
 
-const fakeStudents: Student[] = [    
+const fakeStudents: Student[] = [
     {
         id_student: 1,
         nombre: "Juan",
@@ -2270,28 +2270,28 @@ export const studentsRoute = new Hono()
     .get("/", async (c) => {
         return c.json({ students: fakeStudents });
     })
-    .post("/", zValidator("json", createStudentSchema), async (c) => {
-        const data = await c.req.valid("json");
-        const alumno = createStudentSchema.parse(data);
-        fakeStudents.push({ ...alumno, id_student: fakeStudents.length + 1 });
-        c.status(201);
-        return c.json(alumno);
-    })
-    .get("/:id{[0-9]+}", (c) => {
-        const id = Number.parseInt(c.req.param("id"));
-        const alumno = fakeStudents.find((a) => a.id_student === id);
-        if (!alumno) {
-            return c.notFound();
-        }
-        return c.json({ alumno });
-    })
-    .delete("/:id{[0-9]+}", (c) => {
-        const id = Number.parseInt(c.req.param("id"));
-        const index = fakeStudents.findIndex((a) => a.id_student === id);
-        if (index === -1) {
-            return c.notFound();
-        }
+        /* .post("/", zValidator("json", createStudentSchema), async (c) => {
+            const data = await c.req.valid("json");
+            const alumno = createStudentSchema.parse(data);
+            fakeStudents.push({ ...alumno, id_student: fakeStudents.length + 1 });
+            c.status(201);
+            return c.json(alumno);
+        })
+        .get("/:id{[0-9]+}", (c) => {
+            const id = Number.parseInt(c.req.param("id"));
+            const alumno = fakeStudents.find((a) => a.id_student === id);
+            if (!alumno) {
+                return c.notFound();
+            }
+            return c.json({ alumno });
+        })
+        .delete("/:id{[0-9]+}", (c) => {
+            const id = Number.parseInt(c.req.param("id"));
+            const index = fakeStudents.findIndex((a) => a.id_student === id);
+            if (index === -1) {
+                return c.notFound();
+            }
 
-        const alumnoEliminado = fakeStudents.splice(index, 1)[0];
-        return c.json({ alumno: alumnoEliminado });
-    });
+            const alumnoEliminado = fakeStudents.splice(index, 1)[0];
+            return c.json({ alumno: alumnoEliminado });
+        }); */

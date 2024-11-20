@@ -1,0 +1,242 @@
+{
+    "calificaciones": [
+        {
+            "NOTA": "0",
+            "POSITIVA": "N",
+            "texto": "Cero",
+            "valor1": 0,
+            "valor2": null
+        },
+        {
+            "NOTA": "1",
+            "POSITIVA": "N",
+            "texto": "Uno",
+            "valor1": 1,
+            "valor2": null
+        },
+        {
+            "NOTA": "10",
+            "POSITIVA": "S",
+            "texto": "Diez",
+            "valor1": 10,
+            "valor2": null
+        },
+        {
+            "NOTA": "10-Matr. Honor",
+            "POSITIVA": "S",
+            "texto": "Diez Matrícula de Honor",
+            "valor1": 10,
+            "valor2": null
+        },
+        {
+            "NOTA": "10-MH",
+            "POSITIVA": "S",
+            "texto": "Diez Mención de Honorífica",
+            "valor1": 10,
+            "valor2": null
+        },
+        {
+            "NOTA": "2",
+            "POSITIVA": "N",
+            "texto": "Dos",
+            "valor1": 2,
+            "valor2": null
+        },
+        {
+            "NOTA": "3",
+            "POSITIVA": "N",
+            "texto": "Tres",
+            "valor1": 3,
+            "valor2": null
+        },
+        {
+            "NOTA": "4",
+            "POSITIVA": "N",
+            "texto": "Cuatro",
+            "valor1": 4,
+            "valor2": null
+        },
+        {
+            "NOTA": "5",
+            "POSITIVA": "S",
+            "texto": "Cinco",
+            "valor1": 5,
+            "valor2": null
+        },
+        {
+            "NOTA": "6",
+            "POSITIVA": "S",
+            "texto": "Seis",
+            "valor1": 6,
+            "valor2": null
+        },
+        {
+            "NOTA": "7",
+            "POSITIVA": "S",
+            "texto": "Siete",
+            "valor1": 7,
+            "valor2": null
+        },
+        {
+            "NOTA": "8",
+            "POSITIVA": "S",
+            "texto": "Ocho",
+            "valor1": 8,
+            "valor2": null
+        },
+        {
+            "NOTA": "9",
+            "POSITIVA": "S",
+            "texto": "Nueve",
+            "valor1": 9,
+            "valor2": null
+        },
+        {
+            "NOTA": "AM",
+            "POSITIVA": "N",
+            "texto": "Anula Matrícula",
+            "valor1": -2,
+            "valor2": -1.0
+        },
+        {
+            "NOTA": "AP",
+            "POSITIVA": "S",
+            "texto": "Apto",
+            "valor1": -2,
+            "valor2": -2.0
+        },
+        {
+            "NOTA": "CV",
+            "POSITIVA": "S",
+            "texto": "Covalidado",
+            "valor1": -2,
+            "valor2": -2.0
+        },
+        {
+            "NOTA": "CV-10",
+            "POSITIVA": "S",
+            "texto": "Convalidado 10",
+            "valor1": 10,
+            "valor2": null
+        },
+        {
+            "NOTA": "CV-10-MH",
+            "POSITIVA": "S",
+            "texto": "Convalidado 10 Mención Honorífica",
+            "valor1": 10,
+            "valor2": null
+        },
+        {
+            "NOTA": "CV-5",
+            "POSITIVA": "S",
+            "texto": "Convalidado 5",
+            "valor1": 5,
+            "valor2": null
+        },
+        {
+            "NOTA": "CV-6",
+            "POSITIVA": "S",
+            "texto": "Convalidado 6",
+            "valor1": 6,
+            "valor2": null
+        },
+        {
+            "NOTA": "CV-7",
+            "POSITIVA": "S",
+            "texto": "Convalidado 7",
+            "valor1": 7,
+            "valor2": null
+        },
+        {
+            "NOTA": "CV-8",
+            "POSITIVA": "S",
+            "texto": "Convalidado 8",
+            "valor1": 8,
+            "valor2": null
+        },
+        {
+            "NOTA": "CV-9",
+            "POSITIVA": "S",
+            "texto": "Convalidado 9",
+            "valor1": 9,
+            "valor2": null
+        },
+        {
+            "NOTA": "EX",
+            "POSITIVA": "S",
+            "texto": "Exento",
+            "valor1": -2,
+            "valor2": -2.0
+        },
+        {
+            "NOTA": "NA",
+            "POSITIVA": "N",
+            "texto": "No apto",
+            "valor1": -2,
+            "valor2": -1.0
+        },
+        {
+            "NOTA": "NE",
+            "POSITIVA": "N",
+            "texto": "No evaluado",
+            "valor1": -2,
+            "valor2": -1.0
+        },
+        {
+            "NOTA": "RC",
+            "POSITIVA": "N",
+            "texto": "Renuncia a convocatoria",
+            "valor1": -2,
+            "valor2": -1.0
+        },
+        {
+            "NOTA": "TRAS-10",
+            "POSITIVA": "S",
+            "texto": "Nota trasladada 10",
+            "valor1": 10,
+            "valor2": null
+        },
+        {
+            "NOTA": "TRAS-10-MH",
+            "POSITIVA": "S",
+            "texto": "Nota trasladada 10 Mención de Honorífica",
+            "valor1": 10,
+            "valor2": null
+        },
+        {
+            "NOTA": "TRAS-5",
+            "POSITIVA": "S",
+            "texto": "Nota trasladada 5",
+            "valor1": 5,
+            "valor2": null
+        },
+        {
+            "NOTA": "TRAS-6",
+            "POSITIVA": "S",
+            "texto": "Nota trasladada 6",
+            "valor1": 6,
+            "valor2": null
+        },
+        {
+            "NOTA": "TRAS-7",
+            "POSITIVA": "S",
+            "texto": "Nota trasladada 7",
+            "valor1": 7,
+            "valor2": null
+        },
+        {
+            "NOTA": "TRAS-8",
+            "POSITIVA": "S",
+            "texto": "Nota trasladada 8",
+            "valor1": 8,
+            "valor2": null
+        },
+        {
+            "NOTA": "TRAS-9",
+            "POSITIVA": "S",
+            "texto": "Nota trasladada 9",
+            "valor1": 9,
+            "valor2": null
+        }
+    ]
+}
