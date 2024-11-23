@@ -10,7 +10,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { UserRoundPlus } from "lucide-react";
@@ -22,47 +22,6 @@ import SelectField from "@/components/StudentTable/SelectField";
 
 // Define type for module status
 type ModuleStatus = "matricula" | "convalidada" | null;
-
-// Memoized ModuleList component
-const ModuleList = React.memo(({ modules, selectedModules, onModuleToggle, onModuleStatusChange }: {
-    modules: any[],
-    selectedModules: Record<number, ModuleStatus>,
-    onModuleToggle: (moduleId: number) => void,
-    onModuleStatusChange: (moduleId: number, status: ModuleStatus) => void
-}) => (
-    <div className="space-y-3 max-h-[400px] overflow-y-auto">
-        {modules.map((module) => (
-            <div key={module.cod_mod} className="grid grid-cols-[auto,1fr,auto] gap-3 items-center">
-                <Checkbox
-                    id={`module-${module.cod_mod}`}
-                    checked={module.cod_mod in selectedModules}
-                    onCheckedChange={() => onModuleToggle(Number(module.cod_mod))}
-                />
-                <label htmlFor={`module-${module.cod_mod}`} className="text-sm font-medium leading-none w-auto">
-                    {module.cod_mod} - {module.nombre}
-                </label>
-                <div className="w-[140px] p-2">
-                    {module.cod_mod in selectedModules ? (
-                        <Select
-                            value={selectedModules[Number(module.cod_mod)] || ""}
-                            onValueChange={(value) => onModuleStatusChange(Number(module.cod_mod), value as ModuleStatus)}
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Estado" />
-                            </SelectTrigger>
-                            <SelectContent position="popper" className="z-[100]">
-                                <SelectItem value="matricula">Matrícula</SelectItem>
-                                <SelectItem value="convalidada">Convalidada</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    ) : (
-                        <div className="h-10"></div>
-                    )}
-                </div>
-            </div>
-        ))}
-    </div>
-));
 
 // ================== DATA FETCHING ===========================
 
@@ -102,6 +61,7 @@ const AddStudentButton: React.FC = () => {
     const showSeparator = selectedCiclo && selectedCiclo !== "unassigned";
     const showModules = showSeparator
 
+    // gestiona el estado de los modulos
     const handleModuleToggle = (moduleId: number) => {
         setSelectedModules(prev => {
             const newState = { ...prev };
@@ -130,14 +90,17 @@ const AddStudentButton: React.FC = () => {
         [modulosData, selectedCiclo]
     );
 
+    // Add this function to handle ciclo selection
+    const handleCicloChange = (value: string) => {
+        setSelectedCiclo(value);
+        setSelectedModules({});
+    };
+
     if (ciclosLoading || modulosLoading) return 'Loading...';
     if (ciclosError) return 'An error has occurred: ' + ciclosError.message;
     if (modulosError) return 'An error has occurred: ' + modulosError.message;
 
-    // Add this function to handle ciclo selection
-    const handleCicloChange = (value: string) => {
-        setSelectedCiclo(value);
-    };
+    console.log(selectedModules)
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -156,7 +119,7 @@ const AddStudentButton: React.FC = () => {
                 <DialogHeader>
                     <DialogTitle className="text-xl font-semibold mb-4">Añadir nuevo estudiante</DialogTitle>
                 </DialogHeader>
-                <div className="flex flex-wrap gap-8 h-[calc(100%-7rem)]">
+                <div className="flex flex-nowrap gap-8 h-[calc(100%-7rem)]">
                     <div className="flex-1 min-w-[330px] max-w-[450px]">
                         <form className="space-y-4">
                             <FormField label="Nombre" name="nombre" />
@@ -209,5 +172,49 @@ const AddStudentButton: React.FC = () => {
         </Dialog>
     );
 };
+
+// Memoized ModuleList component
+const ModuleList = React.memo(({ modules, selectedModules, onModuleToggle, onModuleStatusChange }: {
+    modules: any[],
+    selectedModules: Record<number, ModuleStatus>,
+    onModuleToggle: (moduleId: number) => void,
+    onModuleStatusChange: (moduleId: number, status: ModuleStatus) => void
+}) => (
+    <div className="space-y-3 max-h-[400px] overflow-y-auto">
+        {modules.map((module) => (
+            <div key={module.cod_mod} className="grid grid-cols-[auto,1fr,auto] gap-3 items-center">
+                <Checkbox
+                    id={`module-${module.cod_mod}`}
+                    checked={module.cod_mod in selectedModules}
+                    onCheckedChange={() => onModuleToggle(module.cod_mod)}
+                />
+                <label htmlFor={`module-${module.cod_mod}`}
+                    className="text-sm font-medium leading-none w-auto inline-block px-2">
+                    {module.cod_mod} - {module.nombre}
+                </label>
+                <div className="w-[140px] p-2">
+                    {module.cod_mod in selectedModules ? (
+                        <div className="h-5">
+                            <Select
+                                value={selectedModules[module.cod_mod] || ""}
+                                onValueChange={(value) => onModuleStatusChange(module.cod_mod, value as ModuleStatus)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Estado" />
+                                </SelectTrigger>
+                                <SelectContent position="popper" className="z-[100]">
+                                    <SelectItem value="matricula">Matrícula</SelectItem>
+                                    <SelectItem value="convalidada">Convalidada</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    ) : (
+                        <div className="h-5"></div>
+                    )}
+                </div>
+            </div>
+        ))}
+    </div>
+));
 
 export default AddStudentButton;
