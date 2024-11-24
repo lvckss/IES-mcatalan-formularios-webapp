@@ -45,6 +45,7 @@ const AddStudentButton: React.FC = () => {
     const [open, setOpen] = useState<boolean>(false); // useState QUE ABRE EL DIALOGO CUANDO CLICK EN EL BOTÓN
     const [selectedCiclo, setSelectedCiclo] = useState<string>("");
     const [selectedModules, setSelectedModules] = useState<Record<number, ModuleStatus>>({});
+    const [modulesFilter, setModulesFilter] = useState<string>("");
 
     const { isPending: ciclosLoading, error: ciclosError, data: ciclosData } = useQuery({
         queryKey: ['ciclos-formativos'],
@@ -85,15 +86,33 @@ const AddStudentButton: React.FC = () => {
         console.log("Selected date:", date);
     };
 
-    const filteredModules = useMemo(() =>
+    /* const filteredModules = useMemo(() =>
         modulosData ? modulosData.filter((m) => m.cod_ciclo === selectedCiclo) : [],
         [modulosData, selectedCiclo]
-    );
+    ); */
+
+    const filteredModules = useMemo(() => {
+        if (!modulosData) return [];
+        const filter = modulesFilter.trim().toLowerCase();
+
+        let modules = modulosData.filter((m) => m.cod_ciclo === selectedCiclo);
+
+        if (filter) {
+            modules = modules.filter((m) => {
+                // Create a combined string for each module
+                const combinedString = `${m.cod_mod} - ${m.nombre} (${m.curso})`.toLowerCase();
+                return combinedString.includes(filter);
+            });
+        }
+
+        return modules;
+    }, [modulosData, selectedCiclo, modulesFilter]);
 
     // Add this function to handle ciclo selection
     const handleCicloChange = (value: string) => {
         setSelectedCiclo(value);
         setSelectedModules({});
+        setModulesFilter("");
     };
 
     if (ciclosLoading || modulosLoading) return 'Loading...';
@@ -153,7 +172,16 @@ const AddStudentButton: React.FC = () => {
                         <div className={`flex-1 transition-all duration-300 ease-in-out ${showModules ? 'opacity-100' : 'opacity-0'}`}>
                             {selectedCiclo && (
                                 <>
-                                    <h3 className="text-lg font-semibold mb-4">Módulos</h3>
+                                    <div className="flex gap-10">
+                                        <h3 className="text-lg font-semibold mb-4">Módulos</h3>
+                                        <input
+                                            type="text"
+                                            value={modulesFilter}
+                                            onChange={(e) => setModulesFilter(e.target.value)}
+                                            placeholder="Filtrar módulos"
+                                            className="p-1 border border-gray-300 rounded mb-5 w-full mr-5 pl-3"
+                                        />
+                                    </div>
                                     <ModuleList
                                         modules={filteredModules}
                                         selectedModules={selectedModules}

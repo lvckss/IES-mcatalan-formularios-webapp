@@ -41,7 +41,7 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
       {
         accessorKey: 'fecha_nacimiento',
         header: 'Fecha de Nacimiento',
-        size: 160,
+        size: 130,
         // Custom cell rendering for date formatting
         cell: info => new Date(info.getValue<string>()).toLocaleDateString(),
       },
