@@ -23,7 +23,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
             <SelectTrigger>
                 <SelectValue placeholder={placeholder} />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="max-w-[385px] max-h-[200px]">
                 {options.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                         {option.label}

@@ -13,7 +13,7 @@ async function getTotalStudents() {
     throw new Error('Error fetching students');
   }
   const data = await result.json();
-  return data.students;
+  return data.estudiantes;
 }
 
 const Estudiantes: React.FC = () => {

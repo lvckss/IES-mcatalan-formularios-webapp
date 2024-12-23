@@ -1,12 +1,12 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { type Modulo, createModuloSchema } from "../models/modulo";
-/* import { getModulos, createModulo, getModuloById, deleteModulo } from "../controllers/modulosController"; */
-import modulos from "../fakedata/modulos.json";
+import { getModulos, createModulo, getModuloById, deleteModulo } from "../controllers/modulosController";
 
 export const modulosRoute = new Hono()
     .get("/", async (c) => {
-        return c.json(modulos);
+        const result = await getModulos();
+        return c.json({ modulos: result })
     })
     /* .post("/", zValidator("json", createModuloSchema), async (c) => {
         const modulo = await c.req.valid("json");

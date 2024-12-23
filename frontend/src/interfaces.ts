@@ -22,10 +22,9 @@ export type Calificacion = {
 
 export type Modulo = {
     id_modulo: number;
-    codigo_modulo: string;
-    nombre_modulo: string;
-    ciclo_asignado: number;
-    duracion: number;
+    nombre: string;
+    id_ciclo: number;
+    curso: string;
 }
 
 export type CicloFormativo = {
@@ -35,11 +34,10 @@ export type CicloFormativo = {
 }
 
 export type Student = {
-    id_student: number;
-    apellido1: string;
-    apellido2: string;
+    id_estudiante: number;
+    apellido_1: string;
+    apellido_2: string;
     nombre: string;
     id_legal: string;
-    fecha_nacimiento: string;
-    codigo_expediente: string;
+    fecha_nac: string;
 }

@@ -30,6 +30,7 @@ const DatePicker: React.FC<DatePickerProps> = ({ label, name, onChange }) => {
   const [date, setDate] = React.useState<Date>()
   const [month, setMonth] = React.useState<number>(new Date().getMonth())
   const [year, setYear] = React.useState<number>(new Date().getFullYear())
+  const [isPopoverOpen, setIsPopoverOpen] = React.useState(false)
 
   const years = Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i)
   const months = [
@@ -54,12 +55,19 @@ const DatePicker: React.FC<DatePickerProps> = ({ label, name, onChange }) => {
     onChange?.(newDate)
   }
 
+  const handleDateSelect = (newDate: Date | undefined) => {
+    if (newDate) {
+      updateDate(newDate)
+      setIsPopoverOpen(false) // Close the popover when a date is selected
+    }
+  }
+
   return (
     <div className="grid grid-cols-4 items-center gap-4">
       <Label htmlFor={name} className="text-right font-medium">
         {label}
       </Label>
-      <Popover>
+      <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
         <PopoverTrigger asChild>
           <Button
             id={name}
@@ -104,7 +112,7 @@ const DatePicker: React.FC<DatePickerProps> = ({ label, name, onChange }) => {
             <Calendar
               mode="single"
               selected={date}
-              onSelect={(newDate) => newDate && updateDate(newDate)}
+              onSelect={handleDateSelect}
               month={new Date(year, month)}
               onMonthChange={(newMonth) => {
                 setMonth(newMonth.getMonth())

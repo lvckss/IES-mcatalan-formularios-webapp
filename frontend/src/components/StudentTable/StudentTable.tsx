@@ -26,32 +26,34 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
   const columns = React.useMemo<ColumnDef<Student>[]>(
     () => [
       {
-        accessorKey: 'apellido1',
+        accessorKey: 'apellido_1',
         header: 'Apellido 1',
       },
       {
-        accessorKey: 'apellido2',
+        accessorKey: 'apellido_2',
         header: 'Apellido 2',
       },
       {
         accessorKey: 'nombre',
         header: 'Nombre',
-        size: 100,
       },
       {
-        accessorKey: 'fecha_nacimiento',
+        accessorKey: 'fecha_nac',
         header: 'Fecha de Nacimiento',
-        size: 130,
-        // Custom cell rendering for date formatting
-        cell: info => new Date(info.getValue<string>()).toLocaleDateString(),
+        // Custom cell rendering for spanish date formatting
+        cell: info => new Date(info.getValue<string>()).toLocaleDateString('es-ES'),
+        filterFn: (row, columnId, filterValue) => {
+          const rowValue = row.getValue<string>(columnId); // Fecha en formato aaaa-mm-dd
+          if (!rowValue) return false;
+
+          // Convertir a dd/mm/aaaa para comparar
+          const formattedRowValue = new Date(rowValue).toLocaleDateString('es-ES'); // dd/mm/aaaa
+          return formattedRowValue.includes(filterValue);
+        }
       },
       {
         accessorKey: 'id_legal',
         header: 'ID Legal',
-      },
-      {
-        accessorKey: 'codigo_expediente',
-        header: 'Código de Expediente',
       },
     ],
     []
@@ -73,8 +75,6 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
   const { rows } = table.getRowModel()
 
   const parentRef = React.useRef(null);
-
-  console.log(table.getRowModel().rows.length);
 
   const rowVirtualizer = useVirtualizer({
     count: table.getRowModel().rows.length,
@@ -127,7 +127,7 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
                 return (
                   <TableRow
                     key={row.id}
-                    className='border-none'
+                    className='border-none hover:bg-slate-100'
                     style={{
                       height: `${virtualRow.size}px`,
                       transform: `translateY(${virtualRow.start - index * virtualRow.size}px)`,
@@ -135,7 +135,10 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
                   >
                     {row.getVisibleCells().map((cell) => {
                       return (
-                        <TableCell key={cell.id} style={{ width: cell.column.getSize() }}>
+                        <TableCell key={cell.id} style={{
+                          width: cell.column.getSize(),
+                        }}
+                        >
                           {flexRender(
                             cell.column.columnDef.cell,
                             cell.getContext()

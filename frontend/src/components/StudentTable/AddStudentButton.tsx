@@ -26,10 +26,10 @@ type ModuleStatus = "matricula" | "convalidada" | null;
 // ================== DATA FETCHING ===========================
 
 // Fetch ciclos formativos data from API
-async function getCiclosFormativos() {
+async function getCiclos() {
     const response = await api.ciclos.$get();
     const data = await response.json();
-    return data.ciclos_unicos;
+    return data;
 }
 
 // Fetch modulos data from API
@@ -44,12 +44,13 @@ async function getModulos() {
 const AddStudentButton: React.FC = () => {
     const [open, setOpen] = useState<boolean>(false); // useState QUE ABRE EL DIALOGO CUANDO CLICK EN EL BOTÓN
     const [selectedCiclo, setSelectedCiclo] = useState<string>("");
+    const [selectedCicloCurso, setSelectedCicloCurso] = useState<string>("");
     const [selectedModules, setSelectedModules] = useState<Record<number, ModuleStatus>>({});
     const [modulesFilter, setModulesFilter] = useState<string>("");
 
     const { isPending: ciclosLoading, error: ciclosError, data: ciclosData } = useQuery({
-        queryKey: ['ciclos-formativos'],
-        queryFn: getCiclosFormativos,
+        queryKey: ['ciclos'],
+        queryFn: getCiclos,
         staleTime: 5 * 60 * 1000, // Cacheamos los ciclos cada 5 minutos para evitar overloadear la API
     });
 
@@ -95,22 +96,28 @@ const AddStudentButton: React.FC = () => {
         if (!modulosData) return [];
         const filter = modulesFilter.trim().toLowerCase();
 
-        let modules = modulosData.filter((m) => m.cod_ciclo === selectedCiclo);
+        const cicloId = Number(selectedCiclo);
+        let modules = modulosData.filter((m) => m.id_ciclo === cicloId && m.curso === selectedCicloCurso);
+        console.log(selectedCiclo)
+        console.log(modules)
 
         if (filter) {
             modules = modules.filter((m) => {
                 // Create a combined string for each module
-                const combinedString = `${m.cod_mod} - ${m.nombre} (${m.curso})`.toLowerCase();
+                const combinedString = `${m.id_modulo} - ${m.nombre} (${m.curso})`.toLowerCase();
                 return combinedString.includes(filter);
             });
         }
 
         return modules;
-    }, [modulosData, selectedCiclo, modulesFilter]);
+    }, [modulosData, selectedCiclo, selectedCicloCurso, modulesFilter]);
 
     // Add this function to handle ciclo selection
     const handleCicloChange = (value: string) => {
-        setSelectedCiclo(value);
+        console.log(value);
+        const [id, curso] = value.split("-");
+        setSelectedCiclo(id);
+        setSelectedCicloCurso(curso);
         setSelectedModules({});
         setModulesFilter("");
     };
@@ -138,8 +145,8 @@ const AddStudentButton: React.FC = () => {
                 <DialogHeader>
                     <DialogTitle className="text-xl font-semibold mb-4">Añadir nuevo estudiante</DialogTitle>
                 </DialogHeader>
-                <div className="flex flex-nowrap gap-8 h-[calc(100%-7rem)]">
-                    <div className="flex-1 min-w-[330px] max-w-[450px]">
+                <div className="flex flex-nowrap gap-8">
+                    <div className="flex-1 min-w-[395px] max-w-[450px]">
                         <form className="space-y-4">
                             <FormField label="Nombre" name="nombre" />
                             <FormField label="Apellido 1" name="apellido1" />
@@ -152,12 +159,12 @@ const AddStudentButton: React.FC = () => {
                                 <SelectField
                                     label="Ciclo Formativo"
                                     name="ciclo_formativo"
-                                    value={selectedCiclo}
+                                    value={selectedCiclo ? `${selectedCiclo}-${selectedCicloCurso}` : ""}
                                     onValueChange={handleCicloChange}
                                     placeholder="Seleccionar ciclo"
                                     options={ciclosData.ciclos.map((ciclo) => ({
-                                        value: ciclo.codigo.toString(),
-                                        label: ciclo.nombre
+                                        value: `${ciclo.id_ciclo}-${ciclo.curso}`,
+                                        label: `${ciclo.nombre} (${ciclo.curso})`,
                                     }))}
                                 />
                             </div>
@@ -194,7 +201,7 @@ const AddStudentButton: React.FC = () => {
                     )}
                 </div>
                 <DialogFooter>
-                    <Button type="submit" className="px-6">Guardar estudiante</Button>
+                    <Button type="submit" className="px-6 mr-4">Guardar estudiante</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -210,22 +217,22 @@ const ModuleList = React.memo(({ modules, selectedModules, onModuleToggle, onMod
 }) => (
     <div className="space-y-3 max-h-[400px] overflow-y-auto">
         {modules.map((module) => (
-            <div key={module.cod_mod} className="grid grid-cols-[auto,1fr,auto] gap-3 items-center">
+            <div key={module.id_modulo} className="grid grid-cols-[auto,1fr,auto] gap-3 items-center">
                 <Checkbox
-                    id={`module-${module.cod_mod}`}
-                    checked={module.cod_mod in selectedModules}
-                    onCheckedChange={() => onModuleToggle(module.cod_mod)}
+                    id={`module-${module.id_modulo}`}
+                    checked={module.id_modulo in selectedModules}
+                    onCheckedChange={() => onModuleToggle(module.id_modulo)}
                 />
-                <label htmlFor={`module-${module.cod_mod}`}
-                    className="text-sm font-medium leading-none w-auto inline-block px-2">
-                    {module.cod_mod} - {module.nombre}
+                <label htmlFor={`module-${module.id_modulo}`}
+                    className="text-sm font-medium leading-none w-auto inline-block px-1">
+                    {module.id_modulo} - {module.nombre}
                 </label>
                 <div className="w-[140px] p-2">
-                    {module.cod_mod in selectedModules ? (
+                    {module.id_modulo in selectedModules ? (
                         <div className="h-5">
                             <Select
-                                value={selectedModules[module.cod_mod] || ""}
-                                onValueChange={(value) => onModuleStatusChange(module.cod_mod, value as ModuleStatus)}
+                                value={selectedModules[module.id_modulo] || ""}
+                                onValueChange={(value) => onModuleStatusChange(module.id_modulo, value as ModuleStatus)}
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Estado" />

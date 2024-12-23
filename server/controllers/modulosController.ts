@@ -1,21 +1,21 @@
-import { query } from "../db";
+import sql from "../db/db";
 import type { Modulo } from "../models/modulo";
 
 export const getModulos = async () => {
-    return await query('SELECT * FROM modulos');
+    return await sql`SELECT * FROM modulos`;
 };
 
 export const createModulo = async (modulo: Modulo) => {
-    return await query(
-        'INSERT INTO modulos (codigo_modulo, nombre_modulo, ciclo_asignado, duracion) VALUES ($1, $2, $3, $4) RETURNING *',
-        [modulo.codigo_modulo, modulo.nombre_modulo, modulo.ciclo_asignado, modulo.duracion]
-    );
+    return await sql`
+        'INSERT INTO modulos (id_modulo, nombre, id_ciclo, curso)
+        VALUES (${modulo.id_modulo}, ${modulo.nombre}, ${modulo.id_ciclo}, ${modulo.curso}) RETURNING *
+        `;
 };
 
 export const getModuloById = async (id: number) => {
-    return await query('SELECT * FROM modulos WHERE id_modulo = $1', [id]);
+    return await sql`SELECT * FROM modulos WHERE id_modulo = ${id}`;
 };
 
 export const deleteModulo = async (id: number) => {
-    return await query('DELETE FROM modulos WHERE id_modulo = $1 RETURNING *', [id]);
+    return await sql`DELETE FROM modulos WHERE id_modulo = ${id} RETURNING *`;
 };

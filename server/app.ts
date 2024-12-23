@@ -4,7 +4,7 @@ import { logger } from 'hono/logger';
 import { studentsRoute } from './routes/studentsRoute';
 import { calificacionesRoute } from './routes/calificacionesRoute';
 import { certificadosRoute } from './routes/certificadoRoute';
-import { ciclosFormativosRoute } from './routes/ciclosFormativosRoute';
+import { ciclosRoute } from './routes/ciclosRoute';
 import { firmantesRoute } from './routes/firmantesRoute';
 import { modulosRoute } from './routes/modulosRoute';
 import { regulacionesRoute } from './routes/regulacionesRoute';
@@ -21,7 +21,7 @@ app.get("/health", c => {
 const apiRoutes = app.basePath("/api")
     .route("/students", studentsRoute)
     .route("/modulos", modulosRoute)
-    .route("/ciclos", ciclosFormativosRoute);
+    .route("/ciclos", ciclosRoute);
 /* 
 apiRoutes.route("/calificaciones", calificacionesRoute);
 apiRoutes.route("/certificados", certificadosRoute);
