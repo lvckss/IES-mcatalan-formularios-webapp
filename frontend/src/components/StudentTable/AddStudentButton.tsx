@@ -138,7 +138,7 @@ const AddStudentButton: React.FC = () => {
             <DialogContent
                 className={`
                     ${selectedCiclo && selectedCiclo !== "unassigned" ? 'sm:max-w-[900px]' : 'sm:max-w-[450px]'}
-                    transition-all duration-300 ease-in-out overflow-hidden
+                    transition-all duration-300 ease-in-out overflow-hidden max-h-[1800px]
                 `}
                 aria-describedby={undefined}
             >
@@ -153,7 +153,6 @@ const AddStudentButton: React.FC = () => {
                             <FormField label="Apellido 2" name="apellido2" />
                             <FormField label="ID Legal" name="id_legal" />
                             <DatePicker label="Fecha de nacimiento" name="fecha_nacimiento" onChange={handleDateChange} />
-                            <FormField label="Código de Expediente" name="codigo_expediente" />
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="ciclo_formativo" className="text-right font-medium">Ciclo Formativo</Label>
                                 <SelectField
