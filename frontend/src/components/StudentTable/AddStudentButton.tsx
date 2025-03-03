@@ -10,6 +10,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
@@ -47,6 +48,9 @@ const AddStudentButton: React.FC = () => {
     const [selectedCicloCurso, setSelectedCicloCurso] = useState<string>("");
     const [selectedModules, setSelectedModules] = useState<Record<number, ModuleStatus>>({});
     const [modulesFilter, setModulesFilter] = useState<string>("");
+    const [selectedIDType, setSelectedIDType] = useState<string>("");
+    const [selectedID, setSelectedID] = useState<string>("");
+    const [errorLogicaID, setErrorLogicaID] = useState<string | null>(null);
 
     const { isPending: ciclosLoading, error: ciclosError, data: ciclosData } = useQuery({
         queryKey: ['ciclos'],
@@ -122,6 +126,67 @@ const AddStudentButton: React.FC = () => {
         setModulesFilter("");
     };
 
+    const handleIDType = (value: string) => {
+        setSelectedIDType(value);
+    };
+
+    const calculateDNILetter = (number: string): string => {
+        const letters = "TRWAGMYFPDXBNJZSQVHLCKE";
+        const numericValue = parseInt(number, 10);
+        const index = numericValue % 23;
+        return letters[index];
+    };
+
+    const handleID = (id_type: string, value: string) => {
+        // Siempre actualiza el valor del input
+        setSelectedID(value);
+    
+        // Si no hay tipo de ID seleccionado, muestra un error
+        if (!id_type) {
+            setErrorLogicaID("Por favor, seleccione un tipo de ID.");
+            return;
+        }
+    
+        // Validación según el tipo de ID
+        if (id_type === "dni") {
+            const dniRegex = /^[0-9]{8}[A-Z]$/;
+            if (!dniRegex.test(value)) {
+                setErrorLogicaID("El DNI debe tener 8 dígitos y una letra mayúscula.");
+            } else {
+                const digits = value.slice(0, 8); // Los 8 dígitos
+                const letter = value[8]; // La letra final
+                const calculatedLetter = calculateDNILetter(digits);
+
+                if (letter !== calculatedLetter) {
+                    setErrorLogicaID(`La lógica numérica del DNI es incorrecta.`);
+                } else {
+                setErrorLogicaID(null); // Limpia el error si es válido
+                }
+            }
+        } else if (id_type === "nie") {
+            const nieRegex = /^[XYZ][0-9]{7}[A-Z]$/;
+            if (!nieRegex.test(value)) {
+                setErrorLogicaID("El NIE debe comenzar con X, Y o Z, seguido de 7 dígitos y una letra mayúscula.");
+            } else {
+                const prefix = value[0] === "X" ? "0" : value[0] === "Y" ? "1" : "2"; // X=0, Y=1, Z=2
+                const digits = prefix + value.slice(1, 8); // Construye un número de 8 dígitos
+                const letter = value[8]; // La letra final
+                const calculatedLetter = calculateDNILetter(digits);
+                setErrorLogicaID(null); // Limpia el error si es válido
+                if (letter !== calculatedLetter) {
+                    setErrorLogicaID(`La lógica numérica del NIE es incorrecta.`);
+                } else {
+                    setErrorLogicaID(null); // NIE válido
+                    }
+                }
+        } else if (id_type === "pasaporte") {
+            setErrorLogicaID(null); // Sin validación específica para pasaporte
+        } else {
+            setErrorLogicaID("Tipo de ID no reconocido.");
+        }
+    };
+
+
     if (ciclosLoading || modulosLoading) return 'Loading...';
     if (ciclosError) return 'An error has occurred: ' + ciclosError.message;
     if (modulosError) return 'An error has occurred: ' + modulosError.message;
@@ -151,7 +216,47 @@ const AddStudentButton: React.FC = () => {
                             <FormField label="Nombre" name="nombre" />
                             <FormField label="Apellido 1" name="apellido1" />
                             <FormField label="Apellido 2" name="apellido2" />
-                            <FormField label="ID Legal" name="id_legal" />
+                            {/* <Select>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Tipo ID." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                        <SelectItem value="dni">DNI</SelectItem>
+                                        <SelectItem value="nie">NIE</SelectItem>
+                                        <SelectItem value="pasaporte">Pasaporte</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FormField label="ID Legal" name="id_legal" /> */}
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="id_legal" className="text-right font-medium">ID Legal</Label>
+                                <SelectField
+                                    label="Tipo ID"
+                                    name="id_tipos"
+                                    value={selectedIDType ? selectedIDType : ""}
+                                    onValueChange={handleIDType}
+                                    placeholder="Tipo ID"
+                                    options={
+                                        [
+                                            {value: "dni", label: "DNI"},
+                                            {value: "nie", label: "NIE"},
+                                            {value: "pasaporte", label: "Pasaporte"}
+                                        ]
+                                    }
+                                />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="id_legal" className="text-right font-medium"></Label>
+                                <Input 
+                                    id="id_legal" 
+                                    name="id_legal" 
+                                    className="col-span-3"
+                                    value={selectedID}
+                                    onChange={(e) => handleID(selectedIDType, e.target.value)}
+                                />
+                            </div>
+                            {errorLogicaID && (
+                                    <p style={{ color: "red", marginTop: "4px" }}>{errorLogicaID}</p>
+                                )}
                             <DatePicker label="Fecha de nacimiento" name="fecha_nacimiento" onChange={handleDateChange} />
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="ciclo_formativo" className="text-right font-medium">Ciclo Formativo</Label>
