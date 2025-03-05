@@ -44,6 +44,10 @@ async function getModulos() {
 
 const AddStudentButton: React.FC = () => {
     const [open, setOpen] = useState<boolean>(false); // useState QUE ABRE EL DIALOGO CUANDO CLICK EN EL BOTÓN
+    const [nombre, setNombre] = useState<string>("");
+    const [apellido1, setApellido1] = useState<string>("");
+    const [apellido2, setApellido2] = useState<string>("");
+    const [fechaNacimiento, setFechaNacimiento] = useState<Date | undefined>(undefined);
     const [selectedCiclo, setSelectedCiclo] = useState<string>("");
     const [selectedCicloCurso, setSelectedCicloCurso] = useState<string>("");
     const [selectedModules, setSelectedModules] = useState<Record<number, ModuleStatus>>({});
@@ -186,6 +190,23 @@ const AddStudentButton: React.FC = () => {
         }
     };
 
+    const [selectedYear, setSelectedYear] = useState<string>("");
+
+    const generateSchoolYearOptions = (): { value: string; label: string }[] => {
+        const currentYear = new Date().getFullYear(); // Año actual (2025 en este caso)
+        const startYear = 2014; // Año de inicio
+        const options: { value: string; label: string }[] = [];
+    
+        for (let year = currentYear; year >= startYear; year--) {
+            const schoolYear = `${year}-${year + 1}`;
+            options.push({
+                value: schoolYear, // Ejemplo: "2024-2025"
+                label: schoolYear, // Ejemplo: "2024-2025"
+            });
+        }
+    
+        return options;
+    };
 
     if (ciclosLoading || modulosLoading) return 'Loading...';
     if (ciclosError) return 'An error has occurred: ' + ciclosError.message;
@@ -213,50 +234,41 @@ const AddStudentButton: React.FC = () => {
                 <div className="flex flex-nowrap gap-8">
                     <div className="flex-1 min-w-[395px] max-w-[450px]">
                         <form className="space-y-4">
-                            <FormField label="Nombre" name="nombre" />
-                            <FormField label="Apellido 1" name="apellido1" />
-                            <FormField label="Apellido 2" name="apellido2" />
-                            {/* <Select>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Tipo ID." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                        <SelectItem value="dni">DNI</SelectItem>
-                                        <SelectItem value="nie">NIE</SelectItem>
-                                        <SelectItem value="pasaporte">Pasaporte</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <FormField label="ID Legal" name="id_legal" /> */}
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="id_legal" className="text-right font-medium">ID Legal</Label>
-                                <SelectField
-                                    label="Tipo ID"
-                                    name="id_tipos"
-                                    value={selectedIDType ? selectedIDType : ""}
-                                    onValueChange={handleIDType}
-                                    placeholder="Tipo ID"
-                                    options={
-                                        [
-                                            {value: "dni", label: "DNI"},
-                                            {value: "nie", label: "NIE"},
-                                            {value: "pasaporte", label: "Pasaporte"}
-                                        ]
-                                    }
-                                />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="id_legal" className="text-right font-medium"></Label>
-                                <Input 
-                                    id="id_legal" 
-                                    name="id_legal" 
-                                    className="col-span-3"
-                                    value={selectedID}
-                                    onChange={(e) => handleID(selectedIDType, e.target.value)}
-                                />
-                            </div>
-                            {errorLogicaID && (
+                            <FormField label="Nombre" name="nombre" value={nombre} onChange={setNombre}/>
+                            <FormField label="Apellido 1" name="apellido1" value={apellido1} onChange={setApellido1} />
+                            <FormField label="Apellido 2" name="apellido2" value={apellido2} onChange={setApellido2} />
+                            <>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="id_legal" className="text-right font-medium">ID Legal</Label>
+                                    <SelectField
+                                        label="Tipo ID"
+                                        name="id_tipos"
+                                        value={selectedIDType ? selectedIDType : ""}
+                                        onValueChange={handleIDType}
+                                        placeholder="Tipo ID"
+                                        options={
+                                            [
+                                                {value: "dni", label: "DNI"},
+                                                {value: "nie", label: "NIE"},
+                                                {value: "pasaporte", label: "Pasaporte"}
+                                            ]
+                                        }
+                                    />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="id_legal" className="text-right font-medium"></Label>
+                                    <Input 
+                                        id="id_legal" 
+                                        name="id_legal" 
+                                        className="col-span-3"
+                                        value={selectedID}
+                                        onChange={(e) => handleID(selectedIDType, e.target.value)}
+                                    />
+                                </div>
+                                {errorLogicaID && (
                                     <p style={{ color: "red", marginTop: "4px" }}>{errorLogicaID}</p>
                                 )}
+                            </>
                             <DatePicker label="Fecha de nacimiento" name="fecha_nacimiento" onChange={handleDateChange} />
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="ciclo_formativo" className="text-right font-medium">Ciclo Formativo</Label>
@@ -272,7 +284,17 @@ const AddStudentButton: React.FC = () => {
                                     }))}
                                 />
                             </div>
-                            <FormField label="Año Escolar" name="ano_escolar" />
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="ano_escolar" className="text-right font-medium">Año Escolar</Label>
+                                <SelectField
+                                    label="Año Escolar"
+                                    name="school_year"
+                                    value={selectedYear}
+                                    onValueChange={(value) => setSelectedYear(value)}
+                                    placeholder="Seleccionar año escolar"
+                                    options={generateSchoolYearOptions()}
+                                />
+                            </div>
                         </form>
                     </div>
                     <Separator
@@ -329,7 +351,7 @@ const ModuleList = React.memo(({ modules, selectedModules, onModuleToggle, onMod
                 />
                 <label htmlFor={`module-${module.id_modulo}`}
                     className="text-sm font-medium leading-none w-auto inline-block px-1">
-                    {module.id_modulo} - {module.nombre}
+                    {module.nombre}
                 </label>
                 <div className="w-[140px] p-2">
                     {module.id_modulo in selectedModules ? (
@@ -344,6 +366,8 @@ const ModuleList = React.memo(({ modules, selectedModules, onModuleToggle, onMod
                                 <SelectContent position="popper" className="z-[100]">
                                     <SelectItem value="matricula">Matrícula</SelectItem>
                                     <SelectItem value="convalidada">Convalidada</SelectItem>
+                                    <SelectItem value="exenta">Exenta</SelectItem>
+                                    <SelectItem value="trasladada">Trasladada</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
