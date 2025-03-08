@@ -18,26 +18,54 @@ import { UserRoundPlus } from "lucide-react";
 import FormField from "@/components/StudentTable/FormField";
 import DatePicker from "@/components/StudentTable/DatePicker";
 import { api } from "@/lib/api";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import SelectField from "@/components/StudentTable/SelectField";
+import { PostStudent, PostRecord, PostEnrollment } from "@/types"
 
-// Define type for module status
-type ModuleStatus = "matricula" | "convalidada" | null;
-
-// ================== DATA FETCHING ===========================
+// ===================== API ===========================
 
 // Fetch ciclos formativos data from API
 async function getCiclos() {
-    const response = await api.ciclos.$get();
+    const response = await api.cycles.$get();
     const data = await response.json();
     return data;
 }
 
 // Fetch modulos data from API
 async function getModulos() {
-    const response = await api.modulos.$get();
+    const response = await api.modules.$get();
     const data = await response.json();
     return data.modulos;
+}
+
+async function createStudent(studentData: PostStudent) {
+    const response = await api.students.$post({
+        json: studentData,
+    });
+    if (!response.ok) {
+        throw new Error('Error al crear el estudiante');
+    }
+    return response.json();
+}
+
+async function createRecord(recordData: PostRecord) {
+    const response = await api.records.$post({
+        json: recordData,
+    });
+    if (!response.ok) {
+        throw new Error('Error al crear el expediente')
+    }
+    return response.json();
+}
+
+async function createMatriculas(enrollmentData: PostEnrollment) {
+    const response = await api.enrollments.$post({
+        json: enrollmentData,
+    });
+    if (!response.ok) {
+        throw new Error('Error al crear las matrículas');
+    }
+    return response.json();
 }
 
 // =============================================================
@@ -45,16 +73,19 @@ async function getModulos() {
 const AddStudentButton: React.FC = () => {
     const [open, setOpen] = useState<boolean>(false); // useState QUE ABRE EL DIALOGO CUANDO CLICK EN EL BOTÓN
     const [nombre, setNombre] = useState<string>("");
-    const [apellido1, setApellido1] = useState<string>("");
-    const [apellido2, setApellido2] = useState<string>("");
+    const [apellido_1, setApellido1] = useState<string>("");
+    const [apellido_2, setApellido2] = useState<string | null>(null);
     const [fechaNacimiento, setFechaNacimiento] = useState<Date | undefined>(undefined);
     const [selectedCiclo, setSelectedCiclo] = useState<string>("");
     const [selectedCicloCurso, setSelectedCicloCurso] = useState<string>("");
-    const [selectedModules, setSelectedModules] = useState<Record<number, ModuleStatus>>({});
+    const [selectedModules, setSelectedModules] = useState<Record<number, string>>({});
     const [modulesFilter, setModulesFilter] = useState<string>("");
     const [selectedIDType, setSelectedIDType] = useState<string>("");
     const [selectedID, setSelectedID] = useState<string>("");
     const [errorLogicaID, setErrorLogicaID] = useState<string | null>(null);
+
+    // Instantiate query client
+    const queryClient = useQueryClient();
 
     const { isPending: ciclosLoading, error: ciclosError, data: ciclosData } = useQuery({
         queryKey: ['ciclos'],
@@ -68,6 +99,18 @@ const AddStudentButton: React.FC = () => {
         staleTime: 5 * 60 * 1000, // Cacheamos los módulos cada 5 minutos para evitar overloadear la API
     });
 
+    const mutationStudent = useMutation({
+        mutationFn: createStudent,
+    });
+    
+    const mutationExpediente = useMutation({
+        mutationFn: createRecord,
+    });
+    
+    const mutationMatriculas = useMutation({
+        mutationFn: createMatriculas,
+    });
+
     const showSeparator = selectedCiclo && selectedCiclo !== "unassigned";
     const showModules = showSeparator
 
@@ -78,13 +121,13 @@ const AddStudentButton: React.FC = () => {
             if (moduleId in newState) {
                 delete newState[moduleId];
             } else {
-                newState[moduleId] = "matricula";
+                newState[moduleId] = "Matricula";
             }
             return newState;
         });
     };
 
-    const handleModuleStatusChange = (moduleId: number, status: ModuleStatus) => {
+    const handleModuleStatusChange = (moduleId: number, status: string) => {
         setSelectedModules(prev => ({
             ...prev,
             [moduleId]: status,
@@ -92,7 +135,7 @@ const AddStudentButton: React.FC = () => {
     };
 
     const handleDateChange = (date: Date | undefined) => {
-        console.log("Selected date:", date);
+        setFechaNacimiento(date);
     };
 
     /* const filteredModules = useMemo(() =>
@@ -212,7 +255,88 @@ const AddStudentButton: React.FC = () => {
     if (ciclosError) return 'An error has occurred: ' + ciclosError.message;
     if (modulosError) return 'An error has occurred: ' + modulosError.message;
 
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault(); // Evita el comportamiento por defecto del formulario
+    
+        // Validar campos obligatorios
+        if (!nombre || !apellido_1 || !selectedID || !fechaNacimiento || !selectedCiclo || !selectedYear) {
+            alert("Por favor, complete todos los campos obligatorios.");
+            return;
+        }
+    
+        if (errorLogicaID) {
+            alert("Por favor, corrija los errores en el ID.");
+            return;
+        }
+    
+        // Estructurar los datos para la solicitud POST
+        const [anoInicio, anoFin] = selectedYear.split('-').map(Number);
+        const studentData = {
+                nombre,
+                apellido_1,
+                apellido_2: apellido_2 || null, // Puede ser opcional
+                id_legal: selectedID,
+                fecha_nac: fechaNacimiento, // Formato YYYY-MM-DD
+        };
+        
+        const matriculas = Object.entries(selectedModules).map(([id, status]) => ({
+                id_modulo: Number(id),
+                status: status as "Matricula" | "Convalidada" | "Exenta" | "Trasladada",
+        }));
+    
+        try {
+            // Crear estudiante y obtener su ID
+            const studentResponse = await mutationStudent.mutateAsync(studentData);
+            const studentId = studentResponse.estudiante.id_estudiante;
+    
+            // Crear datos del expediente con el ID del estudiante
+            const recordData = {
+                id_estudiante: studentId,
+                ano_inicio: anoInicio,
+                ano_fin: anoFin,
+                estado: "Activo" as "Activo" | "Finalizado" | "Abandonado" | "En pausa",
+                id_ciclo: Number(selectedCiclo),
+                curso: selectedCicloCurso,
+            };            
+    
+            // Crear expediente y obtener su ID
+            const recordResponse = await mutationExpediente.mutateAsync(recordData);
+            const recordId = recordResponse.expediente.id_expediente;
+    
+            // Añadir el ID del expediente a cada matrícula
+            const matriculasWithRecord = matriculas.map(matricula => ({
+                ...matricula,
+                id_expediente: recordId,
+                completion_status: "En proceso" as "En proceso" | "Completado" | "Fallido" | "Retirado"
+            }));
+    
+            // Crear matrículas
+            await Promise.all(
+                matriculasWithRecord.map(matricula => mutationMatriculas.mutateAsync(matricula))
+            );
+
+            // Invalidate the students query to trigger a refetch and update the list
+            queryClient.invalidateQueries({ queryKey: ['get-total-students'] });
+            
+            // Cerrar diálogo y resetear formulario
+            setOpen(false);
+            setNombre("");
+            setApellido1("");
+            setApellido2(null);
+            setSelectedID("");
+            setSelectedIDType("");
+            setFechaNacimiento(undefined);
+            // Resetear otros campos si es necesario
+            alert("Estudiante, expediente y matrículas guardados con éxito.");
+        } catch (error) {
+            console.error('Error:', error);
+            alert("Error al guardar los datos.");
+        }
+    };
+
     console.log(selectedModules)
+    console.log("ciclo:" + selectedCiclo)
+    console.log("curso:" + selectedCicloCurso)
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -228,107 +352,109 @@ const AddStudentButton: React.FC = () => {
                 `}
                 aria-describedby={undefined}
             >
-                <DialogHeader>
-                    <DialogTitle className="text-xl font-semibold mb-4">Añadir nuevo estudiante</DialogTitle>
-                </DialogHeader>
-                <div className="flex flex-nowrap gap-8">
-                    <div className="flex-1 min-w-[395px] max-w-[450px]">
-                        <form className="space-y-4">
-                            <FormField label="Nombre" name="nombre" value={nombre} onChange={setNombre}/>
-                            <FormField label="Apellido 1" name="apellido1" value={apellido1} onChange={setApellido1} />
-                            <FormField label="Apellido 2" name="apellido2" value={apellido2} onChange={setApellido2} />
-                            <>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="id_legal" className="text-right font-medium">ID Legal</Label>
-                                    <SelectField
-                                        label="Tipo ID"
-                                        name="id_tipos"
-                                        value={selectedIDType ? selectedIDType : ""}
-                                        onValueChange={handleIDType}
-                                        placeholder="Tipo ID"
-                                        options={
-                                            [
-                                                {value: "dni", label: "DNI"},
-                                                {value: "nie", label: "NIE"},
-                                                {value: "pasaporte", label: "Pasaporte"}
-                                            ]
-                                        }
-                                    />
-                                </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="id_legal" className="text-right font-medium"></Label>
-                                    <Input 
-                                        id="id_legal" 
-                                        name="id_legal" 
-                                        className="col-span-3"
-                                        value={selectedID}
-                                        onChange={(e) => handleID(selectedIDType, e.target.value)}
-                                    />
-                                </div>
-                                {errorLogicaID && (
-                                    <p style={{ color: "red", marginTop: "4px" }}>{errorLogicaID}</p>
-                                )}
-                            </>
-                            <DatePicker label="Fecha de nacimiento" name="fecha_nacimiento" onChange={handleDateChange} />
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="ciclo_formativo" className="text-right font-medium">Ciclo Formativo</Label>
-                                <SelectField
-                                    label="Ciclo Formativo"
-                                    name="ciclo_formativo"
-                                    value={selectedCiclo ? `${selectedCiclo}-${selectedCicloCurso}` : ""}
-                                    onValueChange={handleCicloChange}
-                                    placeholder="Seleccionar ciclo"
-                                    options={ciclosData.ciclos.map((ciclo) => ({
-                                        value: `${ciclo.id_ciclo}-${ciclo.curso}`,
-                                        label: `${ciclo.nombre} (${ciclo.curso})`,
-                                    }))}
-                                />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="ano_escolar" className="text-right font-medium">Año Escolar</Label>
-                                <SelectField
-                                    label="Año Escolar"
-                                    name="school_year"
-                                    value={selectedYear}
-                                    onValueChange={(value) => setSelectedYear(value)}
-                                    placeholder="Seleccionar año escolar"
-                                    options={generateSchoolYearOptions()}
-                                />
-                            </div>
-                        </form>
-                    </div>
-                    <Separator
-                        orientation="vertical"
-                        className={`h-auto transition-opacity duration-300 ease-in-out ${showSeparator ? 'opacity-100' : 'opacity-0'}`}
-                    />
-                    {showModules && (
-                        <div className={`flex-1 transition-all duration-300 ease-in-out ${showModules ? 'opacity-100' : 'opacity-0'}`}>
-                            {selectedCiclo && (
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-semibold mb-4">Añadir nuevo estudiante</DialogTitle>
+                    </DialogHeader>
+                    <div className="flex flex-nowrap gap-8">
+                        <div className="flex-1 min-w-[395px] max-w-[450px]">
+                            <div className="space-y-4">
+                                <FormField label="Nombre" name="nombre" value={nombre} onChange={setNombre}/>
+                                <FormField label="Apellido 1" name="apellido1" value={apellido_1} onChange={setApellido1} />
+                                <FormField label="Apellido 2" name="apellido2" value={apellido_2 ?? ""} onChange={setApellido2} />
                                 <>
-                                    <div className="flex gap-10">
-                                        <h3 className="text-lg font-semibold mb-4">Módulos</h3>
-                                        <input
-                                            type="text"
-                                            value={modulesFilter}
-                                            onChange={(e) => setModulesFilter(e.target.value)}
-                                            placeholder="Filtrar módulos"
-                                            className="p-1 border border-gray-300 rounded mb-5 w-full mr-5 pl-3"
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="id_legal" className="text-right font-medium">ID Legal</Label>
+                                        <SelectField
+                                            label="Tipo ID"
+                                            name="id_tipos"
+                                            value={selectedIDType ? selectedIDType : ""}
+                                            onValueChange={handleIDType}
+                                            placeholder="Tipo ID"
+                                            options={
+                                                [
+                                                    {value: "dni", label: "DNI"},
+                                                    {value: "nie", label: "NIE"},
+                                                    {value: "pasaporte", label: "Pasaporte"}
+                                                ]
+                                            }
                                         />
                                     </div>
-                                    <ModuleList
-                                        modules={filteredModules}
-                                        selectedModules={selectedModules}
-                                        onModuleToggle={handleModuleToggle}
-                                        onModuleStatusChange={handleModuleStatusChange}
-                                    />
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="id_legal" className="text-right font-medium"></Label>
+                                        <Input 
+                                            id="id_legal" 
+                                            name="id_legal" 
+                                            className="col-span-3"
+                                            value={selectedID}
+                                            onChange={(e) => handleID(selectedIDType, e.target.value)}
+                                        />
+                                    </div>
+                                    {errorLogicaID && (
+                                        <p style={{ color: "red", marginTop: "4px" }}>{errorLogicaID}</p>
+                                    )}
                                 </>
-                            )}
+                                <DatePicker label="Fecha de nacimiento" name="fecha_nacimiento" onChange={handleDateChange} />
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="ciclo_formativo" className="text-right font-medium">Ciclo Formativo</Label>
+                                    <SelectField
+                                        label="Ciclo Formativo"
+                                        name="ciclo_formativo"
+                                        value={selectedCiclo ? `${selectedCiclo}-${selectedCicloCurso}` : ""}
+                                        onValueChange={handleCicloChange}
+                                        placeholder="Seleccionar ciclo"
+                                        options={ciclosData.ciclos.map((ciclo) => ({
+                                            value: `${ciclo.id_ciclo}-${ciclo.curso}`,
+                                            label: `${ciclo.nombre} (${ciclo.curso})`,
+                                        }))}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="ano_escolar" className="text-right font-medium">Año Escolar</Label>
+                                    <SelectField
+                                        label="Año Escolar"
+                                        name="school_year"
+                                        value={selectedYear}
+                                        onValueChange={(value) => setSelectedYear(value)}
+                                        placeholder="Seleccionar año escolar"
+                                        options={generateSchoolYearOptions()}
+                                    />
+                                </div>
+                            </div>
                         </div>
-                    )}
-                </div>
-                <DialogFooter>
-                    <Button type="submit" className="px-6 mr-4">Guardar estudiante</Button>
-                </DialogFooter>
+                        <Separator
+                            orientation="vertical"
+                            className={`h-auto transition-opacity duration-300 ease-in-out ${showSeparator ? 'opacity-100' : 'opacity-0'}`}
+                        />
+                        {showModules && (
+                            <div className={`flex-1 transition-all duration-300 ease-in-out ${showModules ? 'opacity-100' : 'opacity-0'}`}>
+                                {selectedCiclo && (
+                                    <>
+                                        <div className="flex gap-10">
+                                            <h3 className="text-lg font-semibold mb-4">Módulos</h3>
+                                            <input
+                                                type="text"
+                                                value={modulesFilter}
+                                                onChange={(e) => setModulesFilter(e.target.value)}
+                                                placeholder="Filtrar módulos"
+                                                className="p-1 border border-gray-300 rounded mb-5 w-full mr-5 pl-3"
+                                            />
+                                        </div>
+                                        <ModuleList
+                                            modules={filteredModules}
+                                            selectedModules={selectedModules}
+                                            onModuleToggle={handleModuleToggle}
+                                            onModuleStatusChange={handleModuleStatusChange}
+                                        />
+                                    </>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                    <DialogFooter>
+                        <Button type="submit" className="px-6 mr-4">Guardar estudiante</Button>
+                    </DialogFooter>
+                </form>
             </DialogContent>
         </Dialog>
     );
@@ -337,9 +463,9 @@ const AddStudentButton: React.FC = () => {
 // Memoized ModuleList component
 const ModuleList = React.memo(({ modules, selectedModules, onModuleToggle, onModuleStatusChange }: {
     modules: any[],
-    selectedModules: Record<number, ModuleStatus>,
+    selectedModules: Record<number, string>,
     onModuleToggle: (moduleId: number) => void,
-    onModuleStatusChange: (moduleId: number, status: ModuleStatus) => void
+    onModuleStatusChange: (moduleId: number, status: string) => void
 }) => (
     <div className="space-y-3 max-h-[400px] overflow-y-auto">
         {modules.map((module) => (
@@ -357,17 +483,17 @@ const ModuleList = React.memo(({ modules, selectedModules, onModuleToggle, onMod
                     {module.id_modulo in selectedModules ? (
                         <div className="h-5">
                             <Select
-                                value={selectedModules[module.id_modulo] || ""}
-                                onValueChange={(value) => onModuleStatusChange(module.id_modulo, value as ModuleStatus)}
+                                value={selectedModules[module.id_modulo] || "Matricula"}
+                                onValueChange={(value) => onModuleStatusChange(module.id_modulo, value as string)}
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Estado" />
                                 </SelectTrigger>
                                 <SelectContent position="popper" className="z-[100]">
-                                    <SelectItem value="matricula">Matrícula</SelectItem>
-                                    <SelectItem value="convalidada">Convalidada</SelectItem>
-                                    <SelectItem value="exenta">Exenta</SelectItem>
-                                    <SelectItem value="trasladada">Trasladada</SelectItem>
+                                    <SelectItem value="Matricula">Matrícula</SelectItem>
+                                    <SelectItem value="Convalidada">Convalidada</SelectItem>
+                                    <SelectItem value="Exenta">Exenta</SelectItem>
+                                    <SelectItem value="Trasladada">Trasladada</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>

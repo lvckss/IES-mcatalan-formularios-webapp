@@ -1,25 +1,35 @@
 import React from 'react';
 import StudentTable from '@/components/StudentTable/StudentTable';
 import { Separator } from "@/components/ui/separator";
-import AddStudentButton from './StudentTable/AddStudentButton';
+import AddStudentButton from './AddStudentButton';
 import { Skeleton } from "@/components/ui/skeleton"
 
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api'
 
-async function getTotalStudents() {
+/* async function getTotalStudents() {
   const result = await api.students.$get();
   if (!result.ok) {
     throw new Error('Error fetching students');
   }
   const data = await result.json();
   return data.estudiantes;
+} */
+
+async function getStudents() {
+  const response = await api.students.$get();
+  const data = await response.json();
+  const estudiantesWithDates = data.estudiantes.map((student: any) => ({
+    ...student,
+    fecha_nac: new Date(student.fecha_nac),
+  }));
+  return estudiantesWithDates;
 }
 
 const Estudiantes: React.FC = () => {
   const { isPending, error, data } = useQuery({
     queryKey: ['get-total-students'],
-    queryFn: getTotalStudents
+    queryFn: getStudents
   });
 
   if (error) return 'An error has occurred: ' + error.message;

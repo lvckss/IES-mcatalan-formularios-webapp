@@ -2,7 +2,7 @@ import React from 'react';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Input } from "@/components/ui/input";
 
-import { Student } from '@/interfaces';
+import { Student } from '@/types';
 
 import { useVirtualizer } from '@tanstack/react-virtual';
 import {
