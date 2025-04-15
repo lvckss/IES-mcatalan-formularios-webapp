@@ -1,0 +1,57 @@
+CREATE TABLE Estudiantes (
+    id_estudiante SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,  -- Increased from 50
+    apellido_1 VARCHAR(100) NOT NULL,  -- Increased from 50
+    apellido_2 VARCHAR(100),  -- Increased from 50
+    id_legal VARCHAR(20) UNIQUE NOT NULL,
+    fecha_nac DATE NOT NULL
+);
+
+CREATE TABLE Ciclos (
+    id_ciclo SERIAL PRIMARY KEY,
+    curso VARCHAR(5) NOT NULL,  -- e.g., "1º", "2º"
+    nombre VARCHAR(100) NOT NULL,
+    codigo VARCHAR(20) NOT NULL,  -- e.g., "SAN202-LOE"
+    norma_1 TEXT NOT NULL,
+    norma_2 TEXT NOT NULL
+);
+
+CREATE TABLE Modulos (
+    id_modulo SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    codigo_modulo VARCHAR(50) NOT NULL,
+    id_ciclo INT NOT NULL,
+    curso VARCHAR(5) NOT NULL,
+    FOREIGN KEY (id_ciclo) REFERENCES Ciclos(id_ciclo) ON DELETE CASCADE
+);
+
+CREATE TABLE Expedientes (
+    id_expediente SERIAL PRIMARY KEY,
+    id_estudiante INT NOT NULL,
+    ano_inicio INT NOT NULL,  -- e.g., 2023
+    ano_fin INT NOT NULL,  -- e.g., 2024
+    estado VARCHAR(20) NOT NULL CHECK (estado IN ('Activo', 'Finalizado', 'Abandonado', 'En pausa')),
+    id_ciclo INT NOT NULL,
+    curso VARCHAR(5) NOT NULL,
+    FOREIGN KEY (id_estudiante) REFERENCES Estudiantes(id_estudiante) ON DELETE CASCADE,
+    FOREIGN KEY (id_ciclo) REFERENCES Ciclos(id_ciclo) ON DELETE CASCADE,
+    UNIQUE (id_estudiante, id_ciclo, curso, ano_inicio, ano_fin)  -- Prevents duplicates
+);
+
+CREATE TABLE Matriculas (
+    id_matricula SERIAL PRIMARY KEY,
+    id_expediente INT NOT NULL,
+    id_modulo INT NOT NULL,
+    status VARCHAR(20) NOT NULL CHECK (status IN ('Matricula', 'Convalidada', 'Exenta', 'Trasladada')),
+    completion_status VARCHAR(20) NOT NULL DEFAULT 'En proceso' CHECK (completion_status IN ('En proceso', 'Completado', 'Fallido', 'Retirado')),
+    FOREIGN KEY (id_expediente) REFERENCES Expedientes(id_expediente) ON DELETE CASCADE,
+    FOREIGN KEY (id_modulo) REFERENCES Modulos(id_modulo) ON DELETE CASCADE,
+    UNIQUE (id_expediente, id_modulo)  -- Ensures one enrollment per module per expediente
+);
+
+CREATE TABLE Calificaciones (
+    id_calificacion SERIAL PRIMARY KEY,
+    id_matricula INT NOT NULL,
+    nota DECIMAL(4, 2),  -- Nullable for ungraded modules
+    FOREIGN KEY (id_matricula) REFERENCES Matriculas(id_matricula) ON DELETE CASCADE
+);
