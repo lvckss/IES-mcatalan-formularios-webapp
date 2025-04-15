@@ -3,6 +3,7 @@ import { z } from "zod";
 export const ModuleSchema = z.object({
   id_modulo: z.number().int().positive().min(1),
   nombre: z.string().max(100),
+  codigo_modulo: z.string().max(50),
   id_ciclo: z.number().int().positive().min(1),
   curso: z.string().max(5),
 });

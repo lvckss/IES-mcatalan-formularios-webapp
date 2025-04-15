@@ -24,3 +24,8 @@ export const deleteEnrollment = async (id: number): Promise<Enrollment> => {
   const results = await sql`DELETE FROM Matriculas WHERE id_matricula = ${id} RETURNING *`;
   return EnrollmentSchema.parse(results[0]);
 };
+
+export const getEnrollmentsByRecordId = async (record_id: number): Promise<Enrollment[]> => {
+  const results = await sql`SELECT * FROM Matriculas WHERE id_expediente = ${record_id}`;
+  return results.map(enrollment => EnrollmentSchema.parse(enrollment));
+}

@@ -6,6 +6,8 @@ import Estudiantes from "./components/StudentTable/Students"
 import Certificados from "./components/Certificates"
 import { ThemeProvider } from "@/components/theme-provider"
 
+import { Toaster } from './components/ui/sonner';
+
 function App() {
 
   const [activeTab, setActiveTab] = useState<'Estudiantes' | 'Certificados'>('Estudiantes');
@@ -30,6 +32,7 @@ function App() {
         {renderContent()}
       </div>
     </div>
+    <Toaster />
     </ThemeProvider>
   );
 }

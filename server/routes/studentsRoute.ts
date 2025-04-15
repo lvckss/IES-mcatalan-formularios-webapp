@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import  { createStudentSchema } from "../models/Student";
-import { getStudents, createStudent, getStudentById, deleteStudent } from "../controllers/studentController";
+import { getStudents, createStudent, getStudentById, deleteStudent, getStudentFullInfo } from "../controllers/studentController";
 
 export const studentsRoute = new Hono()
   .get("/", async (c) => {
@@ -22,4 +22,9 @@ export const studentsRoute = new Hono()
     const id = Number(c.req.param("id"));
     const result = await deleteStudent(id);
     return c.json({ estudiante: result });
+  })
+  .get("/fullInfo/:id", async (c) => {
+    const id = Number(c.req.param("id"));
+    const result = await getStudentFullInfo(id);
+    return c.json({fullInfo: result})
   });

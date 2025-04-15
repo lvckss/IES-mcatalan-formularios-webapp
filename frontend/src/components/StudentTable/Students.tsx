@@ -7,14 +7,6 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api'
 
-/* async function getTotalStudents() {
-  const result = await api.students.$get();
-  if (!result.ok) {
-    throw new Error('Error fetching students');
-  }
-  const data = await result.json();
-  return data.estudiantes;
-} */
 
 async function getStudents() {
   const response = await api.students.$get();

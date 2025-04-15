@@ -63,7 +63,7 @@ const DatePicker: React.FC<DatePickerProps> = ({ label, name, onChange }) => {
   }
 
   return (
-    <div className="grid grid-cols-4 items-center gap-4">
+    <div className="grid grid-cols-4 items-center gap-4 w-auto p-0 z-50">
       <Label htmlFor={name} className="text-right font-medium">
         {label}
       </Label>
@@ -81,16 +81,16 @@ const DatePicker: React.FC<DatePickerProps> = ({ label, name, onChange }) => {
             {date ? format(date, "PPP", { locale: es }) : <span>Seleccionar fecha</span>}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
+        <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
           <div className="flex flex-col space-y-2 p-2">
             <div className="flex space-x-2">
               <Select value={year.toString()} onValueChange={handleYearChange}>
-                <SelectTrigger className="w-[120px]">
+                <SelectTrigger className="w-[120px] ">
                   <SelectValue placeholder="Año" />
                 </SelectTrigger>
-                <SelectContent className="max-h-[300px] overflow-y-auto">
+                <SelectContent className="max-h-[200px] overflow-y-auto">
                   {years.map((y) => (
-                    <SelectItem key={y} value={y.toString()}>
+                    <SelectItem className="hover:bg-gray-100 cursor-pointer" key={y} value={y.toString()}>
                       {y}
                     </SelectItem>
                   ))}
@@ -100,9 +100,9 @@ const DatePicker: React.FC<DatePickerProps> = ({ label, name, onChange }) => {
                 <SelectTrigger className="w-[120px]">
                   <SelectValue placeholder="Mes" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="!overflow-y-auto !max-h-[200px]" >
                   {months.map((m, index) => (
-                    <SelectItem key={m} value={index.toString()}>
+                    <SelectItem className="hover:bg-gray-100 cursor-pointer" key={m} value={index.toString()}>
                       {m}
                     </SelectItem>
                   ))}

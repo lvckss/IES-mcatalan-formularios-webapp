@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -260,12 +261,12 @@ const AddStudentButton: React.FC = () => {
     
         // Validar campos obligatorios
         if (!nombre || !apellido_1 || !selectedID || !fechaNacimiento || !selectedCiclo || !selectedYear) {
-            alert("Por favor, complete todos los campos obligatorios.");
+            toast("Complete todos los campos obligatorios.");
             return;
         }
     
         if (errorLogicaID) {
-            alert("Por favor, corrija los errores en el ID.");
+            toast("Por favor, corrija los errores en el ID.");
             return;
         }
     
@@ -327,7 +328,7 @@ const AddStudentButton: React.FC = () => {
             setSelectedIDType("");
             setFechaNacimiento(undefined);
             // Resetear otros campos si es necesario
-            alert("Estudiante, expediente y matrículas guardados con éxito.");
+            toast("Estudiante, expediente y matrículas creados con éxito.");
         } catch (error) {
             console.error('Error:', error);
             alert("Error al guardar los datos.");
@@ -394,7 +395,9 @@ const AddStudentButton: React.FC = () => {
                                         <p style={{ color: "red", marginTop: "4px" }}>{errorLogicaID}</p>
                                     )}
                                 </>
-                                <DatePicker label="Fecha de nacimiento" name="fecha_nacimiento" onChange={handleDateChange} />
+                                <div className="z-100">
+                                    <DatePicker label="Fecha de nacimiento" name="fecha_nacimiento" onChange={handleDateChange} />
+                                </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
                                     <Label htmlFor="ciclo_formativo" className="text-right font-medium">Ciclo Formativo</Label>
                                     <SelectField

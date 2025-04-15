@@ -24,3 +24,8 @@ export const deleteRecord = async (id: number): Promise<Record> => {
   const results = await sql`DELETE FROM Expedientes WHERE id_expediente = ${id} RETURNING *`;
   return RecordSchema.parse(results[0]);
 };
+
+export const getRecordsByStudentId = async (student_id: number): Promise<Record[]> => {
+  const results = await sql`SELECT * FROM Expedientes WHERE id_estudiante = ${student_id}`;
+  return results.map(record => RecordSchema.parse(record));
+}

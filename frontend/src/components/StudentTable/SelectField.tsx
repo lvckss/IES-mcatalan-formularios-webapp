@@ -23,9 +23,9 @@ const SelectField: React.FC<SelectFieldProps> = ({
             <SelectTrigger>
                 <SelectValue placeholder={placeholder} />
             </SelectTrigger>
-            <SelectContent className="max-w-[385px] max-h-[200px]">
+            <SelectContent className="max-w-[385px] max-h-[200px] pointer-events-auto">
                 {options.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
+                    <SelectItem key={option.value} value={option.value} className="pointer-events-auto hover:bg-gray-100 cursor-pointer">
                         {option.label}
                     </SelectItem>
                 ))}
