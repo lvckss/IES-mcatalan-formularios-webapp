@@ -114,7 +114,6 @@ const AddStudentButton: React.FC = () => {
 
     const showSeparator = selectedCiclo && selectedCiclo !== "unassigned";
     const showModules = showSeparator
-
     // gestiona el estado de los modulos
     const handleModuleToggle = (moduleId: number) => {
         setSelectedModules(prev => {
@@ -188,7 +187,6 @@ const AddStudentButton: React.FC = () => {
     const handleID = (id_type: string, value: string) => {
         // Siempre actualiza el valor del input
         setSelectedID(value);
-    
         // Si no hay tipo de ID seleccionado, muestra un error
         if (!id_type) {
             setErrorLogicaID("Por favor, seleccione un tipo de ID.");
@@ -206,7 +204,7 @@ const AddStudentButton: React.FC = () => {
                 const calculatedLetter = calculateDNILetter(digits);
 
                 if (letter !== calculatedLetter) {
-                    setErrorLogicaID(`La lógica numérica del DNI es incorrecta.`);
+                    setErrorLogicaID(`DNI incorrecto.`);
                 } else {
                 setErrorLogicaID(null); // Limpia el error si es válido
                 }
@@ -493,10 +491,10 @@ const ModuleList = React.memo(({ modules, selectedModules, onModuleToggle, onMod
                                     <SelectValue placeholder="Estado" />
                                 </SelectTrigger>
                                 <SelectContent position="popper" className="z-[100]">
-                                    <SelectItem value="Matricula">Matrícula</SelectItem>
-                                    <SelectItem value="Convalidada">Convalidada</SelectItem>
-                                    <SelectItem value="Exenta">Exenta</SelectItem>
-                                    <SelectItem value="Trasladada">Trasladada</SelectItem>
+                                    <SelectItem className="hover:bg-gray-100 cursor-pointer" value="Matricula">Matrícula</SelectItem>
+                                    <SelectItem className="hover:bg-gray-100 cursor-pointer" value="Convalidada">Convalidada</SelectItem>
+                                    <SelectItem className="hover:bg-gray-100 cursor-pointer" value="Exenta">Exenta</SelectItem>
+                                    <SelectItem className="hover:bg-gray-100 cursor-pointer" value="Trasladada">Trasladada</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>

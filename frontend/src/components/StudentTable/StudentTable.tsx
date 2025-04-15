@@ -157,6 +157,7 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
             <TableBody>
               {rowVirtualizer.getVirtualItems().map((virtualRow, index) => {
                 const row = rows[virtualRow.index]
+                console.log(row.getVisibleCells())
                 return (
                   <TableRow
                     key={row.id}
@@ -165,7 +166,7 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
                       height: `${virtualRow.size}px`,
                       transform: `translateY(${virtualRow.start - index * virtualRow.size}px)`,
                     }}
-                  >
+                  > 
                     {row.getVisibleCells().map((cell) => {
                       return (
                         <TableCell key={cell.id} style={{
