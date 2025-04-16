@@ -10,8 +10,8 @@ export const getStudents = async (): Promise<Student[]> => {
 
 export const createStudent = async (student: PostStudent): Promise<Student> => {
   const results = await sql`
-    INSERT INTO Estudiantes (nombre, apellido_1, apellido_2, id_legal, fecha_nac)
-    VALUES (${student.nombre}, ${student.apellido_1}, ${student.apellido_2 ?? null}, ${student.id_legal}, ${student.fecha_nac})
+    INSERT INTO Estudiantes (nombre, apellido_1, apellido_2, id_legal, fecha_nac, num_tfno)
+    VALUES (${student.nombre}, ${student.apellido_1}, ${student.apellido_2 ?? null}, ${student.id_legal}, ${student.fecha_nac}, ${student.num_tfno ?? null})
     RETURNING *
   `;
   return StudentSchema.parse(results[0]);
@@ -36,10 +36,12 @@ export const getStudentFullInfo = async (studentId: number): Promise<FullStudent
         est.apellido_2 AS student_apellido2,
         est.id_legal AS student_id_legal,
         est.fecha_nac AS student_fecha_nac,
+        est.num_tfno AS student_num_tfno,
         e.id_expediente,
         e.ano_inicio,
         e.ano_fin,
         e.estado,
+        e.turno,
         e.id_ciclo AS record_id_ciclo,
         c_record.nombre AS record_ciclo_nombre,
         c_record.codigo AS ciclo_codigo,
@@ -79,7 +81,8 @@ export const getStudentFullInfo = async (studentId: number): Promise<FullStudent
     apellido_1: firstRecord.student_apellido1,
     apellido_2: firstRecord.student_apellido2,
     id_legal: firstRecord.student_id_legal,
-    fecha_nac: firstRecord.student_fecha_nac
+    fecha_nac: firstRecord.student_fecha_nac,
+    num_tfno: firstRecord.student_num_tfno
   };
 
   const recordGroup = {
@@ -91,6 +94,7 @@ export const getStudentFullInfo = async (studentId: number): Promise<FullStudent
     ciclo_codigo: firstRecord.ciclo_codigo,
     ciclo_nombre: firstRecord.record_ciclo_nombre,
     curso: firstRecord.record_curso,
+    turno: firstRecord.turno,
     enrollments: results_parsed.map(rec => ({
       id_matricula: rec.id_matricula,
       status: rec.status as 'Matricula' | 'Convalidada'| 'Exenta' | 'Trasladada',

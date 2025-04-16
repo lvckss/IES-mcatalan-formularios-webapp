@@ -88,6 +88,7 @@ const AddStudentButton: React.FC = () => {
     const [selectedIDType, setSelectedIDType] = useState<string>("");
     const [selectedID, setSelectedID] = useState<string>("");
     const [errorLogicaID, setErrorLogicaID] = useState<string | null>(null);
+    const [selectedYear, setSelectedYear] = useState<string>("");
 
     // Instantiate query client
     const queryClient = useQueryClient();
@@ -177,6 +178,7 @@ const AddStudentButton: React.FC = () => {
     };
 
     const handleIDType = (value: string) => {
+        setErrorLogicaID(null);
         setSelectedIDType(value);
     };
 
@@ -235,8 +237,6 @@ const AddStudentButton: React.FC = () => {
         }
     };
 
-    const [selectedYear, setSelectedYear] = useState<string>("");
-
     const generateSchoolYearOptions = (): { value: string; label: string }[] => {
         const currentYear = new Date().getFullYear(); // Año actual (2025 en este caso)
         const startYear = 2014; // Año de inicio
@@ -293,6 +293,7 @@ const AddStudentButton: React.FC = () => {
             const studentId = studentResponse.estudiante.id_estudiante;
     
             // Crear datos del expediente con el ID del estudiante
+            console.log(turno)
             const recordData : PostRecord = {
                 id_estudiante: studentId,
                 ano_inicio: anoInicio,
@@ -327,9 +328,17 @@ const AddStudentButton: React.FC = () => {
             setNombre("");
             setApellido1("");
             setApellido2(null);
-            setSelectedID("");
-            setSelectedIDType("");
+            setNum_tfno(null)
             setFechaNacimiento(undefined);
+            setSelectedCiclo("");
+            setSelectedCicloCurso("");
+            setTurno('Diurno');
+            setSelectedModules({});
+            setModulesFilter("");
+            setSelectedIDType("");
+            setSelectedID("");
+            setErrorLogicaID(null);
+            setSelectedYear("");
             // Resetear otros campos si es necesario
             toast("Estudiante, expediente y matrículas creados con éxito.");
         } catch (error) {
@@ -338,9 +347,10 @@ const AddStudentButton: React.FC = () => {
         }
     };
 
-    console.log(selectedModules)
+    /* console.log(selectedModules)
     console.log("ciclo:" + selectedCiclo)
     console.log("curso:" + selectedCicloCurso)
+    console.log(turno) */
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
