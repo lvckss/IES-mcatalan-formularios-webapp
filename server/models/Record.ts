@@ -10,6 +10,7 @@ export const RecordSchema = z.object({
   estado: z.enum(['Activo', 'Finalizado', 'Abandonado', 'En pausa']),
   id_ciclo: z.number().int().positive().min(1),
   curso: z.string().max(5),
+  turno: z.enum(['Diurno', 'Vespertino', 'Nocturno', 'Distancia']),
 });
 
 export const createRecordSchema = RecordSchema.omit({ id_expediente: true });

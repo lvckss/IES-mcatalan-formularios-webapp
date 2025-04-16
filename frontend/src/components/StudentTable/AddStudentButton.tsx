@@ -21,7 +21,9 @@ import DatePicker from "@/components/StudentTable/DatePicker";
 import { api } from "@/lib/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import SelectField from "@/components/StudentTable/SelectField";
-import { PostStudent, PostRecord, PostEnrollment } from "@/types"
+import { PostStudent, PostRecord, PostEnrollment } from "@/types";
+
+import PhoneFormField from "./phone-input/phone-form-field";
 
 // ===================== API ===========================
 
@@ -76,9 +78,11 @@ const AddStudentButton: React.FC = () => {
     const [nombre, setNombre] = useState<string>("");
     const [apellido_1, setApellido1] = useState<string>("");
     const [apellido_2, setApellido2] = useState<string | null>(null);
+    const [num_tfno, setNum_tfno] = useState<string | null>(null);
     const [fechaNacimiento, setFechaNacimiento] = useState<Date | undefined>(undefined);
     const [selectedCiclo, setSelectedCiclo] = useState<string>("");
     const [selectedCicloCurso, setSelectedCicloCurso] = useState<string>("");
+    const [turno, setTurno] = useState<'Diurno' | 'Vespertino' | 'Nocturno' | 'Distancia'>('Diurno');
     const [selectedModules, setSelectedModules] = useState<Record<number, string>>({});
     const [modulesFilter, setModulesFilter] = useState<string>("");
     const [selectedIDType, setSelectedIDType] = useState<string>("");
@@ -165,7 +169,6 @@ const AddStudentButton: React.FC = () => {
 
     // Add this function to handle ciclo selection
     const handleCicloChange = (value: string) => {
-        console.log(value);
         const [id, curso] = value.split("-");
         setSelectedCiclo(id);
         setSelectedCicloCurso(curso);
@@ -270,12 +273,13 @@ const AddStudentButton: React.FC = () => {
     
         // Estructurar los datos para la solicitud POST
         const [anoInicio, anoFin] = selectedYear.split('-').map(Number);
-        const studentData = {
-                nombre,
-                apellido_1,
+        const studentData : PostStudent = {
+                nombre: nombre,
+                apellido_1: apellido_1,
                 apellido_2: apellido_2 || null, // Puede ser opcional
                 id_legal: selectedID,
                 fecha_nac: fechaNacimiento, // Formato YYYY-MM-DD
+                num_tfno: num_tfno,
         };
         
         const matriculas = Object.entries(selectedModules).map(([id, status]) => ({
@@ -289,11 +293,12 @@ const AddStudentButton: React.FC = () => {
             const studentId = studentResponse.estudiante.id_estudiante;
     
             // Crear datos del expediente con el ID del estudiante
-            const recordData = {
+            const recordData : PostRecord = {
                 id_estudiante: studentId,
                 ano_inicio: anoInicio,
                 ano_fin: anoFin,
                 estado: "Activo" as "Activo" | "Finalizado" | "Abandonado" | "En pausa",
+                turno: turno,
                 id_ciclo: Number(selectedCiclo),
                 curso: selectedCicloCurso,
             };            
@@ -361,6 +366,14 @@ const AddStudentButton: React.FC = () => {
                                 <FormField label="Nombre" name="nombre" value={nombre} onChange={setNombre}/>
                                 <FormField label="Apellido 1" name="apellido1" value={apellido_1} onChange={setApellido1} />
                                 <FormField label="Apellido 2" name="apellido2" value={apellido_2 ?? ""} onChange={setApellido2} />
+                                <PhoneFormField
+                                    label="Teléfono"
+                                    name="num_tfno"
+                                    value={num_tfno ?? ''}
+                                    onChange={setNum_tfno}
+                                    placeholder="..."
+                                    defaultCountry="ES"
+                                    />
                                 <>
                                     <div className="grid grid-cols-4 items-center gap-4">
                                         <Label htmlFor="id_legal" className="text-right font-medium">ID Legal</Label>
@@ -408,6 +421,24 @@ const AddStudentButton: React.FC = () => {
                                             value: `${ciclo.id_ciclo}-${ciclo.curso}`,
                                             label: `${ciclo.nombre} (${ciclo.curso})`,
                                         }))}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="turno" className="text-right font-medium">Turno</Label>
+                                    <SelectField
+                                        label="Turno"
+                                        name="turno"
+                                        value={turno ? turno : ""}
+                                        onValueChange={(value => setTurno(value as "Diurno" | "Vespertino" | "Nocturno" | "Distancia"))}
+                                        placeholder="Tipo ID"
+                                        options={
+                                            [
+                                                {value: "Diurno", label: "Diurno"},
+                                                {value: "Vespertino", label: "Vespertino"},
+                                                {value: "Nocturno", label: "Nocturno"},
+                                                {value: "Distancia", label: "Distancia"}
+                                            ]
+                                        }
                                     />
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">

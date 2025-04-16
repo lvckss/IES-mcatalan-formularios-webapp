@@ -3,6 +3,7 @@ CREATE TABLE Estudiantes (
     nombre VARCHAR(100) NOT NULL,  -- Increased from 50
     apellido_1 VARCHAR(100) NOT NULL,  -- Increased from 50
     apellido_2 VARCHAR(100),  -- Increased from 50
+    num_tfno VARCHAR(20),
     id_legal VARCHAR(20) UNIQUE NOT NULL,
     fecha_nac DATE NOT NULL
 );
@@ -33,6 +34,7 @@ CREATE TABLE Expedientes (
     estado VARCHAR(20) NOT NULL CHECK (estado IN ('Activo', 'Finalizado', 'Abandonado', 'En pausa')),
     id_ciclo INT NOT NULL,
     curso VARCHAR(5) NOT NULL,
+    turno VARCHAR(20) NOT NULL CHECK (turno IN ('Diurno', 'Vespertino', 'Nocturno', 'Distancia')),
     FOREIGN KEY (id_estudiante) REFERENCES Estudiantes(id_estudiante) ON DELETE CASCADE,
     FOREIGN KEY (id_ciclo) REFERENCES Ciclos(id_ciclo) ON DELETE CASCADE,
     UNIQUE (id_estudiante, id_ciclo, curso, ano_inicio, ano_fin)  -- Prevents duplicates

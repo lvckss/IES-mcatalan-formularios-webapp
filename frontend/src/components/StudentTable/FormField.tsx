@@ -1,7 +1,6 @@
 import React from 'react';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { StringLike } from 'bun';
 
 interface FormFieldProps {
     label: string;
