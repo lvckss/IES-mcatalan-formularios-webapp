@@ -41,6 +41,7 @@ type StudentRecord = {
     id_matricula: number;
     status: string;
     turno: string;
+    fecha_pago_titulo: Date | undefined;
     completion_status: string;
     id_modulo: number;
     module_nombre: string;
@@ -73,6 +74,13 @@ const StudentRecordSchema = z.object({
   ano_fin: z.number(),
   estado: z.string(),
   turno: z.enum(['Diurno', 'Vespertino', 'Nocturno', 'Distancia']),
+  fecha_pago_titulo: z.preprocess((arg) => {
+    if (typeof arg === "string" || arg instanceof Date) {
+      const date = new Date(arg);
+      if (!isNaN(date.getTime())) return date;
+    }
+    return arg;
+  }, z.date().optional()),
   record_id_ciclo: z.number(),
   record_ciclo_nombre: z.string(),
   ciclo_codigo: z.string(),

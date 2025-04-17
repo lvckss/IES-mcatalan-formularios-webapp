@@ -11,6 +11,13 @@ export const RecordSchema = z.object({
   id_ciclo: z.number().int().positive().min(1),
   curso: z.string().max(5),
   turno: z.enum(['Diurno', 'Vespertino', 'Nocturno', 'Distancia']),
+  fecha_pago_titulo: z.preprocess((arg) => {
+    if (typeof arg === "string" || arg instanceof Date) {
+      const date = new Date(arg);
+      if (!isNaN(date.getTime())) return date;
+    }
+    return arg;
+  }, z.date().optional()),
 });
 
 export const createRecordSchema = RecordSchema.omit({ id_expediente: true });

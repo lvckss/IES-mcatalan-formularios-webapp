@@ -1,12 +1,21 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { type Cycle, CycleSchema, createCycleSchema } from "../models/Cycle";
-import { getCycles, createCycle, getCycleById, deleteCycle } from "../controllers/cycleController";
+import { getCycles, createCycle, getCycleById, deleteCycle, getCyclesByName, getCycleByCode } from "../controllers/cycleController";
 
 export const cyclesRoute = new Hono()
   .get("/", async (c) => {
     const result = await getCycles();
     return c.json({ ciclos: result });
+  })
+  .get("/by-name", async (c) => {
+    const result = await getCyclesByName();
+    return c.json({ ciclos: result });
+  })
+  .get("/code/:codigo", async (c) => {
+    const code = String(c.req.param("codigo"));
+    const result = await getCycleByCode(code);
+    return c.json({ ciclo: result });
   })
   .post("/", zValidator("json", createCycleSchema), async (c) => {
     const validatedData = c.req.valid("json");

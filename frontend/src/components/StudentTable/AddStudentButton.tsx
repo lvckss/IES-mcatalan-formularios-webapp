@@ -8,6 +8,8 @@ import {
     DialogFooter
 } from "@/components/ui/dialog";
 
+import { cn } from "@/lib/utils";
+
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
@@ -19,7 +21,7 @@ import { UserRoundPlus } from "lucide-react";
 import FormField from "@/components/StudentTable/FormField";
 import DatePicker from "@/components/StudentTable/DatePicker";
 import { api } from "@/lib/api";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueries, useMutation, useQueryClient } from "@tanstack/react-query";
 import SelectField from "@/components/StudentTable/SelectField";
 import { PostStudent, PostRecord, PostEnrollment } from "@/types";
 
@@ -28,15 +30,39 @@ import PhoneFormField from "./phone-input/phone-form-field";
 // ===================== API ===========================
 
 // Fetch ciclos formativos data from API
-async function getCiclos() {
-    const response = await api.cycles.$get();
-    const data = await response.json();
-    return data;
+async function getCiclosByCodigo({ codigo }: { codigo: string }) {
+    const response = await api.cycles.code[':codigo'].$get({
+        param: { codigo }
+    });
+
+    if (!response) {
+        throw new Error("server error");
+    }
+
+    const data = await response.json();      // { ciclo: … }
+    return data.ciclo;
 }
 
-// Fetch modulos data from API
-async function getModulos() {
-    const response = await api.modules.$get();
+// Fetch ciclos sin diferenciar curso
+// Función para obtener los ciclos sin duplicados (por nombre) 
+async function getCiclosUnicos() {
+    // La nueva ruta es GET /por-nombre bajo el controlador de ciclos
+    // En tu cliente generado por Hono queda algo así:
+    const response = await api.cycles['by-name'].$get();
+    const data = await response.json();
+    // La respuesta es { ciclos: [...] }
+    return data.ciclos;
+}
+
+async function getModulosByCycleId({ ciclo_id }: { ciclo_id: number }) {
+    const response = await api.modules.cycle_id[':cycle_id'].$get({
+        param: { cycle_id: String(ciclo_id) }
+    });
+
+    if (!response) {
+        throw new Error("server error");
+    }
+
     const data = await response.json();
     return data.modulos;
 }
@@ -71,7 +97,7 @@ async function createMatriculas(enrollmentData: PostEnrollment) {
     return response.json();
 }
 
-// =============================================================
+// ===========================================================================================================================
 
 const AddStudentButton: React.FC = () => {
     const [open, setOpen] = useState<boolean>(false); // useState QUE ABRE EL DIALOGO CUANDO CLICK EN EL BOTÓN
@@ -81,7 +107,7 @@ const AddStudentButton: React.FC = () => {
     const [num_tfno, setNum_tfno] = useState<string | null>(null);
     const [fechaNacimiento, setFechaNacimiento] = useState<Date | undefined>(undefined);
     const [selectedCiclo, setSelectedCiclo] = useState<string>("");
-    const [selectedCicloCurso, setSelectedCicloCurso] = useState<string>("");
+    const [selectedCicloID, setSelectedCicloID] = useState<null | number>(null)
     const [turno, setTurno] = useState<'Diurno' | 'Vespertino' | 'Nocturno' | 'Distancia'>('Diurno');
     const [selectedModules, setSelectedModules] = useState<Record<number, string>>({});
     const [modulesFilter, setModulesFilter] = useState<string>("");
@@ -89,21 +115,85 @@ const AddStudentButton: React.FC = () => {
     const [selectedID, setSelectedID] = useState<string>("");
     const [errorLogicaID, setErrorLogicaID] = useState<string | null>(null);
     const [selectedYear, setSelectedYear] = useState<string>("");
+    const [fechaPagoTitulo, setFechaPagoTitulo] = useState<Date | undefined>(undefined);
 
     // Instantiate query client
     const queryClient = useQueryClient();
 
     const { isPending: ciclosLoading, error: ciclosError, data: ciclosData } = useQuery({
         queryKey: ['ciclos'],
-        queryFn: getCiclos,
+        queryFn: getCiclosUnicos,
         staleTime: 5 * 60 * 1000, // Cacheamos los ciclos cada 5 minutos para evitar overloadear la API
     });
 
-    const { isPending: modulosLoading, error: modulosError, data: modulosData } = useQuery({
-        queryKey: ['modulos'],
-        queryFn: getModulos,
-        staleTime: 5 * 60 * 1000, // Cacheamos los módulos cada 5 minutos para evitar overloadear la API
+    const {
+        data: cicloData,            // objeto/array devuelto por la API
+        isFetching: cicloFetching,
+        error: cicloError,
+        status,
+    } = useQuery({
+        queryKey: ['ciclo', selectedCiclo],            // <‑‑ clave de caché
+        queryFn: () => getCiclosByCodigo({ codigo: selectedCiclo! }),
+        enabled: Boolean(selectedCiclo),               // solo dispara si hay código
+        staleTime: 5 * 60 * 1000,               // 5 min de frescura
     });
+
+    console.log(cicloData)
+
+    const cursoIds = useMemo(
+        () =>
+            cicloData?.reduce((acc, ciclo) => {
+            //   ↳ ciclo.curso might be '1º', '2º', etc.
+            acc[ciclo.curso] = ciclo.id_ciclo;
+            return acc;
+            }, {} as Record<string, number>) ?? {},
+        [cicloData],
+    );
+
+    const modulosQueries = useQueries({
+        queries: Object.entries(cursoIds).map(([curso, id]) => ({
+          queryKey: ['modulos', id],                   // caches each curso separately
+          queryFn: () => getModulosByCycleId({ ciclo_id: id }),
+          enabled: Boolean(id),                        // skip if the id is still undefined
+          staleTime: 5 * 60 * 1000,                   // 5 min cache, same policy as the rest
+        })),
+    });
+
+    const modulosByCurso = useMemo(() => {
+        const out: Record<string, any[]> = {};
+        modulosQueries.forEach((q, idx) => {
+          const curso = Object.keys(cursoIds)[idx];    // '1º', '2º', …
+          out[curso] = q.data ?? [];                   // data might be undefined while loading
+        });
+        return out;
+    }, [modulosQueries, cursoIds]);
+
+    /* —–––––––––––––––––––––––––––– módulos en bruto —––––––––––––––––––––––––– */
+    const modulosPrimerCurso  = modulosByCurso['1º'] ?? [];
+    const modulosSegundoCurso = modulosByCurso['2º'] ?? [];
+
+    /* —–––––––––––––––––––– filtrados por texto ––––––––––––––––––––––––––––––– */
+    const filteredPrimer = useMemo(
+    () =>
+        modulosPrimerCurso.filter(m =>
+        m.nombre.toLowerCase().includes(modulesFilter.toLowerCase())
+        ),
+    [modulosPrimerCurso, modulesFilter],
+    );
+
+    const filteredSegundo = useMemo(
+    () =>
+        modulosSegundoCurso.filter(m =>
+        m.nombre.toLowerCase().includes(modulesFilter.toLowerCase())
+        ),
+    [modulosSegundoCurso, modulesFilter],
+    );
+
+    /* —–––––––––––– estado global de carga/error para mostrarlo cómodamente –– */
+    const modulosFetching = modulosQueries.some(q => q.isFetching);
+    const modulosError    = modulosQueries.find(q => q.error)?.error as
+                            | Error
+                            | undefined;
 
     const mutationStudent = useMutation({
         mutationFn: createStudent,
@@ -143,39 +233,23 @@ const AddStudentButton: React.FC = () => {
         setFechaNacimiento(date);
     };
 
-    /* const filteredModules = useMemo(() =>
-        modulosData ? modulosData.filter((m) => m.cod_ciclo === selectedCiclo) : [],
-        [modulosData, selectedCiclo]
-    ); */
-
-    const filteredModules = useMemo(() => {
-        if (!modulosData) return [];
-        const filter = modulesFilter.trim().toLowerCase();
-
-        const cicloId = Number(selectedCiclo);
-        let modules = modulosData.filter((m) => m.id_ciclo === cicloId && m.curso === selectedCicloCurso);
-        console.log(selectedCiclo)
-        console.log(modules)
-
-        if (filter) {
-            modules = modules.filter((m) => {
-                // Create a combined string for each module
-                const combinedString = `${m.id_modulo} - ${m.nombre} (${m.curso})`.toLowerCase();
-                return combinedString.includes(filter);
-            });
-        }
-
-        return modules;
-    }, [modulosData, selectedCiclo, selectedCicloCurso, modulesFilter]);
-
+    const handleFechaPagoTituloChange = (date: Date | undefined) => {
+        setFechaPagoTitulo(date);
+    }
+    
     // Add this function to handle ciclo selection
     const handleCicloChange = (value: string) => {
-        const [id, curso] = value.split("-");
-        setSelectedCiclo(id);
-        setSelectedCicloCurso(curso);
+        setSelectedCiclo(value);
         setSelectedModules({});
         setModulesFilter("");
     };
+
+    console.log(selectedCiclo)
+  
+    if (ciclosLoading) return 'Loading...';
+    if (ciclosError) return 'An error has occurred: ' + ciclosError.message;
+    /* if (modulosError) return 'An error has occurred: ' + modulosError.message; */
+
 
     const handleIDType = (value: string) => {
         setErrorLogicaID(null);
@@ -253,9 +327,6 @@ const AddStudentButton: React.FC = () => {
         return options;
     };
 
-    if (ciclosLoading || modulosLoading) return 'Loading...';
-    if (ciclosError) return 'An error has occurred: ' + ciclosError.message;
-    if (modulosError) return 'An error has occurred: ' + modulosError.message;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault(); // Evita el comportamiento por defecto del formulario
@@ -293,19 +364,20 @@ const AddStudentButton: React.FC = () => {
             const studentId = studentResponse.estudiante.id_estudiante;
     
             // Crear datos del expediente con el ID del estudiante
-            console.log(turno)
             const recordData : PostRecord = {
                 id_estudiante: studentId,
                 ano_inicio: anoInicio,
                 ano_fin: anoFin,
                 estado: "Activo" as "Activo" | "Finalizado" | "Abandonado" | "En pausa",
+                fecha_pago_titulo: fechaPagoTitulo,
                 turno: turno,
                 id_ciclo: Number(selectedCiclo),
-                curso: selectedCicloCurso,
+                curso: "1º",
             };            
     
             // Crear expediente y obtener su ID
             const recordResponse = await mutationExpediente.mutateAsync(recordData);
+            console.log(recordResponse)
             const recordId = recordResponse.expediente.id_expediente;
     
             // Añadir el ID del expediente a cada matrícula
@@ -331,8 +403,8 @@ const AddStudentButton: React.FC = () => {
             setNum_tfno(null)
             setFechaNacimiento(undefined);
             setSelectedCiclo("");
-            setSelectedCicloCurso("");
             setTurno('Diurno');
+            setFechaPagoTitulo(undefined);
             setSelectedModules({});
             setModulesFilter("");
             setSelectedIDType("");
@@ -347,25 +419,35 @@ const AddStudentButton: React.FC = () => {
         }
     };
 
-    /* console.log(selectedModules)
-    console.log("ciclo:" + selectedCiclo)
-    console.log("curso:" + selectedCicloCurso)
-    console.log(turno) */
+    const closeDialog = (next: boolean) => {
+        if (!next) {
+          // about to close → move focus out
+          const el = document.activeElement as HTMLElement | null;
+          el?.blur();
+        }
+        setOpen(next);
+    };      
 
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={closeDialog}>
             <DialogTrigger asChild>
                 <Button variant="outline">
                     <UserRoundPlus className="mr-2 h-5 w-5" />Añadir estudiante
                 </Button>
             </DialogTrigger>
             <DialogContent
-                className={`
-                    ${selectedCiclo && selectedCiclo !== "unassigned" ? 'sm:max-w-[900px]' : 'sm:max-w-[450px]'}
-                    transition-all duration-300 ease-in-out overflow-hidden max-h-[1800px]
-                `}
+                /* 1. keep the two possible widths you already had */
+                className={cn(
+                    selectedCiclo && selectedCiclo !== "unassigned"
+                    ? "sm:max-w-[900px]"
+                    : "sm:max-w-[450px]",
+                    /* 2. NEW ­– freeze the height */
+                    "min-h-[720px] max-h-[720px]",   // pick any value / use 75vh, etc.
+                    /* 3. do NOT clip children, only show a vertical scrollbar if
+                        something outside your module column spills */
+                )}
                 aria-describedby={undefined}
-            >
+                >
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <DialogHeader>
                         <DialogTitle className="text-xl font-semibold mb-4">Añadir nuevo estudiante</DialogTitle>
@@ -424,12 +506,12 @@ const AddStudentButton: React.FC = () => {
                                     <SelectField
                                         label="Ciclo Formativo"
                                         name="ciclo_formativo"
-                                        value={selectedCiclo ? `${selectedCiclo}-${selectedCicloCurso}` : ""}
+                                        value={selectedCiclo ? `${selectedCiclo}` : ""}
                                         onValueChange={handleCicloChange}
                                         placeholder="Seleccionar ciclo"
-                                        options={ciclosData.ciclos.map((ciclo) => ({
-                                            value: `${ciclo.id_ciclo}-${ciclo.curso}`,
-                                            label: `${ciclo.nombre} (${ciclo.curso})`,
+                                        options={ciclosData.map((ciclo) => ({
+                                            value: `${ciclo.codigo}`,
+                                            label: `${ciclo.nombre} (${ciclo.codigo})`,
                                         }))}
                                     />
                                 </div>
@@ -462,35 +544,62 @@ const AddStudentButton: React.FC = () => {
                                         options={generateSchoolYearOptions()}
                                     />
                                 </div>
+                                <div className="z-100">
+                                    <DatePicker label="Fecha pago del título:" name="fecha_pago_titulo" onChange={handleFechaPagoTituloChange} />
+                                </div>
                             </div>
                         </div>
                         <Separator
-                            orientation="vertical"
-                            className={`h-auto transition-opacity duration-300 ease-in-out ${showSeparator ? 'opacity-100' : 'opacity-0'}`}
+                        orientation="vertical"
+                        className={`h-auto transition-opacity duration-300 ease-in-out ${
+                            showSeparator ? 'opacity-100' : 'opacity-0'
+                        }`}
                         />
                         {showModules && (
-                            <div className={`flex-1 transition-all duration-300 ease-in-out ${showModules ? 'opacity-100' : 'opacity-0'}`}>
-                                {selectedCiclo && (
+                        <div
+                            className={`flex-1 transition-all duration-300 ease-in-out ${
+                            showModules ? 'opacity-100' : 'opacity-0'
+                            }`}
+                        >
+                            {selectedCiclo && (
+                            <>
+                                {/* search bar … unchanged … */}
+
+                                {/* ▸▸▸ NEW WRAPPER ◂◂◂  — 60 % viewport height max */}
+                                <div className="max-h-[42vh] overflow-y-auto pr-2 space-y-6 pb-5">
+                                {/* ºººº 1º CURSO ºººº */}
+                                {filteredPrimer.length > 0 && (
                                     <>
-                                        <div className="flex gap-10">
-                                            <h3 className="text-lg font-semibold mb-4">Módulos</h3>
-                                            <input
-                                                type="text"
-                                                value={modulesFilter}
-                                                onChange={(e) => setModulesFilter(e.target.value)}
-                                                placeholder="Filtrar módulos"
-                                                className="p-1 border border-gray-300 rounded mb-5 w-full mr-5 pl-3"
-                                            />
-                                        </div>
-                                        <ModuleList
-                                            modules={filteredModules}
-                                            selectedModules={selectedModules}
-                                            onModuleToggle={handleModuleToggle}
-                                            onModuleStatusChange={handleModuleStatusChange}
-                                        />
+                                    <h4 className="font-medium mb-2 sticky top-0 bg-white/80 backdrop-blur">
+                                        Primer curso
+                                    </h4>
+                                    <ModuleList
+                                        modules={filteredPrimer}
+                                        selectedModules={selectedModules}
+                                        onModuleToggle={handleModuleToggle}
+                                        onModuleStatusChange={handleModuleStatusChange}
+                                    />
                                     </>
                                 )}
-                            </div>
+                                <Separator/>
+                                {/* ºººº 2º CURSO ºººº */}
+                                {filteredSegundo.length > 0 && (
+                                    <>
+                                    <h4 className="font-medium mb-2 sticky top-0 bg-white/80 backdrop-blur">
+                                        Segundo curso
+                                    </h4>
+                                    <ModuleList
+                                        modules={filteredSegundo}
+                                        selectedModules={selectedModules}
+                                        onModuleToggle={handleModuleToggle}
+                                        onModuleStatusChange={handleModuleStatusChange}
+                                    />
+                                    </>
+                                )}
+                                </div>
+                            </>
+                            )}
+                        </div>
                         )}
                     </div>
                     <DialogFooter>
@@ -509,7 +618,7 @@ const ModuleList = React.memo(({ modules, selectedModules, onModuleToggle, onMod
     onModuleToggle: (moduleId: number) => void,
     onModuleStatusChange: (moduleId: number, status: string) => void
 }) => (
-    <div className="space-y-3 max-h-[400px] overflow-y-auto">
+    <div className="space-y-3">
         {modules.map((module) => (
             <div key={module.id_modulo} className="grid grid-cols-[auto,1fr,auto] gap-3 items-center">
                 <Checkbox
@@ -518,7 +627,7 @@ const ModuleList = React.memo(({ modules, selectedModules, onModuleToggle, onMod
                     onCheckedChange={() => onModuleToggle(module.id_modulo)}
                 />
                 <label htmlFor={`module-${module.id_modulo}`}
-                    className="text-sm font-medium leading-none w-auto inline-block px-1">
+                    className="text-sm font-medium leading-none w-auto inline-block">
                     {module.nombre}
                 </label>
                 <div className="w-[140px] p-2">

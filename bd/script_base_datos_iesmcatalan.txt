@@ -35,6 +35,7 @@ CREATE TABLE Expedientes (
     id_ciclo INT NOT NULL,
     curso VARCHAR(5) NOT NULL,
     turno VARCHAR(20) NOT NULL CHECK (turno IN ('Diurno', 'Vespertino', 'Nocturno', 'Distancia')),
+    fecha_pago_titulo DATE,
     FOREIGN KEY (id_estudiante) REFERENCES Estudiantes(id_estudiante) ON DELETE CASCADE,
     FOREIGN KEY (id_ciclo) REFERENCES Ciclos(id_ciclo) ON DELETE CASCADE,
     UNIQUE (id_estudiante, id_ciclo, curso, ano_inicio, ano_fin)  -- Prevents duplicates

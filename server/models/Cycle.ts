@@ -10,5 +10,6 @@ export const CycleSchema = z.object({
 });
 
 export const createCycleSchema = CycleSchema.omit({ id_ciclo: true });
+export const ByNameCycleSchema = CycleSchema.omit({ id_ciclo: true, curso: true });
 export type PostCycle = z.infer<typeof createCycleSchema>;
 export type Cycle = z.infer<typeof CycleSchema>;

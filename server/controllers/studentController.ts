@@ -42,6 +42,7 @@ export const getStudentFullInfo = async (studentId: number): Promise<FullStudent
         e.ano_fin,
         e.estado,
         e.turno,
+        e.fecha_pago_titulo,
         e.id_ciclo AS record_id_ciclo,
         c_record.nombre AS record_ciclo_nombre,
         c_record.codigo AS ciclo_codigo,
@@ -95,6 +96,7 @@ export const getStudentFullInfo = async (studentId: number): Promise<FullStudent
     ciclo_nombre: firstRecord.record_ciclo_nombre,
     curso: firstRecord.record_curso,
     turno: firstRecord.turno,
+    fecha_pago_titulo: firstRecord.fecha_pago_titulo,
     enrollments: results_parsed.map(rec => ({
       id_matricula: rec.id_matricula,
       status: rec.status as 'Matricula' | 'Convalidada'| 'Exenta' | 'Trasladada',
