@@ -223,8 +223,6 @@ function StudentDeleteButton({ id }: { id: number }) {
 function StudentPanelButton({ id }: { id: number }) {
   const [panelIsOpen, setPanelIsOpen] = useState(false);
 
-  console.log(panelIsOpen);
-
   return (
     <>
       <Button variant={'outline'} size={'icon'} className='mr-5' onClick={() => setPanelIsOpen(true)} >

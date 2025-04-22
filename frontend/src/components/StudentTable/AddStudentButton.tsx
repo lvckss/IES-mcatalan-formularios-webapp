@@ -107,14 +107,16 @@ const AddStudentButton: React.FC = () => {
     const [num_tfno, setNum_tfno] = useState<string | null>(null);
     const [fechaNacimiento, setFechaNacimiento] = useState<Date | undefined>(undefined);
     const [selectedCiclo, setSelectedCiclo] = useState<string>("");
-    const [selectedCicloID, setSelectedCicloID] = useState<null | number>(null)
-    const [turno, setTurno] = useState<'Diurno' | 'Vespertino' | 'Nocturno' | 'Distancia'>('Diurno');
-    const [selectedModules, setSelectedModules] = useState<Record<number, string>>({});
+    const [turnoPrimero, setTurnoPrimero] = useState<'Diurno' | 'Vespertino' | 'Nocturno' | 'Distancia'>('Diurno');
+    const [turnoSegundo, setTurnoSegundo] = useState<'Diurno' | 'Vespertino' | 'Nocturno' | 'Distancia'>('Diurno');
+    const [selectedModulesPrimero, setSelectedModulesPrimero] = useState<Record<number, [string, number | null]>>({});
+    const [selectedModulesSegundo, setSelectedModulesSegundo] = useState<Record<number, [string, number | null]>>({});
     const [modulesFilter, setModulesFilter] = useState<string>("");
     const [selectedIDType, setSelectedIDType] = useState<string>("");
     const [selectedID, setSelectedID] = useState<string>("");
     const [errorLogicaID, setErrorLogicaID] = useState<string | null>(null);
-    const [selectedYear, setSelectedYear] = useState<string>("");
+    const [selectedYearPrimero, setSelectedYearPrimero] = useState<string>("");
+    const [selectedYearSegundo, setSelectedYearSegundo] = useState<string>("");
     const [fechaPagoTitulo, setFechaPagoTitulo] = useState<Date | undefined>(undefined);
 
     // Instantiate query client
@@ -137,8 +139,6 @@ const AddStudentButton: React.FC = () => {
         enabled: Boolean(selectedCiclo),               // solo dispara si hay código
         staleTime: 5 * 60 * 1000,               // 5 min de frescura
     });
-
-    console.log(cicloData)
 
     const cursoIds = useMemo(
         () =>
@@ -189,6 +189,8 @@ const AddStudentButton: React.FC = () => {
     [modulosSegundoCurso, modulesFilter],
     );
 
+    console.log(selectedCiclo)
+
     /* —–––––––––––– estado global de carga/error para mostrarlo cómodamente –– */
     const modulosFetching = modulosQueries.some(q => q.isFetching);
     const modulosError    = modulosQueries.find(q => q.error)?.error as
@@ -210,22 +212,41 @@ const AddStudentButton: React.FC = () => {
     const showSeparator = selectedCiclo && selectedCiclo !== "unassigned";
     const showModules = showSeparator
     // gestiona el estado de los modulos
-    const handleModuleToggle = (moduleId: number) => {
-        setSelectedModules(prev => {
+    const handleModuleTogglePrimero = (moduleId: number) => {
+        setSelectedModulesPrimero(prev => {
             const newState = { ...prev };
             if (moduleId in newState) {
                 delete newState[moduleId];
             } else {
-                newState[moduleId] = "Matricula";
+                newState[moduleId] = ["Matricula", null];
             }
             return newState;
         });
     };
 
-    const handleModuleStatusChange = (moduleId: number, status: string) => {
-        setSelectedModules(prev => ({
+    const handleModuleToggleSegundo = (moduleId: number) => {
+        setSelectedModulesSegundo(prev => {
+            const newState = { ...prev };
+            if (moduleId in newState) {
+                delete newState[moduleId];
+            } else {
+                newState[moduleId] = ["Matricula", null];
+            }
+            return newState;
+        });
+    };
+
+    const handleModuleStatusChangePrimero = (moduleId: number, status: string, grade: number) => {
+        setSelectedModulesPrimero(prev => ({
             ...prev,
-            [moduleId]: status,
+            [moduleId]: [status, grade],
+        }));
+    };
+
+    const handleModuleStatusChangeSegundo = (moduleId: number, status: string, grade: number) => {
+        setSelectedModulesSegundo(prev => ({
+            ...prev,
+            [moduleId]: [status, grade],
         }));
     };
 
@@ -240,16 +261,13 @@ const AddStudentButton: React.FC = () => {
     // Add this function to handle ciclo selection
     const handleCicloChange = (value: string) => {
         setSelectedCiclo(value);
-        setSelectedModules({});
+        setSelectedModulesPrimero({});
+        setSelectedModulesSegundo({});
         setModulesFilter("");
     };
-
-    console.log(selectedCiclo)
   
     if (ciclosLoading) return 'Loading...';
     if (ciclosError) return 'An error has occurred: ' + ciclosError.message;
-    /* if (modulosError) return 'An error has occurred: ' + modulosError.message; */
-
 
     const handleIDType = (value: string) => {
         setErrorLogicaID(null);
@@ -332,7 +350,7 @@ const AddStudentButton: React.FC = () => {
         e.preventDefault(); // Evita el comportamiento por defecto del formulario
     
         // Validar campos obligatorios
-        if (!nombre || !apellido_1 || !selectedID || !fechaNacimiento || !selectedCiclo || !selectedYear) {
+        if (!nombre || !apellido_1 || !selectedID || !fechaNacimiento || !selectedCiclo || !selectedYearPrimero || !selectedYearSegundo) {
             toast("Complete todos los campos obligatorios.");
             return;
         }
@@ -341,9 +359,10 @@ const AddStudentButton: React.FC = () => {
             toast("Por favor, corrija los errores en el ID.");
             return;
         }
-    
+        
         // Estructurar los datos para la solicitud POST
-        const [anoInicio, anoFin] = selectedYear.split('-').map(Number);
+        const [anoInicioPrimero, anoFinPrimero] = selectedYearPrimero.split('-').map(Number);
+        const [anoInicioSegundo, anoFinSegundo] = selectedYearSegundo.split('-').map(Number);
         const studentData : PostStudent = {
                 nombre: nombre,
                 apellido_1: apellido_1,
@@ -353,44 +372,75 @@ const AddStudentButton: React.FC = () => {
                 num_tfno: num_tfno,
         };
         
-        const matriculas = Object.entries(selectedModules).map(([id, status]) => ({
+        const matriculasPrimero = Object.entries(selectedModulesPrimero).map(([id, [status, grade]]) => ({
                 id_modulo: Number(id),
                 status: status as "Matricula" | "Convalidada" | "Exenta" | "Trasladada",
         }));
+
+        const matriculasSegundo = Object.entries(selectedModulesSegundo).map(([id, [status, grade]]) => ({
+            id_modulo: Number(id),
+            status: status as "Matricula" | "Convalidada" | "Exenta" | "Trasladada",
+        }));
+
+        const cicloIDPrimero = cursoIds['1º'];
+        const cicloIDSegundo = cursoIds['2º'];
     
         try {
             // Crear estudiante y obtener su ID
             const studentResponse = await mutationStudent.mutateAsync(studentData);
             const studentId = studentResponse.estudiante.id_estudiante;
-    
-            // Crear datos del expediente con el ID del estudiante
-            const recordData : PostRecord = {
+            
+            // Crear datos de los expedientes con el ID del estudiante
+            const recordDataPrimero : PostRecord = {
                 id_estudiante: studentId,
-                ano_inicio: anoInicio,
-                ano_fin: anoFin,
-                estado: "Activo" as "Activo" | "Finalizado" | "Abandonado" | "En pausa",
+                estado: "Finalizado" as "Activo" | "Finalizado" | "Abandonado" | "En pausa",
+                ano_inicio: anoInicioPrimero,
+                ano_fin: anoFinPrimero,
+                turno: turnoPrimero,
+                id_ciclo: Number(cicloIDPrimero),
                 fecha_pago_titulo: fechaPagoTitulo,
-                turno: turno,
-                id_ciclo: Number(selectedCiclo),
                 curso: "1º",
-            };            
-    
-            // Crear expediente y obtener su ID
-            const recordResponse = await mutationExpediente.mutateAsync(recordData);
-            console.log(recordResponse)
-            const recordId = recordResponse.expediente.id_expediente;
-    
+            };
+
+            const recordResponsePrimero = await mutationExpediente.mutateAsync(recordDataPrimero);
+            const recordIdPrimero = recordResponsePrimero.expediente.id_expediente;
+
             // Añadir el ID del expediente a cada matrícula
-            const matriculasWithRecord = matriculas.map(matricula => ({
+            const matriculasWithRecordPrimero = matriculasPrimero.map(matricula => ({
                 ...matricula,
-                id_expediente: recordId,
+                id_expediente: recordIdPrimero,
                 completion_status: "En proceso" as "En proceso" | "Completado" | "Fallido" | "Retirado"
             }));
-    
-            // Crear matrículas
+
             await Promise.all(
-                matriculasWithRecord.map(matricula => mutationMatriculas.mutateAsync(matricula))
+                matriculasWithRecordPrimero.map(matricula => mutationMatriculas.mutateAsync(matricula))
             );
+
+            if (cicloIDSegundo != null) {
+                const recordDataSegundo : PostRecord = {
+                    id_estudiante: studentId,
+                    estado: "Finalizado" as "Activo" | "Finalizado" | "Abandonado" | "En pausa",
+                    ano_inicio: anoInicioSegundo,
+                    ano_fin: anoFinSegundo,
+                    turno: turnoSegundo,
+                    id_ciclo: Number(cicloIDSegundo),
+                    fecha_pago_titulo: fechaPagoTitulo,
+                    curso: "2º",
+                };
+
+                const recordResponseSegundo = await mutationExpediente.mutateAsync(recordDataSegundo);
+                const recordIdSegundo = recordResponseSegundo.expediente.id_expediente;
+
+                const matriculasWithRecordSegundo = matriculasSegundo.map(matricula => ({
+                    ...matricula,
+                    id_expediente: recordIdSegundo,
+                    completion_status: "Completado" as "En proceso" | "Completado" | "Fallido" | "Retirado"
+                }));
+
+                await Promise.all(
+                    matriculasWithRecordSegundo.map(matricula => mutationMatriculas.mutateAsync(matricula))
+                );
+            }
 
             // Invalidate the students query to trigger a refetch and update the list
             queryClient.invalidateQueries({ queryKey: ['get-total-students'] });
@@ -403,14 +453,17 @@ const AddStudentButton: React.FC = () => {
             setNum_tfno(null)
             setFechaNacimiento(undefined);
             setSelectedCiclo("");
-            setTurno('Diurno');
+            setTurnoPrimero('Diurno');
+            setTurnoSegundo('Diurno');
             setFechaPagoTitulo(undefined);
-            setSelectedModules({});
+            setSelectedModulesPrimero({});
+            setSelectedModulesSegundo({});
             setModulesFilter("");
             setSelectedIDType("");
             setSelectedID("");
             setErrorLogicaID(null);
-            setSelectedYear("");
+            setSelectedYearPrimero("");
+            setSelectedYearSegundo("");
             // Resetear otros campos si es necesario
             toast("Estudiante, expediente y matrículas creados con éxito.");
         } catch (error) {
@@ -465,7 +518,7 @@ const AddStudentButton: React.FC = () => {
                                     onChange={setNum_tfno}
                                     placeholder="..."
                                     defaultCountry="ES"
-                                    />
+                                />
                                 <>
                                     <div className="grid grid-cols-4 items-center gap-4">
                                         <Label htmlFor="id_legal" className="text-right font-medium">ID Legal</Label>
@@ -515,35 +568,6 @@ const AddStudentButton: React.FC = () => {
                                         }))}
                                     />
                                 </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="turno" className="text-right font-medium">Turno</Label>
-                                    <SelectField
-                                        label="Turno"
-                                        name="turno"
-                                        value={turno ? turno : ""}
-                                        onValueChange={(value => setTurno(value as "Diurno" | "Vespertino" | "Nocturno" | "Distancia"))}
-                                        placeholder="Tipo ID"
-                                        options={
-                                            [
-                                                {value: "Diurno", label: "Diurno"},
-                                                {value: "Vespertino", label: "Vespertino"},
-                                                {value: "Nocturno", label: "Nocturno"},
-                                                {value: "Distancia", label: "Distancia"}
-                                            ]
-                                        }
-                                    />
-                                </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="ano_escolar" className="text-right font-medium">Año Escolar</Label>
-                                    <SelectField
-                                        label="Año Escolar"
-                                        name="school_year"
-                                        value={selectedYear}
-                                        onValueChange={(value) => setSelectedYear(value)}
-                                        placeholder="Seleccionar año escolar"
-                                        options={generateSchoolYearOptions()}
-                                    />
-                                </div>
                                 <div className="z-100">
                                     <DatePicker label="Fecha pago del título:" name="fecha_pago_titulo" onChange={handleFechaPagoTituloChange} />
                                 </div>
@@ -561,23 +585,59 @@ const AddStudentButton: React.FC = () => {
                             showModules ? 'opacity-100' : 'opacity-0'
                             }`}
                         >
+                            <input
+                                type="text"
+                                value={modulesFilter}
+                                onChange={(e) => setModulesFilter(e.target.value)}
+                                placeholder="Filtrar módulos"
+                                className="p-1 border border-gray-300 rounded mb-5 mr-5 w-full pl-3"
+                            />
                             {selectedCiclo && (
                             <>
                                 {/* search bar … unchanged … */}
 
                                 {/* ▸▸▸ NEW WRAPPER ◂◂◂  — 60 % viewport height max */}
-                                <div className="max-h-[42vh] overflow-y-auto pr-2 space-y-6 pb-5">
+                                <div className="max-h-[40vh] overflow-y-auto pr-2 space-y-6 pb-5">
                                 {/* ºººº 1º CURSO ºººº */}
                                 {filteredPrimer.length > 0 && (
                                     <>
-                                    <h4 className="font-medium mb-2 sticky top-0 bg-white/80 backdrop-blur">
+                                    <h4 className="font-medium mb-2 sticky top-0 bg-white/90 backdrop-blur">
                                         Primer curso
                                     </h4>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="ano_escolar" className="text-right font-medium">Año Escolar (Primero):</Label>
+                                        <SelectField
+                                            label="Año Escolar"
+                                            name="school_year"
+                                            value={selectedYearPrimero}
+                                            onValueChange={(value) => setSelectedYearPrimero(value)}
+                                            placeholder="Seleccionar año escolar"
+                                            options={generateSchoolYearOptions()}
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="turno" className="text-right font-medium">Turno (Primero)</Label>
+                                        <SelectField
+                                            label="Turno"
+                                            name="turno"
+                                            value={turnoPrimero ? turnoPrimero : ""}
+                                            onValueChange={(value => setTurnoPrimero(value as "Diurno" | "Vespertino" | "Nocturno" | "Distancia"))}
+                                            placeholder="Tipo ID"
+                                            options={
+                                                [
+                                                    {value: "Diurno", label: "Diurno"},
+                                                    {value: "Vespertino", label: "Vespertino"},
+                                                    {value: "Nocturno", label: "Nocturno"},
+                                                    {value: "Distancia", label: "Distancia"}
+                                                ]
+                                            }
+                                        />
+                                    </div>
                                     <ModuleList
                                         modules={filteredPrimer}
-                                        selectedModules={selectedModules}
-                                        onModuleToggle={handleModuleToggle}
-                                        onModuleStatusChange={handleModuleStatusChange}
+                                        selectedModules={selectedModulesPrimero}
+                                        onModuleToggle={handleModuleTogglePrimero}
+                                        onModuleStatusChange={handleModuleStatusChangePrimero}
                                     />
                                     </>
                                 )}
@@ -585,14 +645,43 @@ const AddStudentButton: React.FC = () => {
                                 {/* ºººº 2º CURSO ºººº */}
                                 {filteredSegundo.length > 0 && (
                                     <>
-                                    <h4 className="font-medium mb-2 sticky top-0 bg-white/80 backdrop-blur">
+                                    <h4 className="font-medium mb-2 sticky top-0 bg-white/90 backdrop-blur">
                                         Segundo curso
                                     </h4>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="ano_escolar" className="text-right font-medium">Año Escolar (Segundo):</Label>
+                                        <SelectField
+                                            label="Año Escolar"
+                                            name="school_year"
+                                            value={selectedYearSegundo}
+                                            onValueChange={(value) => setSelectedYearSegundo(value)}
+                                            placeholder="Seleccionar año escolar"
+                                            options={generateSchoolYearOptions()}
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="turno" className="text-right font-medium">Turno (Segundo)</Label>
+                                        <SelectField
+                                            label="Turno"
+                                            name="turno"
+                                            value={turnoSegundo ? turnoSegundo : ""}
+                                            onValueChange={(value => setTurnoSegundo(value as "Diurno" | "Vespertino" | "Nocturno" | "Distancia"))}
+                                            placeholder="Tipo ID"
+                                            options={
+                                                [
+                                                    {value: "Diurno", label: "Diurno"},
+                                                    {value: "Vespertino", label: "Vespertino"},
+                                                    {value: "Nocturno", label: "Nocturno"},
+                                                    {value: "Distancia", label: "Distancia"}
+                                                ]
+                                            }
+                                        />
+                                    </div>
                                     <ModuleList
                                         modules={filteredSegundo}
-                                        selectedModules={selectedModules}
-                                        onModuleToggle={handleModuleToggle}
-                                        onModuleStatusChange={handleModuleStatusChange}
+                                        selectedModules={selectedModulesSegundo}
+                                        onModuleToggle={handleModuleToggleSegundo}
+                                        onModuleStatusChange={handleModuleStatusChangeSegundo}
                                     />
                                     </>
                                 )}
@@ -603,7 +692,7 @@ const AddStudentButton: React.FC = () => {
                         )}
                     </div>
                     <DialogFooter>
-                        <Button type="submit" className="px-6 mr-4">Guardar estudiante</Button>
+                        <Button type="submit" className="px-5 mr-4">Guardar estudiante</Button>
                     </DialogFooter>
                 </form>
             </DialogContent>
@@ -611,31 +700,37 @@ const AddStudentButton: React.FC = () => {
     );
 };
 
+type Status = "Matricula" | "Convalidada" | "Exenta" | "Trasladada";
+
 // Memoized ModuleList component
-const ModuleList = React.memo(({ modules, selectedModules, onModuleToggle, onModuleStatusChange }: {
+const ModuleList = React.memo(({ modules, selectedModules, onModuleToggle, onModuleStatusChange, onModuleGradeChange }: {
     modules: any[],
-    selectedModules: Record<number, string>,
+    selectedModules: Record<number, [string, number | null]>,
     onModuleToggle: (moduleId: number) => void,
-    onModuleStatusChange: (moduleId: number, status: string) => void
+    onModuleStatusChange: (moduleId: number, status: string) => void,
+    onModuleGradeChange: (moduleId: number, grade: number) => void
 }) => (
     <div className="space-y-3">
-        {modules.map((module) => (
+        {modules.map((module) => {
+            const tuple = selectedModules[module.id_modulo];
+            const status: string = tuple?.[0] ?? "Matricula";
+            const grade: number = tuple?.[1] ?? 0;
+            return (
             <div key={module.id_modulo} className="grid grid-cols-[auto,1fr,auto] gap-3 items-center">
-                <Checkbox
+                 <Checkbox
                     id={`module-${module.id_modulo}`}
                     checked={module.id_modulo in selectedModules}
                     onCheckedChange={() => onModuleToggle(module.id_modulo)}
                 />
-                <label htmlFor={`module-${module.id_modulo}`}
-                    className="text-sm font-medium leading-none w-auto inline-block">
+                <span className="text-sm font-medium leading-none w-auto inline-block">
                     {module.nombre}
-                </label>
+                </span>
                 <div className="w-[140px] p-2">
                     {module.id_modulo in selectedModules ? (
-                        <div className="h-5">
+                        <div className="h-5 flex">
                             <Select
-                                value={selectedModules[module.id_modulo] || "Matricula"}
-                                onValueChange={(value) => onModuleStatusChange(module.id_modulo, value as string)}
+                                value={status}
+                                onValueChange={(value) => onModuleStatusChange(module.id_modulo, value as Status)}
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Estado" />
@@ -647,13 +742,22 @@ const ModuleList = React.memo(({ modules, selectedModules, onModuleToggle, onMod
                                     <SelectItem className="hover:bg-gray-100 cursor-pointer" value="Trasladada">Trasladada</SelectItem>
                                 </SelectContent>
                             </Select>
-                        </div>
+                            <FormField
+                                label="Calificación"
+                                name="`calificacion-${module.id_modulo}`"
+                                value={grade > 0 ? String(grade) : ""}
+                                onChange={(value: string) => {
+                                    const parsed = parseInt(value, 10) || 0;
+                                    onModuleGradeChange(module.id_modulo, parsed);
+                                }}
+                            />
+                            </div>
                     ) : (
                         <div className="h-5"></div>
                     )}
                 </div>
             </div>
-        ))}
+        )})}
     </div>
 ));
 
