@@ -97,6 +97,7 @@ async function createMatriculas(enrollmentData: PostEnrollment) {
     return response.json();
 }
 
+
 // ===========================================================================================================================
 
 const AddStudentButton: React.FC = () => {
@@ -189,8 +190,6 @@ const AddStudentButton: React.FC = () => {
     [modulosSegundoCurso, modulesFilter],
     );
 
-    console.log(selectedCiclo)
-
     /* —–––––––––––– estado global de carga/error para mostrarlo cómodamente –– */
     const modulosFetching = modulosQueries.some(q => q.isFetching);
     const modulosError    = modulosQueries.find(q => q.error)?.error as
@@ -249,7 +248,7 @@ const AddStudentButton: React.FC = () => {
             [moduleId]: [status, grade],
         }));
     };
-
+    
     const handleDateChange = (date: Date | undefined) => {
         setFechaNacimiento(date);
     };
@@ -492,10 +491,10 @@ const AddStudentButton: React.FC = () => {
                 /* 1. keep the two possible widths you already had */
                 className={cn(
                     selectedCiclo && selectedCiclo !== "unassigned"
-                    ? "sm:max-w-[900px]"
+                    ? "sm:max-w-[1000px]"
                     : "sm:max-w-[450px]",
                     /* 2. NEW ­– freeze the height */
-                    "min-h-[720px] max-h-[720px]",   // pick any value / use 75vh, etc.
+                    "min-h-[620px] max-h-[620px]",   // pick any value / use 75vh, etc.
                     /* 3. do NOT clip children, only show a vertical scrollbar if
                         something outside your module column spills */
                 )}
@@ -506,7 +505,7 @@ const AddStudentButton: React.FC = () => {
                         <DialogTitle className="text-xl font-semibold mb-4">Añadir nuevo estudiante</DialogTitle>
                     </DialogHeader>
                     <div className="flex flex-nowrap gap-8">
-                        <div className="flex-1 min-w-[395px] max-w-[450px]">
+                        <div className="flex-1 min-w-[320px] max-w-[420px]">
                             <div className="space-y-4">
                                 <FormField label="Nombre" name="nombre" value={nombre} onChange={setNombre}/>
                                 <FormField label="Apellido 1" name="apellido1" value={apellido_1} onChange={setApellido1} />
@@ -703,20 +702,19 @@ const AddStudentButton: React.FC = () => {
 type Status = "Matricula" | "Convalidada" | "Exenta" | "Trasladada";
 
 // Memoized ModuleList component
-const ModuleList = React.memo(({ modules, selectedModules, onModuleToggle, onModuleStatusChange, onModuleGradeChange }: {
+const ModuleList = React.memo(({ modules, selectedModules, onModuleToggle, onModuleStatusChange }: {
     modules: any[],
     selectedModules: Record<number, [string, number | null]>,
     onModuleToggle: (moduleId: number) => void,
-    onModuleStatusChange: (moduleId: number, status: string) => void,
-    onModuleGradeChange: (moduleId: number, grade: number) => void
+    onModuleStatusChange: (moduleId: number, status: string, grade: number) => void,
 }) => (
     <div className="space-y-3">
         {modules.map((module) => {
             const tuple = selectedModules[module.id_modulo];
             const status: string = tuple?.[0] ?? "Matricula";
-            const grade: number = tuple?.[1] ?? 0;
+            const grade: number  = tuple?.[1] ?? 0;
             return (
-            <div key={module.id_modulo} className="grid grid-cols-[auto,1fr,auto] gap-3 items-center">
+            <div key={module.id_modulo} className="grid grid-cols-[auto,200px,auto] gap-3 items-center justify-items-start max-w-max">
                  <Checkbox
                     id={`module-${module.id_modulo}`}
                     checked={module.id_modulo in selectedModules}
@@ -725,12 +723,12 @@ const ModuleList = React.memo(({ modules, selectedModules, onModuleToggle, onMod
                 <span className="text-sm font-medium leading-none w-auto inline-block">
                     {module.nombre}
                 </span>
-                <div className="w-[140px] p-2">
+                <div className="w-[180px] mb-5">
                     {module.id_modulo in selectedModules ? (
                         <div className="h-5 flex">
                             <Select
                                 value={status}
-                                onValueChange={(value) => onModuleStatusChange(module.id_modulo, value as Status)}
+                                onValueChange={(value) => onModuleStatusChange(module.id_modulo, value as Status, grade)}
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Estado" />
@@ -742,15 +740,18 @@ const ModuleList = React.memo(({ modules, selectedModules, onModuleToggle, onMod
                                     <SelectItem className="hover:bg-gray-100 cursor-pointer" value="Trasladada">Trasladada</SelectItem>
                                 </SelectContent>
                             </Select>
-                            <FormField
-                                label="Calificación"
-                                name="`calificacion-${module.id_modulo}`"
-                                value={grade > 0 ? String(grade) : ""}
-                                onChange={(value: string) => {
-                                    const parsed = parseInt(value, 10) || 0;
-                                    onModuleGradeChange(module.id_modulo, parsed);
-                                }}
-                            />
+                            <div className="w-[100px]">
+                                <FormField
+                                    label=""
+                                    name="`calificacion-${module.id_modulo}`"
+                                    value={grade > 0 ? String(grade) : ""}
+                                    onChange={(value: string) => {
+                                        const newGrade = parseInt(value, 10) || 0;
+                                        // “status” is the current status string from your tuple
+                                        onModuleStatusChange(module.id_modulo, status, newGrade);
+                                    }}
+                                />
+                            </div>
                             </div>
                     ) : (
                         <div className="h-5"></div>
