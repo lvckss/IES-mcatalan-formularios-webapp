@@ -47,14 +47,8 @@ CREATE TABLE Matriculas (
     id_modulo INT NOT NULL,
     status VARCHAR(20) NOT NULL CHECK (status IN ('Matricula', 'Convalidada', 'Exenta', 'Trasladada')),
     completion_status VARCHAR(20) NOT NULL DEFAULT 'En proceso' CHECK (completion_status IN ('En proceso', 'Completado', 'Fallido', 'Retirado')),
+    nota DECIMAL(4, 2),
     FOREIGN KEY (id_expediente) REFERENCES Expedientes(id_expediente) ON DELETE CASCADE,
     FOREIGN KEY (id_modulo) REFERENCES Modulos(id_modulo) ON DELETE CASCADE,
     UNIQUE (id_expediente, id_modulo)  -- Ensures one enrollment per module per expediente
-);
-
-CREATE TABLE Calificaciones (
-    id_calificacion SERIAL PRIMARY KEY,
-    id_matricula INT NOT NULL,
-    nota DECIMAL(4, 2),  -- Nullable for ungraded modules
-    FOREIGN KEY (id_matricula) REFERENCES Matriculas(id_matricula) ON DELETE CASCADE
 );

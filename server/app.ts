@@ -4,7 +4,6 @@ import { logger } from 'hono/logger';
 
 import { cyclesRoute } from './routes/cyclesRoute';
 import { enrollmentsRoute } from './routes/enrollmentsRoute';
-import { gradesRoute } from './routes/gradesRoute';
 import { modulesRoute } from './routes/modulesRoute';
 import { recordsRoute } from './routes/recordsRoute';
 import { regulacionesRoute } from './routes/regulacionesRoute';

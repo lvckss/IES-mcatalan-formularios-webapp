@@ -97,7 +97,6 @@ async function createMatriculas(enrollmentData: PostEnrollment) {
     return response.json();
 }
 
-
 // ===========================================================================================================================
 
 const AddStudentButton: React.FC = () => {
@@ -217,7 +216,7 @@ const AddStudentButton: React.FC = () => {
             if (moduleId in newState) {
                 delete newState[moduleId];
             } else {
-                newState[moduleId] = ["Matricula", null];
+                newState[moduleId] = ["Matricula", 0];
             }
             return newState;
         });
@@ -229,20 +228,20 @@ const AddStudentButton: React.FC = () => {
             if (moduleId in newState) {
                 delete newState[moduleId];
             } else {
-                newState[moduleId] = ["Matricula", null];
+                newState[moduleId] = ["Matricula", 0];
             }
             return newState;
         });
     };
 
-    const handleModuleStatusChangePrimero = (moduleId: number, status: string, grade: number) => {
+    const handleModuleStatusChangePrimero = (moduleId: number, status: string, grade: number | null) => {
         setSelectedModulesPrimero(prev => ({
             ...prev,
             [moduleId]: [status, grade],
         }));
     };
 
-    const handleModuleStatusChangeSegundo = (moduleId: number, status: string, grade: number) => {
+    const handleModuleStatusChangeSegundo = (moduleId: number, status: string, grade: number | null) => {
         setSelectedModulesSegundo(prev => ({
             ...prev,
             [moduleId]: [status, grade],
@@ -349,7 +348,7 @@ const AddStudentButton: React.FC = () => {
         e.preventDefault(); // Evita el comportamiento por defecto del formulario
     
         // Validar campos obligatorios
-        if (!nombre || !apellido_1 || !selectedID || !fechaNacimiento || !selectedCiclo || !selectedYearPrimero || !selectedYearSegundo) {
+        if (!nombre || !apellido_1 || !selectedID || !fechaNacimiento || !selectedCiclo || !selectedYearPrimero) {
             toast("Complete todos los campos obligatorios.");
             return;
         }
@@ -374,12 +373,18 @@ const AddStudentButton: React.FC = () => {
         const matriculasPrimero = Object.entries(selectedModulesPrimero).map(([id, [status, grade]]) => ({
                 id_modulo: Number(id),
                 status: status as "Matricula" | "Convalidada" | "Exenta" | "Trasladada",
+                nota: grade,
         }));
+
+        console.log(matriculasPrimero)
 
         const matriculasSegundo = Object.entries(selectedModulesSegundo).map(([id, [status, grade]]) => ({
             id_modulo: Number(id),
             status: status as "Matricula" | "Convalidada" | "Exenta" | "Trasladada",
+            nota: grade,
         }));
+
+        console.log(matriculasSegundo)
 
         const cicloIDPrimero = cursoIds['1º'];
         const cicloIDSegundo = cursoIds['2º'];
@@ -389,6 +394,9 @@ const AddStudentButton: React.FC = () => {
             const studentResponse = await mutationStudent.mutateAsync(studentData);
             const studentId = studentResponse.estudiante.id_estudiante;
             
+            console.log(anoInicioPrimero)
+            console.log(anoFinPrimero)
+
             // Crear datos de los expedientes con el ID del estudiante
             const recordDataPrimero : PostRecord = {
                 id_estudiante: studentId,
@@ -408,14 +416,14 @@ const AddStudentButton: React.FC = () => {
             const matriculasWithRecordPrimero = matriculasPrimero.map(matricula => ({
                 ...matricula,
                 id_expediente: recordIdPrimero,
-                completion_status: "En proceso" as "En proceso" | "Completado" | "Fallido" | "Retirado"
+                completion_status: "En proceso" as "En proceso" | "Completado" | "Fallido" | "Retirado",
             }));
 
             await Promise.all(
                 matriculasWithRecordPrimero.map(matricula => mutationMatriculas.mutateAsync(matricula))
             );
 
-            if (cicloIDSegundo != null) {
+            if (anoInicioSegundo != 0) {
                 const recordDataSegundo : PostRecord = {
                     id_estudiante: studentId,
                     estado: "Finalizado" as "Activo" | "Finalizado" | "Abandonado" | "En pausa",
@@ -433,7 +441,7 @@ const AddStudentButton: React.FC = () => {
                 const matriculasWithRecordSegundo = matriculasSegundo.map(matricula => ({
                     ...matricula,
                     id_expediente: recordIdSegundo,
-                    completion_status: "Completado" as "En proceso" | "Completado" | "Fallido" | "Retirado"
+                    completion_status: "Completado" as "En proceso" | "Completado" | "Fallido" | "Retirado",
                 }));
 
                 await Promise.all(
@@ -706,7 +714,7 @@ const ModuleList = React.memo(({ modules, selectedModules, onModuleToggle, onMod
     modules: any[],
     selectedModules: Record<number, [string, number | null]>,
     onModuleToggle: (moduleId: number) => void,
-    onModuleStatusChange: (moduleId: number, status: string, grade: number) => void,
+    onModuleStatusChange: (moduleId: number, status: string, grade: number | null) => void,
 }) => (
     <div className="space-y-3">
         {modules.map((module) => {
@@ -743,11 +751,14 @@ const ModuleList = React.memo(({ modules, selectedModules, onModuleToggle, onMod
                             <div className="w-[100px]">
                                 <FormField
                                     label=""
-                                    name="`calificacion-${module.id_modulo}`"
+                                    name={`calificacion-${module.id_modulo}`}
                                     value={grade > 0 ? String(grade) : ""}
                                     onChange={(value: string) => {
-                                        const newGrade = parseInt(value, 10) || 0;
-                                        // “status” is the current status string from your tuple
+                                        const newGrade =
+                                            value.trim() === ""        // nothing typed ⇒ no grade yet
+                                            ? null                   // send null so DB can store NULL
+                                            : Number(value);         // keeps decimals such as “7.25”
+
                                         onModuleStatusChange(module.id_modulo, status, newGrade);
                                     }}
                                 />
