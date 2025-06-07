@@ -4,7 +4,7 @@ import type { Record } from "../Record";
 
 import { z } from "zod";
 
-type EnrollmentExtended = Omit<Enrollment, "id_expediente"> & {
+export type EnrollmentExtended = Omit<Enrollment, "id_expediente"> & {
     nombre_modulo: string;
     codigo_modulo: string;
 }

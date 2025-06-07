@@ -1,7 +1,13 @@
 import sql from '../db/db'
 import { type PostStudent, type Student, StudentSchema } from "../models/Student";
-// Type para la obtención de todos los datos
-import { type FullRawStudentData, type FullStudentData, FullRawStudentDataSchema } from '../models/custom/FullStudentData';
+// Types para la obtención de todos los datos
+import {
+  type FullRawStudentData,
+  type FullStudentData,
+  FullRawStudentDataSchema,
+  type RecordExtended,
+  type EnrollmentExtended
+} from '../models/custom/FullStudentData';
 
 export const getStudents = async (): Promise<Student[]> => {
   const results = await sql`SELECT * FROM Estudiantes`;
@@ -50,6 +56,7 @@ export const getStudentFullInfo = async (studentId: number): Promise<FullStudent
         mat.id_matricula,
         mat.status,
         mat.completion_status,
+        mat.nota,
         m.id_modulo,
         m.nombre AS module_nombre,
         m.codigo_modulo,
@@ -74,43 +81,68 @@ export const getStudentFullInfo = async (studentId: number): Promise<FullStudent
         e.id_expediente, m.id_modulo;
   `;
 
-  const results_parsed = FullRawStudentDataSchema.parse({ fullInfo: results }).fullInfo;
-  const firstRecord = results_parsed[0]
-  const student = {
-    id_estudiante: firstRecord.id_estudiante,
-    nombre: firstRecord.student_nombre,
-    apellido_1: firstRecord.student_apellido1,
-    apellido_2: firstRecord.student_apellido2,
-    id_legal: firstRecord.student_id_legal,
-    fecha_nac: firstRecord.student_fecha_nac,
-    num_tfno: firstRecord.student_num_tfno
+  // Parse raw results with Zod schema
+  const rawData = FullRawStudentDataSchema.parse({ fullInfo: results }).fullInfo;
+
+  // Build student info from first record
+  const {
+    id_estudiante,
+    student_nombre,
+    student_apellido1,
+    student_apellido2,
+    student_id_legal,
+    student_fecha_nac,
+    student_num_tfno
+  } = rawData[0];
+
+  const student: Student = {
+    id_estudiante,
+    nombre: student_nombre,
+    apellido_1: student_apellido1,
+    apellido_2: student_apellido2,
+    id_legal: student_id_legal,
+    fecha_nac: student_fecha_nac,
+    num_tfno: student_num_tfno
   };
 
-  const recordGroup = {
-    id_expediente: firstRecord.id_expediente,
-    ano_inicio: firstRecord.ano_inicio,
-    ano_fin: firstRecord.ano_fin,
-    estado: firstRecord.estado as "Activo" | "Finalizado" | "Abandonado" | "En pausa",
-    id_ciclo: firstRecord.record_id_ciclo,
-    ciclo_codigo: firstRecord.ciclo_codigo,
-    ciclo_nombre: firstRecord.record_ciclo_nombre,
-    curso: firstRecord.record_curso,
-    turno: firstRecord.turno,
-    fecha_pago_titulo: firstRecord.fecha_pago_titulo,
-    enrollments: results_parsed.map(rec => ({
-      id_matricula: rec.id_matricula,
-      status: rec.status as 'Matricula' | 'Convalidada'| 'Exenta' | 'Trasladada',
-      completion_status: rec.completion_status as 'En proceso' | 'Completado' | 'Fallido' | 'Retirado',
+  // Group rows by expediente
+  const expedienteMap = new Map<number, RecordExtended>();
+
+  rawData.forEach(rec => {
+    const expId = rec.id_expediente;
+
+    if (!expedienteMap.has(expId)) {
+      expedienteMap.set(expId, {
+        id_expediente: expId,
+        ano_inicio: rec.ano_inicio,
+        ano_fin: rec.ano_fin,
+        estado: rec.estado as RecordExtended['estado'],
+        turno: rec.turno as RecordExtended['turno'],
+        fecha_pago_titulo: rec.fecha_pago_titulo ?? undefined,
+        id_ciclo: rec.record_id_ciclo,
+        ciclo_codigo: rec.ciclo_codigo,
+        ciclo_nombre: rec.record_ciclo_nombre,
+        curso: rec.record_curso,
+        enrollments: []
+      });
+    }
+
+    const currentRecord = expedienteMap.get(expId)!;
+
+    const enrollment: EnrollmentExtended = {
+      id_matricula: rec.id_matricula!,
+      status: rec.status as EnrollmentExtended['status'],
+      completion_status: rec.completion_status as EnrollmentExtended['completion_status'],
       id_modulo: rec.id_modulo,
+      nota: rec.nota ?? null,
       nombre_modulo: rec.module_nombre,
-      codigo_modulo: rec.codigo_modulo,
-    }))
-  };
+      codigo_modulo: rec.codigo_modulo
+    };
 
-  const fullStudentData = {
-    student,
-    records: [recordGroup]
-  };
+    currentRecord.enrollments.push(enrollment);
+  });
 
-  return fullStudentData;
+  const records = Array.from(expedienteMap.values()) as RecordExtended[];
+
+  return { student, records };
 };
