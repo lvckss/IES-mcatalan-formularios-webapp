@@ -48,7 +48,7 @@ interface StudentProfilePanelProps {
 
 const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, onClose }) => {
   const [selectedPeriod, setSelectedPeriod] = useState("");
-  const [currentRecord, setCurrentRecord] = useState<RecordExtended | undefined>();
+  const [currentRecord, setCurrentRecord] = useState<RecordExtended | null>();
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedPersonalInfo, setEditedPersonalInfo] = useState({})
   const [editedCourses, setEditedCourses] = useState([])
@@ -72,6 +72,19 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
     label: `${record.ano_inicio}-${record.ano_fin}`,
     record: record,
   })) || [];
+
+  const handlePeriodChange = (value : string) => {
+    setSelectedPeriod(value)
+    const [anoInicio, anoFin] = value.split('-').map((str : string) => parseInt(str,10))
+
+    const encontrado = fullData?.records.find(r =>
+      r.ano_inicio === anoInicio &&
+      r.ano_fin === anoFin
+    ) || null;
+
+    setCurrentRecord(encontrado)
+    setIsAddingCourse(false);
+  }
 
   /* useEffect(() => {
     if (student) {...data.fullInfo.student,
@@ -282,18 +295,14 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
                   {/* Year Selection Dropdown */}
                   <div className="flex items-center space-x-4">
                     <div className="text-sm font-medium text-muted-foreground">Año académico:</div>
-                    <SelectField
-                      label="Periodo"
-                      name="period"
-                      value={selectedPeriod || (periodOptions[0]?.value ?? "")}
-                      onValueChange={(value) => {
-                        setSelectedPeriod(value);
-                        setCurrentRecord(periodOptions.find(option => option.value === selectedPeriod)?.record)
-                        setIsAddingCourse(false);
-                      }}
-                      placeholder="Seleccionar periodo"
-                      options={periodOptions}
-                    />
+                      <SelectField
+                        label="Periodo"
+                        name="period"
+                        value={selectedPeriod}
+                        onValueChange={handlePeriodChange}
+                        placeholder="Seleccionar periodo"
+                        options={periodOptions}
+                      />
                   </div>
 
                   {/* Display selected year's cycle (degree) and courses */}
@@ -309,42 +318,42 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
                         <table className="w-full">
                           <thead>
                             <tr className="border-b bg-muted/50">
-                              <th className="p-2 text-left text-sm font-medium">Course Code</th>
-                              <th className="p-2 text-left text-sm font-medium">Course Name</th>
-                              <th className="p-2 text-left text-sm font-medium">Grade</th>
+                              <th className="p-2 text-left text-sm font-medium">Código</th>
+                              <th className="p-2 text-left text-sm font-medium">Nombre</th>
+                              <th className="p-2 text-left text-sm font-medium">Calificación</th>
                               {isEditMode && <th className="p-2 text-left text-sm font-medium w-[80px]">Actions</th>}
                             </tr>
                           </thead>
                           <tbody>
-                            {/* {(isEditMode ? editedCourses : currentRecord?.enrollments?).map((codigo_modulo, nombre_modulo, status, ) => (
-                              <tr key={courseIndex} className="border-b last:border-0">
+                            {(isEditMode ? editedCourses : currentRecord?.enrollments ?? []).map((modulo) => (
+                              <tr key={modulo.codigo_modulo} className="border-b last:border-0">
                                 <td className="p-2 text-sm">
                                   {isEditMode ? (
                                     <Input
-                                      value={course.code}
-                                      onChange={(e) => handleCourseChange(courseIndex, "code", e.target.value)}
+                                      value={modulo.codigo_modulo}
+                                      /* onChange={(e) => handleCourseChange(courseIndex, "code", e.target.value)} */
                                       className="h-8 text-sm"
                                     />
                                   ) : (
-                                    course.code
+                                    modulo.codigo_modulo
                                   )}
                                 </td>
                                 <td className="p-2 text-sm">
                                   {isEditMode ? (
                                     <Input
-                                      value={course.name}
-                                      onChange={(e) => handleCourseChange(courseIndex, "name", e.target.value)}
+                                      value={modulo.nombre_modulo}
+                                      /* onChange={(e) => handleCourseChange(courseIndex, "name", e.target.value)} */
                                       className="h-8 text-sm"
                                     />
                                   ) : (
-                                    course.name
+                                    modulo.nombre_modulo
                                   )}
                                 </td>
                                 <td className="p-2 text-sm">
                                   {isEditMode ? (
                                     <Select
-                                      value={course.grade}
-                                      onValueChange={(value) => handleCourseChange(courseIndex, "grade", value)}
+                                      value={modulo.nota?.toString()}
+                                      /* onValueChange={(value) => handleCourseChange(courseIndex, "grade", value)} */
                                     >
                                       <SelectTrigger className="h-8 text-sm w-[120px]">
                                         <SelectValue placeholder="Select grade" />
@@ -363,18 +372,16 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
                                         <SelectItem value="In Progress">In Progress</SelectItem>
                                       </SelectContent>
                                     </Select>
-                                  ) : course.grade === "In Progress" ? (
-                                    <Badge variant="secondary">{course.grade}</Badge>
-                                  ) : (
-                                    course.grade
-                                  )}
+                                  ) :
+                                    modulo.nota
+                                  }
                                 </td>
                                 {isEditMode && (
                                   <td className="p-2 text-sm">
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      onClick={() => handleDeleteCourse(courseIndex)}
+                                      /* onClick={() => handleDeleteCourse(courseIndex)} */
                                       className="h-8 w-8"
                                     >
                                       <Trash className="h-4 w-4 text-destructive" />
@@ -429,7 +436,7 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      onClick={handleAddCourse}
+                                      /* onClick={handleAddCourse} */
                                       className="h-8 w-8"
                                       disabled={!newCourse.code || !newCourse.name}
                                     >
@@ -446,7 +453,7 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
                                   </div>
                                 </td>
                               </tr>
-                            )} */}
+                            )}
                           </tbody>
                         </table>
                       </div>
