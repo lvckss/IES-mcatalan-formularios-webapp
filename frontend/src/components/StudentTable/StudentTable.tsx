@@ -1,17 +1,11 @@
 import React from 'react';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Button } from '../ui/button';
-
 import { ContactRound, Trash } from 'lucide-react';
-
 import { Input } from "@/components/ui/input";
-
 import StudentProfilePanel from '../StudentPanel/StudentProfilePanel';
-
 import { toast } from 'sonner';
-
 import { Student } from '@/types';
-
 import { useVirtualizer } from '@tanstack/react-virtual';
 import {
   ColumnDef,
@@ -63,13 +57,13 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
         accessorKey: 'fecha_nac',
         header: 'Fecha de Nacimiento',
         // Custom cell rendering for spanish date formatting
-        cell: info => new Date(info.getValue<string>()).toLocaleDateString('es-ES'),
+        cell: info => new Date(info.getValue<string>()).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }),
         filterFn: (row, columnId, filterValue) => {
           const rowValue = row.getValue<string>(columnId); // Fecha en formato aaaa-mm-dd
           if (!rowValue) return false;
 
           // Convertir a dd/mm/aaaa para comparar
-          const formattedRowValue = new Date(rowValue).toLocaleDateString('es-ES'); // dd/mm/aaaa
+          const formattedRowValue = new Date(rowValue).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }); // dd/mm/aaaa
           return formattedRowValue.includes(filterValue);
         }
       },
