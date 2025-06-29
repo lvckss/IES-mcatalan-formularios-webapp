@@ -588,7 +588,7 @@ const AddStudentButton: React.FC = () => {
                         />
                         {showModules && (
                         <div
-                            className={`flex-1 transition-all duration-300 ease-in-out ${
+                            className={`flex-1 transition-all duration-300 ease-in-out mb-3 max-h-[480px] ${
                             showModules ? 'opacity-100' : 'opacity-0'
                             }`}
                         >
@@ -604,7 +604,7 @@ const AddStudentButton: React.FC = () => {
                                 {/* search bar … unchanged … */}
 
                                 {/* ▸▸▸ NEW WRAPPER ◂◂◂  — 60 % viewport height max */}
-                                <div className="max-h-[40vh] overflow-y-auto pr-2 space-y-6 pb-5">
+                                <div className="max-h-[400px] overflow-y-auto pr-2 space-y-6 pb-5">
                                 {/* ºººº 1º CURSO ºººº */}
                                 {filteredPrimer.length > 0 && (
                                     <>
