@@ -88,6 +88,7 @@ const StudentRecordSchema = z.object({
   id_matricula: z.number(),
   status: z.string(),
   completion_status: z.string(),
+  nota: z.number(),
   id_modulo: z.number(),
   codigo_modulo: z.string(),
   module_nombre: z.string(),

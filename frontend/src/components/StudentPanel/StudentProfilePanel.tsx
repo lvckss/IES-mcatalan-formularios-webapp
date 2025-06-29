@@ -16,21 +16,28 @@ import { api } from "@/lib/api"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { RecordExtended, FullStudentData } from "@/types"
+import { record } from "zod"
 
 // --------------------------------------------------------
 
 async function getFullStudentData(id : number): Promise<FullStudentData> {
   const response = await api.students.fullInfo[':id'].$get({param: {id: id.toString() } });
   const data = await response.json();
-  const getFullStudentDataWithDates = {
-    ...data.fullInfo,
-    student: {
-      ...data.fullInfo.student,
-      fecha_nac: new Date(data.fullInfo.student.fecha_nac),
-    },
-  };
+  const raw = data.fullInfo;
 
-  return getFullStudentDataWithDates;
+  const student = {
+    ...raw.student,
+    fecha_nac: new Date(raw.student.fecha_nac)
+  }
+
+  const records = raw.records.map(r => ({
+    ...r,
+    fecha_pago_titulo: r.fecha_pago_titulo
+      ? new Date(r.fecha_pago_titulo)
+      : undefined
+  }))
+
+  return {student, records};
 }
 
 interface StudentProfilePanelProps {
@@ -50,6 +57,7 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
 
   const queryClient = useQueryClient();
 
+  // fullInfo API GET endpoint
   const { isPending: fullDataLoading, error: fullDataError, data: fullData } = useQuery({
     queryKey: ['full-student-data', id],
     queryFn: ({ queryKey }) => {
@@ -182,7 +190,7 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
               </>
             ) : (
               <Button variant="outline" size="sm" className="mr-5" /* onClick={handleEditToggle} */>
-                <Pencil className="h-4 w-4 mr-1" /> Editar
+                <Pencil className="h-4 w-4" />
               </Button>
             )}
           </div>
@@ -230,7 +238,11 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
                       <Label htmlFor="fecha_nac">Fecha de nacimiento:</Label>
                       <Input
                         id="fecha_nac"
-                        value={fullData?.student.fecha_nac.toDateString() || ""}
+                        value={
+                          fullData?.student.fecha_nac
+                            .toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                            || ''
+                        }
                         /* onChange={(e) => handlePersonalInfoChange("email", e.target.value)} */
                       />
                     </div>
@@ -250,7 +262,11 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
                     <div>{fullData?.student.id_legal}</div>
 
                     <div className="text-sm font-medium text-muted-foreground">Fecha de nacimiento:</div>
-                    <div>{fullData?.student.fecha_nac.toDateString()}</div>
+                    <div>{
+                          fullData?.student.fecha_nac
+                            .toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                            || ''
+                        }</div>
                   </div>
                 )}
               </CardContent>
@@ -259,8 +275,7 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
             {/* Academic Records */}
             <Card>
               <CardHeader>
-                <CardTitle>Academic Records</CardTitle>
-                <CardDescription>Selecciona un año académico.</CardDescription>
+                <CardTitle>Registros académicos</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -286,12 +301,6 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
                     <div className="mt-6">
                       <div className="mb-4">
                         <div className="flex items-center mb-2">
-                          <h3 className="text-lg font-semibold">test</h3>
-                          {/* {selectedPeriod === "2024-2025" && (
-                            <Badge className="ml-2" variant="outline">
-                              Current
-                            </Badge>
-                          )} */}
                         </div>
                         <p className="text-sm text-muted-foreground">Año académico: {selectedPeriod}</p>
                       </div>
@@ -451,42 +460,6 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
                   )}
                 </div>
               </CardContent>
-            </Card>
-
-            {/* Summary */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Academic Summary</CardTitle>
-              </CardHeader>
-              {/* <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm font-medium text-muted-foreground">Total Academic Years:</span>
-                    <span>{student.records.length}</span>
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between">
-                    <span className="text-sm font-medium text-muted-foreground">Degrees/Programs:</span>
-                    <span>{new Set(student.records.map((record) => record.cycle.name)).size}</span>
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between">
-                    <span className="text-sm font-medium text-muted-foreground">Total Courses:</span>
-                    <span>{student.records.reduce((total, record) => total + record.cycle.courses.length, 0)}</span>
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between">
-                    <span className="text-sm font-medium text-muted-foreground">Current Courses:</span>
-                    <span>
-                      {student.records.reduce(
-                        (total, record) =>
-                          total + record.cycle.courses.filter((course) => course.grade === "In Progress").length,
-                        0,
-                      )}
-                    </span>
-                  </div>
-                </div>
-              </CardContent> */}
             </Card>
           </div>
         </ScrollArea>
