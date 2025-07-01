@@ -7,6 +7,7 @@ export const StudentSchema = z.object({
   apellido_2: z.string().max(100).optional().nullable().optional(), // cuando no hay valor (undefined) se convierte en null
   num_tfno: z.string().max(20).optional().nullable().optional(),
   id_legal: z.string().max(20),
+  tipo_id_legal: z.string().max(50),
   fecha_nac: z.preprocess((arg) => {
     if (typeof arg === "string" || arg instanceof Date) {
       const date = new Date(arg);

@@ -6,8 +6,8 @@ import { cyclesRoute } from './routes/cyclesRoute';
 import { enrollmentsRoute } from './routes/enrollmentsRoute';
 import { modulesRoute } from './routes/modulesRoute';
 import { recordsRoute } from './routes/recordsRoute';
-import { regulacionesRoute } from './routes/regulacionesRoute';
 import { studentsRoute } from './routes/studentsRoute';
+import { directivosRoute } from './routes/directivosRoute';
 
 import { api } from '../frontend/src/lib/api';
 
@@ -24,7 +24,8 @@ const apiRoutes = app.basePath("/api")
     .route("/modules", modulesRoute)
     .route("/cycles", cyclesRoute)
     .route("/records", recordsRoute)
-    .route("/enrollments", enrollmentsRoute);
+    .route("/enrollments", enrollmentsRoute)
+    .route("/directivos", directivosRoute);
 /* 
 apiRoutes.route("/calificaciones", calificacionesRoute);
 apiRoutes.route("/certificados", certificadosRoute);

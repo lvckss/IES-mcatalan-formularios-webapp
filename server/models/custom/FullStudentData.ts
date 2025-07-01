@@ -28,6 +28,7 @@ type StudentRecord = {
     student_apellido1: string;
     student_apellido2: string;
     student_id_legal: string;
+    student_tipo_id_legal: string;
     student_fecha_nac: Date; // ISO date string
     student_num_tfno: string;
     id_expediente: number;
@@ -61,6 +62,7 @@ const StudentRecordSchema = z.object({
   student_apellido1: z.string(),
   student_apellido2: z.string().optional().nullable().optional(),
   student_id_legal: z.string(),
+  student_tipo_id_legal: z.string(),
   student_fecha_nac: z.preprocess((arg) => {
     if (typeof arg === "string" || arg instanceof Date) {
       const date = new Date(arg);

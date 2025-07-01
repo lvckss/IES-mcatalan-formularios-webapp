@@ -50,7 +50,6 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
   const [selectedPeriod, setSelectedPeriod] = useState("");
   const [currentRecord, setCurrentRecord] = useState<RecordExtended | null>();
   const [isEditMode, setIsEditMode] = useState(false);
-  const [editedPersonalInfo, setEditedPersonalInfo] = useState({})
   const [editedCourses, setEditedCourses] = useState([])
   const [newCourse, setNewCourse] = useState({ code: "", name: "", grade: "" })
   const [isAddingCourse, setIsAddingCourse] = useState(false)
@@ -85,98 +84,6 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
     setCurrentRecord(encontrado)
     setIsAddingCourse(false);
   }
-
-  /* useEffect(() => {
-    if (student) {...data.fullInfo.student,
-      const record = student.records.find((r) => r.period === selectedPeriod)
-      setCurrentRecord(record)
-      if (record) {
-        setEditedCourses([...record.cycle.courses])
-      }
-    }
-  }, [selectedPeriod, student]) */
-
-  /* useEffect(() => {
-    if (student) {
-      setEditedPersonalInfo({
-        name: student.name,
-        email: student.email,
-        department: student.department,
-      })
-    }
-  }, [student]) */
-
-  /* const handleEditToggle = () => {
-    if (isEditMode) {
-      // Discard changes if canceling
-      setIsEditMode(false)
-      setIsAddingCourse(false)
-      // Reset edited data
-      if (currentRecord) {
-        setEditedCourses([...currentRecord.cycle.courses])
-      }
-      setEditedPersonalInfo({
-        name: student.name,
-        email: student.email,
-        department: student.department,
-      })
-    } else {
-      setIsEditMode(true)
-    }
-  } */
-
-  /* const handleSaveChanges = () => {
-    // Create a deep copy of the student object
-    const updatedStudent = JSON.parse(JSON.stringify(student))
-
-    // Update personal information
-    updatedStudent.name = editedPersonalInfo.name
-    updatedStudent.email = editedPersonalInfo.email
-    updatedStudent.department = editedPersonalInfo.department
-
-    // Update courses for the current record
-    const recordIndex = updatedStudent.records.findIndex((r) => r.period === selectedPeriod)
-    if (recordIndex !== -1) {
-      updatedStudent.records[recordIndex].cycle.courses = [...editedCourses]
-    }
-
-    // Update the student state
-    setStudent(updatedStudent)
-    setIsEditMode(false)
-    setIsAddingCourse(false)
-  } */
-
-  /* const handlePersonalInfoChange = (field, value) => {
-    setEditedPersonalInfo((prev) => ({
-      ...prev,
-      [field]: value,
-    }))
-  } */
-
-  /* const handleCourseChange = (index, field, value) => {
-    const updatedCourses = [...editedCourses]
-    updatedCourses[index] = {
-      ...updatedCourses[index],
-      [field]: value,
-    }
-    setEditedCourses(updatedCourses)
-  } */
-
-  /* const handleAddCourse = () => {
-    if (newCourse.code && newCourse.name) {
-      setEditedCourses([...editedCourses, { ...newCourse }])
-      setNewCourse({ code: "", name: "", grade: "" })
-      setIsAddingCourse(false)
-    }
-  } */
-
-  /* const handleDeleteCourse = (index) => {
-    const updatedCourses = [...editedCourses]
-    updatedCourses.splice(index, 1)
-    setEditedCourses(updatedCourses)
-  } */
-
-  /* if (!student) return null */
 
   return (
     <Sheet

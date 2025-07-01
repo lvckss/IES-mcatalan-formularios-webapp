@@ -118,7 +118,6 @@ const AddStudentButton: React.FC = () => {
     const [selectedYearPrimero, setSelectedYearPrimero] = useState<string>("");
     const [selectedYearSegundo, setSelectedYearSegundo] = useState<string>("");
     const [fechaPagoTitulo, setFechaPagoTitulo] = useState<Date | undefined>(undefined);
-
     // Instantiate query client
     const queryClient = useQueryClient();
 
@@ -366,9 +365,12 @@ const AddStudentButton: React.FC = () => {
                 apellido_1: apellido_1,
                 apellido_2: apellido_2 || null, // Puede ser opcional
                 id_legal: selectedID,
+                tipo_id_legal: selectedIDType,
                 fecha_nac: fechaNacimiento, // Formato YYYY-MM-DD
                 num_tfno: num_tfno,
         };
+
+        console.log(selectedIDType)
         
         const matriculasPrimero = Object.entries(selectedModulesPrimero).map(([id, [status, grade]]) => ({
                 id_modulo: Number(id),
@@ -486,7 +488,7 @@ const AddStudentButton: React.FC = () => {
           el?.blur();
         }
         setOpen(next);
-    };      
+    };
 
     return (
         <Dialog open={open} onOpenChange={closeDialog}>

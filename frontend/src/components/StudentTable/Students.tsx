@@ -14,7 +14,7 @@ async function getStudents() {
   
   const estudiantesWithDates = data.estudiantes.map((student: any) => ({
     ...student,
-    fecha_nac: new Date(student.fecha_nac).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+    fecha_nac: new Date(student.fecha_nac),
   }));
   return estudiantesWithDates;
 }
