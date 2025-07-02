@@ -21,7 +21,7 @@ const styles = StyleSheet.create({
   title: { textAlign: 'center', fontSize: 10, fontWeight: 'bold', marginBottom: 5 },
   subtitle: { textAlign: 'center', fontSize: 10, fontWeight: 'bold' },
   subsubtitle: {textAlign: 'center', fontSize: 8, fontWeight: 'bold', marginBottom: 20 },
-  paragraph: { paddingHorizontal: 80, marginBottom: 6, lineHeight: 0.7, textAlign: 'justify' },
+  paragraph: { paddingHorizontal: 50, marginBottom: 6, lineHeight: 0.7, textAlign: 'justify' },
   bold: { fontWeight: 'bold' },
   highlight: { backgroundColor: '#f0f0f0' },
   table: { display: 'table', borderWidth: 1, borderColor: '#000', marginVertical: 10 },

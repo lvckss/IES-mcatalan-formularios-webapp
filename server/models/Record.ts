@@ -17,7 +17,7 @@ export const RecordSchema = z.object({
       if (!isNaN(date.getTime())) return date;
     }
     return arg;
-  }, z.date().optional()),
+  }, z.date().optional()).nullable(),
 });
 
 export const createRecordSchema = RecordSchema.omit({ id_expediente: true });

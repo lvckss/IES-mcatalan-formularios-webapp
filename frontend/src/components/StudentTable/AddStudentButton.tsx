@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
     Dialog,
     DialogContent,
@@ -197,6 +197,28 @@ const AddStudentButton: React.FC = () => {
     const mutationStudent = useMutation({
         mutationFn: createStudent,
     });
+    
+    // as soon as primer‐curso modules become non‐empty, select them all
+    useEffect(() => {
+        if (filteredPrimer.length > 0) {
+        const all: Record<number, [string, number | null]> = {};
+        filteredPrimer.forEach(m => {
+            all[m.id_modulo] = ["Matricula", 0];
+        });
+        setSelectedModulesPrimero(all);
+        }
+    }, [filteredPrimer]);
+    
+    // same for segundo‐curso
+    useEffect(() => {
+        if (filteredSegundo.length > 0) {
+        const all: Record<number, [string, number | null]> = {};
+        filteredSegundo.forEach(m => {
+            all[m.id_modulo] = ["Matricula", 0];
+        });
+        setSelectedModulesSegundo(all);
+        }
+    }, [filteredSegundo]);
     
     const mutationExpediente = useMutation({
         mutationFn: createRecord,
@@ -407,7 +429,7 @@ const AddStudentButton: React.FC = () => {
                 ano_fin: anoFinPrimero,
                 turno: turnoPrimero,
                 id_ciclo: Number(cicloIDPrimero),
-                fecha_pago_titulo: fechaPagoTitulo,
+                fecha_pago_titulo: fechaPagoTitulo || null,
                 curso: "1º",
             };
 
@@ -584,13 +606,13 @@ const AddStudentButton: React.FC = () => {
                         </div>
                         <Separator
                         orientation="vertical"
-                        className={`h-auto transition-opacity duration-300 ease-in-out ${
+                        className={`h-auto transition-opacity duration-500 ease-in-out ${
                             showSeparator ? 'opacity-100' : 'opacity-0'
                         }`}
                         />
                         {showModules && (
                         <div
-                            className={`flex-1 transition-all duration-300 ease-in-out mb-3 max-h-[480px] ${
+                            className={`flex-1 transition-all duration-500 ease-in-out mb-3 max-h-[480px] ${
                             showModules ? 'opacity-100' : 'opacity-0'
                             }`}
                         >

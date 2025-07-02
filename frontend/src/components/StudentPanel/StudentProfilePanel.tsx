@@ -47,11 +47,11 @@ interface StudentProfilePanelProps {
 }
 
 const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, onClose }) => {
+  const [selectedCycle, setSelectedCycle] = useState("");
   const [selectedPeriod, setSelectedPeriod] = useState("");
   const [currentRecord, setCurrentRecord] = useState<RecordExtended | null>();
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedCourses, setEditedCourses] = useState([])
-  const [newCourse, setNewCourse] = useState({ code: "", name: "", grade: "" })
   const [isAddingCourse, setIsAddingCourse] = useState(false)
 
   const queryClient = useQueryClient();
@@ -66,11 +66,23 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
     }
   });
 
-  const periodOptions = fullData?.records?.map((record) => ({
-    value: `${record.ano_inicio}-${record.ano_fin}`,
-    label: `${record.ano_inicio}-${record.ano_fin}`,
-    record: record,
-  })) || [];
+  const seen = new Set();
+  const cycleOptions = (fullData?.records?? [])
+    .filter(rec => !seen.has(rec.ciclo_codigo) && seen.add(rec.ciclo_codigo))
+    .map(rec => ({
+      value: String(rec.ciclo_codigo),
+      label: String(rec.ciclo_codigo),
+      record: rec
+    }))
+
+  const handleCycleChange = (value : string) => {
+    setSelectedCycle(value)
+    const cicloRecords = (fullData?.records ?? [])
+      .filter(rec => rec.ciclo_codigo === selectedCycle)
+
+    console.log(cicloRecords[0])
+  }
+  
 
   const handlePeriodChange = (value : string) => {
     setSelectedPeriod(value)
@@ -205,15 +217,15 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
                       <SelectField
                         label="Periodo"
                         name="period"
-                        value={selectedPeriod}
-                        onValueChange={handlePeriodChange}
+                        value={selectedCycle}
+                        onValueChange={handleCycleChange}
                         placeholder="Seleccionar periodo"
-                        options={periodOptions}
+                        options={cycleOptions}
                       />
                   </div>
 
                   {/* Display selected year's cycle (degree) and courses */}
-                  {selectedPeriod && (
+                  {selectedCycle && (
                     <div className="mt-6">
                       <div className="mb-4">
                         <div className="flex items-center mb-2">

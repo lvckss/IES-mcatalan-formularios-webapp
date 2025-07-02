@@ -121,7 +121,7 @@ export const getStudentFullInfo = async (studentId: number): Promise<FullStudent
         ano_fin: rec.ano_fin,
         estado: rec.estado as RecordExtended['estado'],
         turno: rec.turno as RecordExtended['turno'],
-        fecha_pago_titulo: rec.fecha_pago_titulo ?? undefined,
+        fecha_pago_titulo: rec.fecha_pago_titulo ?? null,
         id_ciclo: rec.record_id_ciclo,
         ciclo_codigo: rec.ciclo_codigo,
         ciclo_nombre: rec.record_ciclo_nombre,

@@ -82,7 +82,7 @@ const StudentRecordSchema = z.object({
       if (!isNaN(date.getTime())) return date;
     }
     return arg;
-  }, z.date().optional()),
+  }, z.date().optional()).nullable(),
   record_id_ciclo: z.number(),
   record_ciclo_nombre: z.string(),
   ciclo_codigo: z.string(),
