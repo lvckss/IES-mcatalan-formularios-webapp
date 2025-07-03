@@ -16,8 +16,8 @@ export const getStudents = async (): Promise<Student[]> => {
 
 export const createStudent = async (student: PostStudent): Promise<Student> => {
   const results = await sql`
-    INSERT INTO Estudiantes (nombre, apellido_1, apellido_2, id_legal, tipo_id_legal, fecha_nac, num_tfno)
-    VALUES (${student.nombre}, ${student.apellido_1}, ${student.apellido_2 ?? null}, ${student.id_legal}, ${student.tipo_id_legal}, ${student.fecha_nac}, ${student.num_tfno ?? null})
+    INSERT INTO Estudiantes (nombre, apellido_1, apellido_2, id_legal, tipo_id_legal, fecha_nac, num_tfno, num_expediente)
+    VALUES (${student.nombre}, ${student.apellido_1}, ${student.apellido_2 ?? null}, ${student.id_legal}, ${student.tipo_id_legal}, ${student.fecha_nac}, ${student.num_tfno ?? null}, ${student.num_expediente})
     RETURNING *
   `;
   return StudentSchema.parse(results[0]);
@@ -44,6 +44,7 @@ export const getStudentFullInfo = async (studentId: number): Promise<FullStudent
         est.tipo_id_legal AS student_tipo_id_legal,
         est.fecha_nac AS student_fecha_nac,
         est.num_tfno AS student_num_tfno,
+        est.num_expediente AS student_num_expediente,
         e.id_expediente,
         e.ano_inicio,
         e.ano_fin,
@@ -94,7 +95,8 @@ export const getStudentFullInfo = async (studentId: number): Promise<FullStudent
     student_id_legal,
     student_tipo_id_legal,
     student_fecha_nac,
-    student_num_tfno
+    student_num_tfno,
+    student_num_expediente
   } = rawData[0];
 
   const student: Student = {
@@ -105,6 +107,7 @@ export const getStudentFullInfo = async (studentId: number): Promise<FullStudent
     id_legal: student_id_legal,
     tipo_id_legal: student_tipo_id_legal,
     fecha_nac: student_fecha_nac,
+    num_expediente: student_num_expediente,
     num_tfno: student_num_tfno
   };
 

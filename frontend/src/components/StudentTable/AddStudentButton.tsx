@@ -105,6 +105,7 @@ const AddStudentButton: React.FC = () => {
     const [apellido_1, setApellido1] = useState<string>("");
     const [apellido_2, setApellido2] = useState<string | null>(null);
     const [num_tfno, setNum_tfno] = useState<string | null>(null);
+    const [num_expediente, setNum_expediente] = useState<string>("")
     const [fechaNacimiento, setFechaNacimiento] = useState<Date | undefined>(undefined);
     const [selectedCiclo, setSelectedCiclo] = useState<string>("");
     const [turnoPrimero, setTurnoPrimero] = useState<'Diurno' | 'Vespertino' | 'Nocturno' | 'Distancia'>('Diurno');
@@ -390,6 +391,7 @@ const AddStudentButton: React.FC = () => {
                 tipo_id_legal: selectedIDType,
                 fecha_nac: fechaNacimiento, // Formato YYYY-MM-DD
                 num_tfno: num_tfno,
+                num_expediente: num_expediente
         };
 
         console.log(selectedIDType)
@@ -481,7 +483,8 @@ const AddStudentButton: React.FC = () => {
             setNombre("");
             setApellido1("");
             setApellido2(null);
-            setNum_tfno(null)
+            setNum_tfno(null);
+            setNum_expediente("");
             setFechaNacimiento(undefined);
             setSelectedCiclo("");
             setTurnoPrimero('Diurno');
@@ -526,7 +529,7 @@ const AddStudentButton: React.FC = () => {
                     ? "sm:max-w-[1000px]"
                     : "sm:max-w-[450px]",
                     /* 2. NEW ­– freeze the height */
-                    "min-h-[620px] max-h-[620px]",   // pick any value / use 75vh, etc.
+                    "min-h-[680px] max-h-[680px]",   // pick any value / use 75vh, etc.
                     /* 3. do NOT clip children, only show a vertical scrollbar if
                         something outside your module column spills */
                 )}
@@ -585,6 +588,7 @@ const AddStudentButton: React.FC = () => {
                                 <div className="z-100">
                                     <DatePicker label="Fecha de nacimiento" name="fecha_nacimiento" onChange={handleDateChange} />
                                 </div>
+                                <FormField label="Núm. de expediente" name="num_expediente" value={num_expediente ?? ""} onChange={setNum_expediente} />
                                 <div className="grid grid-cols-4 items-center gap-4">
                                     <Label htmlFor="ciclo_formativo" className="text-right font-medium">Ciclo Formativo</Label>
                                     <SelectField
@@ -628,7 +632,7 @@ const AddStudentButton: React.FC = () => {
                                 {/* search bar … unchanged … */}
 
                                 {/* ▸▸▸ NEW WRAPPER ◂◂◂  — 60 % viewport height max */}
-                                <div className="max-h-[400px] overflow-y-auto pr-2 space-y-6 pb-5">
+                                <div className="max-h-[450px] overflow-y-auto pr-2 space-y-6 pb-5">
                                 {/* ºººº 1º CURSO ºººº */}
                                 {filteredPrimer.length > 0 && (
                                     <>

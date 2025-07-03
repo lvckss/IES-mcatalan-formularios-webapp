@@ -31,6 +31,7 @@ type StudentRecord = {
     student_tipo_id_legal: string;
     student_fecha_nac: Date; // ISO date string
     student_num_tfno: string;
+    student_num_expediente: string;
     id_expediente: number;
     ano_inicio: number;
     ano_fin: number;
@@ -71,6 +72,7 @@ const StudentRecordSchema = z.object({
     return arg;
   }, z.date()), // ISO date string, consider using z.date() if converting
   student_num_tfno: z.string().max(20).optional().nullable().optional(),
+  student_num_expediente: z.string().max(100),
   id_expediente: z.number(),
   ano_inicio: z.number(),
   ano_fin: z.number(),

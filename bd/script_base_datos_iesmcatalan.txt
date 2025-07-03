@@ -4,6 +4,7 @@ CREATE TABLE Estudiantes (
     apellido_1 VARCHAR(100) NOT NULL,  -- Increased from 50
     apellido_2 VARCHAR(100),  -- Increased from 50
     num_tfno VARCHAR(20),
+    num_expediente VARCHAR(100),
     id_legal VARCHAR(20) UNIQUE NOT NULL,
     tipo_id_legal VARCHAR(50) NOT NULL,
     fecha_nac DATE NOT NULL
