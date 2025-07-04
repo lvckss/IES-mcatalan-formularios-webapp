@@ -1,7 +1,7 @@
 // generate-pdf.mjs
 import React from 'react';
 import ReactPDF from '@react-pdf/renderer';
-import { CertificadoDocument } from './pdf/certificadoDocument';
+import { CertificadoDocument } from './src/pdf/certificadoDocument';
 
 // Aquí usas datos de prueba parecidos a los reales:
 const datosPrueba = {

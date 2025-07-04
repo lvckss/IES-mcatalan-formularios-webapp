@@ -393,8 +393,6 @@ const AddStudentButton: React.FC = () => {
                 num_tfno: num_tfno,
                 num_expediente: num_expediente
         };
-
-        console.log(selectedIDType)
         
         const matriculasPrimero = Object.entries(selectedModulesPrimero).map(([id, [status, grade]]) => ({
                 id_modulo: Number(id),
@@ -402,15 +400,11 @@ const AddStudentButton: React.FC = () => {
                 nota: grade,
         }));
 
-        console.log(matriculasPrimero)
-
         const matriculasSegundo = Object.entries(selectedModulesSegundo).map(([id, [status, grade]]) => ({
             id_modulo: Number(id),
             status: status as "Matricula" | "Convalidada" | "Exenta" | "Trasladada",
             nota: grade,
         }));
-
-        console.log(matriculasSegundo)
 
         const cicloIDPrimero = cursoIds['1º'];
         const cicloIDSegundo = cursoIds['2º'];
@@ -419,9 +413,6 @@ const AddStudentButton: React.FC = () => {
             // Crear estudiante y obtener su ID
             const studentResponse = await mutationStudent.mutateAsync(studentData);
             const studentId = studentResponse.estudiante.id_estudiante;
-            
-            console.log(anoInicioPrimero)
-            console.log(anoFinPrimero)
 
             // Crear datos de los expedientes con el ID del estudiante
             const recordDataPrimero : PostRecord = {

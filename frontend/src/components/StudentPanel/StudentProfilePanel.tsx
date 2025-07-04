@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import SelectField from "../StudentTable/SelectField"
+import PdfCertificateGeneratorButton from "@/components/StudentPanel/PdfGeneratorButton"
+
 import { api } from "@/lib/api"
 
 import { useQuery, useQueryClient } from "@tanstack/react-query"
@@ -76,8 +78,6 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
     
     setAllCursos(cicloRecords)
   }
-
-  console.log(allCursos?.[0])
 
   return (
     <Sheet
@@ -150,6 +150,7 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
                         options={cycleOptions}
                       />
                   </div>
+                  {selectedCycle ? <PdfCertificateGeneratorButton student_data={fullData!} cycle_code={selectedCycle}/> : ""}
 
                   {/* Display selected year's cycle (degree) and courses */}
                   {(allCursos ?? []).map((curso, idx) => (
@@ -161,7 +162,12 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
                     </div>
 
                     <div className="rounded-md border">
-                      <table className="w-full">
+                      <table className="w-full table-fixed">
+                        <colgroup>
+                          <col className="w-[25%]" />
+                          <col className="w-[55%]" />
+                          <col className="w-[20%]" />
+                        </colgroup>
                         <thead>
                           <tr className="border-b bg-muted/50">
                             <th className="p-2 text-left text-sm font-medium">Código</th>

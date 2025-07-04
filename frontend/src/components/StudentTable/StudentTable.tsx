@@ -151,7 +151,6 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
             <TableBody>
               {rowVirtualizer.getVirtualItems().map((virtualRow, index) => {
                 const row = rows[virtualRow.index]
-                console.log(row.getVisibleCells())
                 return (
                   <TableRow
                     key={row.id}
