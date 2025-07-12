@@ -8,8 +8,8 @@ export const getRecords = async (): Promise<Record[]> => {
 
 export const createRecord = async (record: PostRecord): Promise<Record> => {
   const results = await sql`
-    INSERT INTO Expedientes (id_estudiante, ano_inicio, ano_fin, estado, id_ciclo, curso, turno, fecha_pago_titulo)
-    VALUES (${record.id_estudiante}, ${record.ano_inicio}, ${record.ano_fin}, ${record.estado}, ${record.id_ciclo}, ${record.curso}, ${record.turno}, ${record.fecha_pago_titulo ?? null})
+    INSERT INTO Expedientes (id_estudiante, ano_inicio, ano_fin, id_ciclo, convocatoria, fecha_pago_titulo)
+    VALUES (${record.id_estudiante}, ${record.ano_inicio}, ${record.ano_fin}, ${record.id_ciclo}, ${record.convocatoria}, ${record.fecha_pago_titulo ?? null})
     RETURNING *
   `;
   return RecordSchema.parse(results[0]);

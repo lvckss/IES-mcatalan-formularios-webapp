@@ -48,17 +48,13 @@ export const getStudentFullInfo = async (studentId: number): Promise<FullStudent
         e.id_expediente,
         e.ano_inicio,
         e.ano_fin,
-        e.estado,
-        e.turno,
         e.fecha_pago_titulo::timestamp AS fecha_pago_titulo,
         e.id_ciclo AS record_id_ciclo,
+        e.convocatoria AS convocatoria,
         c_record.nombre AS record_ciclo_nombre,
         c_record.codigo AS ciclo_codigo,
-        e.curso AS record_curso,
         mat.id_matricula,
-        mat.status,
-        mat.completion_status,
-        CAST(mat.nota AS DOUBLE PRECISION) AS nota,
+        mat.nota AS nota,
         m.id_modulo,
         m.nombre AS module_nombre,
         m.codigo_modulo,
@@ -122,13 +118,11 @@ export const getStudentFullInfo = async (studentId: number): Promise<FullStudent
         id_expediente: expId,
         ano_inicio: rec.ano_inicio,
         ano_fin: rec.ano_fin,
-        estado: rec.estado as RecordExtended['estado'],
-        turno: rec.turno as RecordExtended['turno'],
+        convocatoria: rec.convocatoria as RecordExtended['convocatoria'],
         fecha_pago_titulo: rec.fecha_pago_titulo ?? null,
         id_ciclo: rec.record_id_ciclo,
         ciclo_codigo: rec.ciclo_codigo,
         ciclo_nombre: rec.record_ciclo_nombre,
-        curso: rec.record_curso,
         enrollments: []
       });
     }
@@ -137,8 +131,6 @@ export const getStudentFullInfo = async (studentId: number): Promise<FullStudent
 
     const enrollment: EnrollmentExtended = {
       id_matricula: rec.id_matricula!,
-      status: rec.status as EnrollmentExtended['status'],
-      completion_status: rec.completion_status as EnrollmentExtended['completion_status'],
       id_modulo: rec.id_modulo,
       nota: rec.nota ?? null,
       nombre_modulo: rec.module_nombre,

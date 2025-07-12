@@ -7,10 +7,8 @@ export const RecordSchema = z.object({
   id_estudiante: z.number().int().positive().min(1),
   ano_inicio: z.number().int(),
   ano_fin: z.number().int(),
-  estado: z.enum(['Activo', 'Finalizado', 'Abandonado', 'En pausa']),
+  convocatoria: z.enum(['Ordinaria', 'Extraordinaria']),
   id_ciclo: z.number().int().positive().min(1),
-  curso: z.string().max(5),
-  turno: z.enum(['Diurno', 'Vespertino', 'Nocturno', 'Distancia']),
   fecha_pago_titulo: z.preprocess((arg) => {
     if (typeof arg === "string" || arg instanceof Date) {
       const date = new Date(arg);

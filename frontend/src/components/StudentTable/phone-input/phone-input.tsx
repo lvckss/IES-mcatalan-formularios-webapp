@@ -135,14 +135,13 @@ export function PhoneInput({
         </Label>
       )}
       <div className="flex">
-        <CountrySelect name={`${id}-country`} value={selectedCountryCode} onValueChange={handleCountryChange} />
         <Input
           id={id}
           type="tel"
           placeholder={placeholder}
           value={formattedPhoneNumber}
           onChange={handlePhoneChange}
-          className="rounded-l-none flex-1"
+          className="flex-1"
           required={required}
         />
       </div>

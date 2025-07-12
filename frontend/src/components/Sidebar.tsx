@@ -3,8 +3,8 @@ import { UsersIcon, FileIcon, AwardIcon, LayoutDashboardIcon, Package2Icon } fro
 import logo from '@/assets/ies-mcatalan-logo.png';
 
 interface SidebarProps {
-  setActiveTab: (tab: 'Estudiantes' | 'Certificados') => void;
-  activeTab: 'Estudiantes' | 'Certificados';
+  setActiveTab: (tab: 'Estudiantes' | 'Introducir por acta') => void;
+  activeTab: 'Estudiantes' | 'Introducir por acta';
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ setActiveTab, activeTab }) => {
@@ -25,11 +25,11 @@ const Sidebar: React.FC<SidebarProps> = ({ setActiveTab, activeTab }) => {
         </a>
         <a
           href="#"
-          className={`flex items-center gap-2 rounded-md px-3 py-2 text-muted-foreground hover:bg-muted hover:text-foreground  ${activeTab === 'Certificados' ? 'bg-muted' : ''}`}
-          onClick={() => setActiveTab('Certificados')}
+          className={`flex items-center gap-2 rounded-md px-3 py-2 text-muted-foreground hover:bg-muted hover:text-foreground  ${activeTab === 'Introducir por acta' ? 'bg-muted' : ''}`}
+          onClick={() => setActiveTab('Introducir por acta')}
         >
-          <FileIcon className={`h-4 w-4 ${activeTab === 'Certificados' ? 'text-foreground' : ''}`} />
-          <span className={`${activeTab === 'Certificados' ? 'text-foreground font-semibold' : ''}`}>Certificados</span>
+          <FileIcon className={`h-4 w-4 ${activeTab === 'Introducir por acta' ? 'text-foreground' : ''}`} />
+          <span className={`${activeTab === 'Introducir por acta' ? 'text-foreground font-semibold' : ''}`}>Introducir por acta</span>
         </a>
         <a
           href="#"

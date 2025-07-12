@@ -33,23 +33,27 @@ CREATE TABLE Expedientes (
     id_estudiante INT NOT NULL,
     ano_inicio INT NOT NULL,  -- e.g., 2023
     ano_fin INT NOT NULL,  -- e.g., 2024
-    estado VARCHAR(20) NOT NULL CHECK (estado IN ('Activo', 'Finalizado', 'Abandonado', 'En pausa')),
     id_ciclo INT NOT NULL,
-    curso VARCHAR(5) NOT NULL,
-    turno VARCHAR(20) NOT NULL CHECK (turno IN ('Diurno', 'Vespertino', 'Nocturno', 'Distancia')),
+    convocatoria VARCHAR(50) NOT NULL CHECK (convocatoria IN ('Ordinaria', 'Extraordinaria')),
     fecha_pago_titulo DATE,
     FOREIGN KEY (id_estudiante) REFERENCES Estudiantes(id_estudiante) ON DELETE CASCADE,
     FOREIGN KEY (id_ciclo) REFERENCES Ciclos(id_ciclo) ON DELETE CASCADE,
-    UNIQUE (id_estudiante, id_ciclo, curso, ano_inicio, ano_fin)  -- Prevents duplicates
+    UNIQUE (id_estudiante, id_ciclo, ano_inicio, ano_fin)  -- Prevents duplicates
+);
+
+-- tipo personalizado para las notas
+CREATE TYPE nota_enum AS ENUM (
+    '1','2','3','4','5','6','7','8','9','10',
+    '10-MH',
+    'CV','CV-5','CV-6','CV-7','CV-8','CV-9','CV-10',
+    'AM','RC','NE','APTO','NO APTO'
 );
 
 CREATE TABLE Matriculas (
     id_matricula SERIAL PRIMARY KEY,
     id_expediente INT NOT NULL,
     id_modulo INT NOT NULL,
-    status VARCHAR(20) NOT NULL CHECK (status IN ('Matricula', 'Convalidada', 'Exenta', 'Trasladada')),
-    completion_status VARCHAR(20) NOT NULL DEFAULT 'En proceso' CHECK (completion_status IN ('En proceso', 'Completado', 'Fallido', 'Retirado')),
-    nota DECIMAL(4, 2),
+    nota nota_enum,
     FOREIGN KEY (id_expediente) REFERENCES Expedientes(id_expediente) ON DELETE CASCADE,
     FOREIGN KEY (id_modulo) REFERENCES Modulos(id_modulo) ON DELETE CASCADE,
     UNIQUE (id_expediente, id_modulo)  -- Ensures one enrollment per module per expediente

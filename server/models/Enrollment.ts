@@ -4,13 +4,12 @@ export const EnrollmentSchema = z.object({
   id_matricula: z.number().int().positive().min(1),
   id_expediente: z.number().int().positive().min(1),
   id_modulo: z.number().int().positive().min(1),
-  status: z.enum(['Matricula', 'Convalidada', 'Exenta', 'Trasladada']),
-  completion_status: z
-    .enum(['En proceso', 'Completado', 'Fallido', 'Retirado']),
-  nota: z.preprocess(
-    (v) => v === '' || v == null ? null : Number(v),
-    z.number().min(0).max(10).nullable()
-  )
+  nota: z.enum([
+    '1', '2', '3', '4', '5', '6', '7', '8', '9', '10',
+    '10-MH',
+    'CV', 'CV-5', 'CV-6', 'CV-7', 'CV-8', 'CV-9', 'CV-10',
+    'AM', 'RC', 'NE', 'APTO', 'NO APTO'
+  ])
 });
 
 export const createEnrollmentSchema = EnrollmentSchema.omit({ id_matricula: true });

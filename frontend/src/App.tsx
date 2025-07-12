@@ -3,20 +3,20 @@ import { useState } from 'react';
 import Sidebar from "./components/Sidebar"
 import Header from "./components/Header"
 import Estudiantes from "./components/StudentTable/Students"
-import Certificados from "./components/Certificates"
+import Certificados from "./components/IntroduceActa"
 import { ThemeProvider } from "@/components/theme-provider"
 
 import { Toaster } from './components/ui/sonner';
 
 function App() {
 
-  const [activeTab, setActiveTab] = useState<'Estudiantes' | 'Certificados'>('Estudiantes');
+  const [activeTab, setActiveTab] = useState<'Estudiantes' | 'Introducir por acta'>('Estudiantes');
 
   const renderContent = () => {
     switch (activeTab) {
       case 'Estudiantes':
         return <Estudiantes />;
-      case 'Certificados':
+      case 'Introducir por acta':
         return <Certificados />;
       default:
         return <Estudiantes />;
