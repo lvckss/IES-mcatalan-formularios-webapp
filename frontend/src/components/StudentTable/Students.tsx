@@ -61,7 +61,6 @@ const Estudiantes: React.FC = () => {
           <StudentTable students={data} />
         </div>
       </div>
-      <Separator />
       <div className="flex justify-center my-8">
         <AddStudentButton />
       </div>

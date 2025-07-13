@@ -15,5 +15,7 @@ desplegable no por cursos, sino por ciclos (que se siga viendo el años) ✅
 poder meter fecha escrita 
 hacer que si meto un estudiante que ya existe pero nuevo ciclo, se añada
 añadir num_expediente a tabla estudiante ✅
-hacer backend pdfs!!!!
-añadir boton pdfs
+hacer backend pdfs!!!! ✅
+añadir boton pdfs ✅
+añadir botón de añadir nueva matrícula (nuevo año escolar para el mismo estudiante)
+añadir sistema de introducción por acta

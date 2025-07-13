@@ -506,6 +506,7 @@ const AddStudentButton: React.FC = () => {
                                             value: `${ciclo.codigo}`,
                                             label: `${ciclo.nombre} (${ciclo.codigo})`,
                                         }))}
+                                        width={310}
                                     />
                                 </div>
                                 <div className="z-100">

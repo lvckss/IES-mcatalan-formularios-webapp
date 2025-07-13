@@ -111,8 +111,6 @@ const PdfCertificateGeneratorButton: React.FC<PdfCertificateGeneratorButtonProps
         }
     };
 
-    console.log(certificateData)
-
     return (
         <Button variant="outline" onClick={handleGenerate}>
             <FileUser className="mr-1.5 h-6 w-6"/> Generar certificado

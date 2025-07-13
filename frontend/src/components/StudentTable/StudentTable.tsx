@@ -1,9 +1,10 @@
 import React from 'react';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Button } from '../ui/button';
-import { ContactRound, Trash } from 'lucide-react';
+import { ContactRound, Trash, FolderPlus } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import StudentProfilePanel from '../StudentPanel/StudentProfilePanel';
+import NewEnrollmentDialog from './NewEnrollmentDialog';
 import { toast } from 'sonner';
 import { Student } from '@/types';
 import { useVirtualizer } from '@tanstack/react-virtual';
@@ -22,7 +23,7 @@ import { api } from '@/lib/api';
 import { useState } from 'react';
 
 async function deleteStudent({ id }: { id: number }) {
-  const response = await api.students[':id'].$delete({param: {id: id.toString() } });
+  const response = await api.students[':id'].$delete({ param: { id: id.toString() } });
 
   if (!response.ok) {
     throw new Error("server error");
@@ -74,10 +75,11 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
       {
         header: 'Acciones',
         enableColumnFilter: false,
-        size: 50,
+        size: 80,
         cell: ({ row }) => (
           <>
             <StudentPanelButton id={row.original.id_estudiante} />
+            <NewEnrollmentButton id={row.original.id_estudiante} />
             <StudentDeleteButton id={row.original.id_estudiante} />
           </>
         ),
@@ -159,7 +161,7 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
                       height: `${virtualRow.size}px`,
                       transform: `translateY(${virtualRow.start - index * virtualRow.size}px)`,
                     }}
-                  > 
+                  >
                     {row.getVisibleCells().map((cell) => {
                       return (
                         <TableCell key={cell.id} style={{
@@ -203,11 +205,11 @@ function StudentDeleteButton({ id }: { id: number }) {
       queryClient.invalidateQueries({ queryKey: ['get-total-students'] });
     },
   })
-  
+
   return (
     <Button variant={'outline'} size={'icon'} onClick={() => mutation.mutate({ id })} disabled={mutation.isPending}>
       {mutation.isPending ? "..." : (
-      <Trash className='h-6 w-6 text-red-400'/>
+        <Trash className='h-6 w-6 text-red-400' />
       )}
     </Button>
   );
@@ -218,13 +220,30 @@ function StudentPanelButton({ id }: { id: number }) {
 
   return (
     <>
-      <Button variant={'outline'} size={'icon'} className='mr-5' onClick={() => setPanelIsOpen(true)} >
-        <ContactRound className='h-6 w-6'/>
+      <Button variant={'outline'} size={'icon'} className='mr-2' onClick={() => setPanelIsOpen(true)} >
+        <ContactRound className='h-6 w-6' />
       </Button>
       <StudentProfilePanel
         id={id}
         isOpen={panelIsOpen}
         onClose={() => setPanelIsOpen(false)}
+      />
+    </>
+  )
+}
+
+function NewEnrollmentButton({ id }: { id: number }) {
+  const [dialogIsOpen, setDialogIsOpen] = useState(false);
+
+  return (
+    <>
+      <Button variant={'outline'} size={'icon'} className='mr-2' onClick={() => setDialogIsOpen(true)}>
+        <FolderPlus className='h-6 w-6' />
+      </Button>
+      <NewEnrollmentDialog
+        student_id = {id}
+        isOpen = {dialogIsOpen}
+        onClose={() => setDialogIsOpen(false)}
       />
     </>
   )
