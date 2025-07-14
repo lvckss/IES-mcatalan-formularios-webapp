@@ -447,9 +447,46 @@ const AddStudentButton: React.FC = () => {
                     <div className="flex flex-nowrap gap-8">
                         <div className="flex-1 min-w-[320px] max-w-[420px]">
                             <div className="space-y-4">
-                                <FormField label="Nombre" name="nombre" value={nombre} onChange={setNombre} />
-                                <FormField label="Apellido 1" name="apellido1" value={apellido_1} onChange={setApellido1} />
-                                <FormField label="Apellido 2" name="apellido2" value={apellido_2 ?? ""} onChange={setApellido2} />
+                                <div className="relative">
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="id_legal" className="text-right font-medium">ID Legal</Label>
+                                        <div className="flex gap-2">
+                                            <SelectField
+                                                label="Tipo ID"
+                                                name="id_tipos"
+                                                value={selectedIDType ? selectedIDType : ""}
+                                                onValueChange={handleIDType}
+                                                placeholder="Tipo ID"
+                                                options={
+                                                    [
+                                                        { value: "dni", label: "DNI" },
+                                                        { value: "nie", label: "NIE" },
+                                                        { value: "pasaporte", label: "Pasaporte" }
+                                                    ]
+                                                }
+                                            />
+                                            <div className="w-200">
+                                                <Input
+                                                    placeholder="..."
+                                                    id="id_legal"
+                                                    name="id_legal"
+                                                    className="w-fit"
+                                                    value={selectedID}
+                                                    onChange={(e) => handleID(selectedIDType, e.target.value)}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {errorLogicaID && (
+                                        <p className=" absolute text-xs text-red-500 top-9 ml-20">
+                                            {errorLogicaID}
+                                        </p>
+                                    )}
+                                </div>
+                                <FormField placeholder="..." label="Nombre" name="nombre" value={nombre} onChange={setNombre} />
+                                <FormField placeholder="..." label="Apellido 1" name="apellido1" value={apellido_1} onChange={setApellido1} />
+                                <FormField placeholder="..." label="Apellido 2" name="apellido2" value={apellido_2 ?? ""} onChange={setApellido2} />
                                 <PhoneFormField
                                     label="Teléfono"
                                     name="num_tfno"
@@ -458,42 +495,10 @@ const AddStudentButton: React.FC = () => {
                                     placeholder="..."
                                     defaultCountry="ES"
                                 />
-                                <>
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label htmlFor="id_legal" className="text-right font-medium">ID Legal</Label>
-                                        <SelectField
-                                            label="Tipo ID"
-                                            name="id_tipos"
-                                            value={selectedIDType ? selectedIDType : ""}
-                                            onValueChange={handleIDType}
-                                            placeholder="Tipo ID"
-                                            options={
-                                                [
-                                                    { value: "dni", label: "DNI" },
-                                                    { value: "nie", label: "NIE" },
-                                                    { value: "pasaporte", label: "Pasaporte" }
-                                                ]
-                                            }
-                                        />
-                                    </div>
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label htmlFor="id_legal" className="text-right font-medium"></Label>
-                                        <Input
-                                            id="id_legal"
-                                            name="id_legal"
-                                            className="col-span-3"
-                                            value={selectedID}
-                                            onChange={(e) => handleID(selectedIDType, e.target.value)}
-                                        />
-                                    </div>
-                                    {errorLogicaID && (
-                                        <p style={{ color: "red", marginTop: "4px" }}>{errorLogicaID}</p>
-                                    )}
-                                </>
                                 <div className="z-100">
                                     <DatePicker label="Fecha de nacimiento" name="fecha_nacimiento" onChange={handleDateChange} />
                                 </div>
-                                <FormField label="Núm. de expediente" name="num_expediente" value={num_expediente ?? ""} onChange={setNum_expediente} />
+                                <FormField placeholder="..." label="Núm. de expediente" name="num_expediente" value={num_expediente ?? ""} onChange={setNum_expediente} />
                                 <div className="grid grid-cols-4 items-center gap-4">
                                     <Label htmlFor="ciclo_formativo" className="text-right font-medium">Ciclo Formativo</Label>
                                     <SelectField
@@ -547,7 +552,7 @@ const AddStudentButton: React.FC = () => {
                                                     options={generateSchoolYearOptions()}
                                                 />
                                             </div>
-                                            <Separator/>
+                                            <Separator />
                                             {/* ºººº 1º CURSO ºººº */}
                                             {filteredPrimer.length > 0 && (
                                                 <>
