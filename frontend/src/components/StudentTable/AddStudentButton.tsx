@@ -485,8 +485,8 @@ const AddStudentButton: React.FC = () => {
                                     )}
                                 </div>
                                 <FormField placeholder="..." label="Nombre" name="nombre" value={nombre} onChange={setNombre} />
-                                <FormField placeholder="..." label="Apellido 1" name="apellido1" value={apellido_1} onChange={setApellido1} />
-                                <FormField placeholder="..." label="Apellido 2" name="apellido2" value={apellido_2 ?? ""} onChange={setApellido2} />
+                                <FormField placeholder="..." label="Apellido 1" name="apellido1" value={apellido_1} onChange={setApellido1} uppercase={true} />
+                                <FormField placeholder="..." label="Apellido 2" name="apellido2" value={apellido_2 ?? ""} onChange={setApellido2} uppercase={true} />
                                 <PhoneFormField
                                     label="Teléfono"
                                     name="num_tfno"
