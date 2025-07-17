@@ -3,8 +3,8 @@ CREATE TABLE Estudiantes (
     nombre VARCHAR(100) NOT NULL,  -- Increased from 50
     apellido_1 VARCHAR(100) NOT NULL,  -- Increased from 50
     apellido_2 VARCHAR(100),  -- Increased from 50
+    sexo VARCHAR(25) NOT NULL CHECK (sexo IN ('Masculino', 'Femenino', 'Indefinido')),
     num_tfno VARCHAR(20),
-    num_expediente VARCHAR(100),
     id_legal VARCHAR(20) UNIQUE NOT NULL,
     tipo_id_legal VARCHAR(50) NOT NULL,
     fecha_nac DATE NOT NULL
@@ -34,6 +34,7 @@ CREATE TABLE Expedientes (
     ano_inicio INT NOT NULL,  -- e.g., 2023
     ano_fin INT NOT NULL,  -- e.g., 2024
     id_ciclo INT NOT NULL,
+    turno VARCHAR(20) NOT NULL CHECK (turno IN ('Diurno', 'Vespertino', 'Nocturno', 'A distancia')),
     convocatoria VARCHAR(50) NOT NULL CHECK (convocatoria IN ('Ordinaria', 'Extraordinaria')),
     fecha_pago_titulo DATE,
     FOREIGN KEY (id_estudiante) REFERENCES Estudiantes(id_estudiante) ON DELETE CASCADE,

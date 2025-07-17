@@ -145,11 +145,12 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
   const [selectedAnioEscolar, setSelectedAnioEscolar] = useState<string>("");
   const [modulesFilter, setModulesFilter] = useState<string>("");
   const [selectedModules, setSelectedModules] = useState<Record<number, [string, number | null]>>({});
+  const [selectedTurno, setSelectedTurno] = useState<string>("");
 
   const queryClient = useQueryClient();
 
   // Calcula si mostramos la lista de módulos
-  const showModules = selectedCiclo && selectedCiclo !== "" && selectedAnioEscolar;
+  const showModules = selectedCiclo && selectedAnioEscolar && selectedTurno;
 
   const mutationExpediente = useMutation({
     mutationFn: createRecord,
@@ -276,6 +277,7 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
       ano_inicio: anoInicio,
       ano_fin: anoFin,
       convocatoria: "Ordinaria" as "Ordinaria" | "Extraordinaria",
+      turno: selectedTurno,
       id_ciclo: Number(cicloIDPrimero),
       fecha_pago_titulo: null,
     };
@@ -292,10 +294,16 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
     await Promise.all(
       matriculas.map(matricula => mutationMatriculas.mutateAsync(matricula))
     );
-    queryClient.invalidateQueries({ queryKey: ['full-student-data', student_id]});
+    queryClient.invalidateQueries({ queryKey: ['full-student-data', student_id] });
     onClose();
+    setTimeout(() => { // reset 500 ms después
+      setSelectedCiclo("");
+      setSelectedAnioEscolar("");
+      setModulesFilter("");
+      setSelectedTurno("");
+      setSelectedModules({});
+    }, 500);
   }
-
 
   // =============================================================
   // ======================= RENDER UI ===========================
@@ -310,6 +318,7 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
             setSelectedCiclo("");
             setSelectedAnioEscolar("");
             setModulesFilter("");
+            setSelectedTurno("");
             setSelectedModules({});
           }, 500);
         }
@@ -324,7 +333,7 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
                 Añadir nuevo curso escolar
               </DialogTitle>
               <div className="mr-10 text-gray-600 text-sm">
-                {fullStudentData?.student.num_expediente} | {fullStudentData?.student.id_legal} | {fullStudentData?.student.apellido_1} {fullStudentData?.student.apellido_2}, {fullStudentData?.student.nombre}
+                {fullStudentData?.student.id_estudiante} | {fullStudentData?.student.id_legal} | {fullStudentData?.student.apellido_1} {fullStudentData?.student.apellido_2}, {fullStudentData?.student.nombre}
               </div>
             </div>
           </DialogHeader>
@@ -354,6 +363,24 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
               onValueChange={(value) => setSelectedAnioEscolar(value)}
               placeholder="Año escolar"
               options={generateSchoolYearOptions()}
+              width={1000}
+            />
+          </div>
+
+          {/* ---------- SELECT TURNO ----------- */}
+          <div>
+            <SelectField
+              label="Turno"
+              name="turno"
+              value={selectedTurno}
+              onValueChange={(value) => setSelectedTurno(value)}
+              placeholder="Turno"
+              options={[
+                { value: "Diurno", label: "Diurno" },
+                { value: "Vespertino", label: "Vespertino" },
+                { value: "Nocturno", label: "Nocturno" },
+                { value: "A distancia", label: "A distancia" }
+              ]}
               width={1000}
             />
           </div>

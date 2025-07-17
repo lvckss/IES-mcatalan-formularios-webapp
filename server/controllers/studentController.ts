@@ -16,8 +16,8 @@ export const getStudents = async (): Promise<Student[]> => {
 
 export const createStudent = async (student: PostStudent): Promise<Student> => {
   const results = await sql`
-    INSERT INTO Estudiantes (nombre, apellido_1, apellido_2, id_legal, tipo_id_legal, fecha_nac, num_tfno, num_expediente)
-    VALUES (${student.nombre}, ${student.apellido_1}, ${student.apellido_2 ?? null}, ${student.id_legal}, ${student.tipo_id_legal}, ${student.fecha_nac}, ${student.num_tfno ?? null}, ${student.num_expediente})
+    INSERT INTO Estudiantes (nombre, apellido_1, apellido_2, sexo, id_legal, tipo_id_legal, fecha_nac, num_tfno)
+    VALUES (${student.nombre}, ${student.apellido_1}, ${student.apellido_2 ?? null}, ${student.sexo}, ${student.id_legal}, ${student.tipo_id_legal}, ${student.fecha_nac}, ${student.num_tfno ?? null})
     RETURNING *
   `;
   return StudentSchema.parse(results[0]);
@@ -27,6 +27,11 @@ export const getStudentById = async (id: number): Promise<Student> => {
   const results = await sql`SELECT * FROM Estudiantes WHERE id_estudiante = ${id}`;
   return StudentSchema.parse(results[0]);
 };
+
+export const getStudentByLegalId = async (legal_id: string): Promise<Student> => {
+  const results = await sql`SELECT * FROM Estudiantes WHERE id_legal = ${legal_id}`;
+  return StudentSchema.parse(results[0]);
+}
 
 export const deleteStudent = async (id: number): Promise<Student> => {
   const results = await sql`DELETE FROM Estudiantes WHERE id_estudiante = ${id} RETURNING *`;
@@ -40,17 +45,18 @@ export const getStudentFullInfo = async (studentId: number): Promise<FullStudent
         est.nombre AS student_nombre,
         est.apellido_1 AS student_apellido1,
         est.apellido_2 AS student_apellido2,
+        est.sexo AS student_sexo,
         est.id_legal AS student_id_legal,
         est.tipo_id_legal AS student_tipo_id_legal,
         est.fecha_nac AS student_fecha_nac,
         est.num_tfno AS student_num_tfno,
-        est.num_expediente AS student_num_expediente,
         e.id_expediente,
         e.ano_inicio,
         e.ano_fin,
         e.fecha_pago_titulo::timestamp AS fecha_pago_titulo,
         e.id_ciclo AS record_id_ciclo,
         e.convocatoria AS convocatoria,
+        e.turno AS turno,
         c_record.nombre AS record_ciclo_nombre,
         c_record.codigo AS ciclo_codigo,
         mat.id_matricula,
@@ -88,11 +94,11 @@ export const getStudentFullInfo = async (studentId: number): Promise<FullStudent
     student_nombre,
     student_apellido1,
     student_apellido2,
+    student_sexo,
     student_id_legal,
     student_tipo_id_legal,
     student_fecha_nac,
     student_num_tfno,
-    student_num_expediente
   } = rawData[0];
 
   const student: Student = {
@@ -100,10 +106,10 @@ export const getStudentFullInfo = async (studentId: number): Promise<FullStudent
     nombre: student_nombre,
     apellido_1: student_apellido1,
     apellido_2: student_apellido2,
+    sexo: student_sexo,
     id_legal: student_id_legal,
     tipo_id_legal: student_tipo_id_legal,
     fecha_nac: student_fecha_nac,
-    num_expediente: student_num_expediente,
     num_tfno: student_num_tfno
   };
 
@@ -119,6 +125,7 @@ export const getStudentFullInfo = async (studentId: number): Promise<FullStudent
         ano_inicio: rec.ano_inicio,
         ano_fin: rec.ano_fin,
         convocatoria: rec.convocatoria as RecordExtended['convocatoria'],
+        turno: rec.turno,
         fecha_pago_titulo: rec.fecha_pago_titulo ?? null,
         id_ciclo: rec.record_id_ciclo,
         ciclo_codigo: rec.ciclo_codigo,

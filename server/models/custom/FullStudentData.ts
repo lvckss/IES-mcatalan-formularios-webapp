@@ -27,15 +27,16 @@ type StudentRecord = {
   student_nombre: string;
   student_apellido1: string;
   student_apellido2: string;
+  student_sexo: string;
   student_id_legal: string;
   student_tipo_id_legal: string;
   student_fecha_nac: Date; // ISO date string
   student_num_tfno: string;
-  student_num_expediente: string;
   id_expediente: number;
   ano_inicio: number;
   ano_fin: number;
   record_id_ciclo: number;
+  turno: string;
   convocatoria: string;
   record_ciclo_nombre: string;
   ciclo_codigo: string;
@@ -58,6 +59,7 @@ const StudentRecordSchema = z.object({
   student_nombre: z.string(),
   student_apellido1: z.string(),
   student_apellido2: z.string().optional().nullable().optional(),
+  student_sexo: z.enum(['Masculino', 'Femenino', 'Indefinido']),
   student_id_legal: z.string(),
   student_tipo_id_legal: z.string(),
   student_fecha_nac: z.preprocess((arg) => {
@@ -68,7 +70,6 @@ const StudentRecordSchema = z.object({
     return arg;
   }, z.date()), // ISO date string, consider using z.date() if converting
   student_num_tfno: z.string().max(20).optional().nullable().optional(),
-  student_num_expediente: z.string().max(100),
   id_expediente: z.number(),
   ano_inicio: z.number(),
   ano_fin: z.number(),
@@ -80,6 +81,7 @@ const StudentRecordSchema = z.object({
     return arg;
   }, z.date().optional()).nullable(),
   record_id_ciclo: z.number(),
+  turno: z.enum(['Diurno', 'Vespertino', 'Nocturno', 'A distancia']),
   convocatoria: z.enum(['Ordinaria', 'Extraordinaria']),
   record_ciclo_nombre: z.string(),
   ciclo_codigo: z.string(),

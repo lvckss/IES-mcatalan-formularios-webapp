@@ -113,6 +113,19 @@ async function createMatriculas(enrollmentData: PostEnrollment) {
     return response.json();
 }
 
+async function getStudentByLegalId(legal_id: string) {
+    const response = await api.students.legal_id[':legal_id'].$get({
+        param: { legal_id }
+    });
+
+    if (!response) {
+        throw new Error("No existe un estudiante con ese ID legal.")
+    }
+
+    const data = await response.json();
+    return data.estudiante;
+}
+
 // ===========================================================================================================================
 
 const AddStudentButton: React.FC = () => {
@@ -120,17 +133,17 @@ const AddStudentButton: React.FC = () => {
     const [nombre, setNombre] = useState<string>("");
     const [apellido_1, setApellido1] = useState<string>("");
     const [apellido_2, setApellido2] = useState<string | null>(null);
+    const [selectedSexo, setSelectedSexo] = useState<string>("");
     const [num_tfno, setNum_tfno] = useState<string | null>(null);
-    const [num_expediente, setNum_expediente] = useState<string>("");
     const [fechaNacimiento, setFechaNacimiento] = useState<Date | undefined>(undefined);
     const [selectedCiclo, setSelectedCiclo] = useState<string>("");
     const [selectedModules, setSelectedModules] = useState<Record<number, [string, number | null]>>({});
     const [modulesFilter, setModulesFilter] = useState<string>("");
     const [selectedIDType, setSelectedIDType] = useState<string>("");
+    const [selectedTurno, setSelectedTurno] = useState<string>("");
     const [selectedID, setSelectedID] = useState<string>("");
     const [errorLogicaID, setErrorLogicaID] = useState<string | null>(null);
     const [selectedYear, setSelectedYear] = useState<string>("");
-    const [fechaPagoTitulo, setFechaPagoTitulo] = useState<Date | undefined>(undefined);
     // Instantiate query client
     const queryClient = useQueryClient();
 
@@ -230,10 +243,6 @@ const AddStudentButton: React.FC = () => {
         setFechaNacimiento(date);
     };
 
-    const handleFechaPagoTituloChange = (date: Date | undefined) => {
-        setFechaPagoTitulo(date);
-    }
-
     // Add this function to handle ciclo selection
     const handleCicloChange = (value: string) => {
         setSelectedCiclo(value);
@@ -322,10 +331,29 @@ const AddStudentButton: React.FC = () => {
 
 
     const handleSubmit = async (e: React.FormEvent) => {
+        // ------- FUNCIONES DEL HANDLE SUBMIT --------
+        const isDuplicateStudentError = (err: any) =>
+            err?.response?.status === 23505
+
+        const ensureStudent = async (studentData: PostStudent) => {
+            try {
+                const { estudiante } = await mutationStudent.mutateAsync(studentData);
+                return { studentId: estudiante.id_estudiante, created: true };
+            } catch (err: any) {
+                if (isDuplicateStudentError(err)) {
+                    console.log("error XDXDXDXDXDXDXDD")
+                    const student = await getStudentByLegalId(studentData.id_legal); // GET /students?legal=...
+                    if (!student) throw err;
+                    return { studentId: student.id_estudiante, created: false };
+                }
+                throw err;
+            }
+        };
+
         e.preventDefault(); // Evita el comportamiento por defecto del formulario
 
         // Validar campos obligatorios
-        if (!nombre || !apellido_1 || !selectedID || !fechaNacimiento || !selectedCiclo || !selectedYear) {
+        if (!nombre || !apellido_1 || !selectedID || !fechaNacimiento || !selectedCiclo || !selectedYear || !selectedSexo) {
             toast("Complete todos los campos obligatorios.");
             return;
         }
@@ -341,11 +369,11 @@ const AddStudentButton: React.FC = () => {
             nombre: nombre,
             apellido_1: apellido_1,
             apellido_2: apellido_2 || null, // Puede ser opcional
+            sexo: selectedSexo as 'Masculino' | 'Femenino' | 'Indefinido',
             id_legal: selectedID,
             tipo_id_legal: selectedIDType,
             fecha_nac: fechaNacimiento, // Formato YYYY-MM-DD
-            num_tfno: num_tfno,
-            num_expediente: num_expediente
+            num_tfno: num_tfno
         };
 
         const matriculas: MatriculaPrevia[] = Object.entries(selectedModules).map(([id]) => ({
@@ -357,18 +385,21 @@ const AddStudentButton: React.FC = () => {
         const cicloIDPrimero = cursoIds['1º'];
 
         try {
-            // Crear estudiante y obtener su ID
-            const studentResponse = await mutationStudent.mutateAsync(studentData);
-            const studentId = studentResponse.estudiante.id_estudiante;
+            const { studentId, created: studentCreated } = await ensureStudent(studentData);
+
+            if (!studentCreated) {
+                toast("El estudiante ya existía; se usará el registro existente.");
+            }
 
             // Crear datos de los expedientes con el ID del estudiante
             const recordData: PostRecord = {
                 id_estudiante: studentId,
                 ano_inicio: anoInicio,
                 ano_fin: anoFin,
+                turno: selectedTurno,
                 convocatoria: "Ordinaria" as "Ordinaria" | "Extraordinaria",
                 id_ciclo: Number(cicloIDPrimero),
-                fecha_pago_titulo: fechaPagoTitulo || null,
+                fecha_pago_titulo: null,
             };
 
             const recordResponse = await mutationExpediente.mutateAsync(recordData);
@@ -393,16 +424,16 @@ const AddStudentButton: React.FC = () => {
             setApellido1("");
             setApellido2(null);
             setNum_tfno(null);
-            setNum_expediente("");
             setFechaNacimiento(undefined);
             setSelectedCiclo("");
-            setFechaPagoTitulo(undefined);
+            setSelectedSexo("");
             setSelectedModules({});
             setModulesFilter("");
             setSelectedIDType("");
             setSelectedID("");
             setErrorLogicaID(null);
             setSelectedYear("");
+            setSelectedTurno("");
             // Resetear otros campos si es necesario
             toast("Estudiante, expediente y matrículas creados con éxito.");
         } catch (error) {
@@ -487,6 +518,22 @@ const AddStudentButton: React.FC = () => {
                                 <FormField placeholder="..." label="Nombre" name="nombre" value={nombre} onChange={setNombre} />
                                 <FormField placeholder="..." label="Apellido 1" name="apellido1" value={apellido_1} onChange={setApellido1} uppercase={true} />
                                 <FormField placeholder="..." label="Apellido 2" name="apellido2" value={apellido_2 ?? ""} onChange={setApellido2} uppercase={true} />
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="sexo" className="text-right font-medium">Sexo</Label>
+                                    <SelectField
+                                        label="sexo"
+                                        name="sexo"
+                                        value={selectedSexo}
+                                        onValueChange={(value) => { setSelectedSexo(value) }}
+                                        placeholder="Seleccionar sexo"
+                                        options={[
+                                            { value: "Masculino", label: "Masculino" },
+                                            { value: "Femenino", label: "Femenino" },
+                                            { value: "Indefinido", label: "Indefinido" },
+                                        ]}
+                                        width={310}
+                                    />
+                                </div>
                                 <PhoneFormField
                                     label="Teléfono"
                                     name="num_tfno"
@@ -498,7 +545,6 @@ const AddStudentButton: React.FC = () => {
                                 <div className="z-100">
                                     <DatePicker label="Fecha de nacimiento" name="fecha_nacimiento" onChange={handleDateChange} />
                                 </div>
-                                <FormField placeholder="..." label="Núm. de expediente" name="num_expediente" value={num_expediente ?? ""} onChange={setNum_expediente} />
                                 <div className="grid grid-cols-4 items-center gap-4">
                                     <Label htmlFor="ciclo_formativo" className="text-right font-medium">Ciclo Formativo</Label>
                                     <SelectField
@@ -513,9 +559,6 @@ const AddStudentButton: React.FC = () => {
                                         }))}
                                         width={310}
                                     />
-                                </div>
-                                <div className="z-100">
-                                    <DatePicker label="Fecha pago del título:" name="fecha_pago_titulo" onChange={handleFechaPagoTituloChange} />
                                 </div>
                             </div>
                         </div>
@@ -552,10 +595,26 @@ const AddStudentButton: React.FC = () => {
                                                     options={generateSchoolYearOptions()}
                                                 />
                                             </div>
-                                            <Separator />
+                                            <div className="grid grid-cols-5 items-center mb-1 mt-1">
+                                                <Label htmlFor="turno" className="font-medium">Turno:</Label>
+                                                <SelectField
+                                                    label="turno"
+                                                    name="turno"
+                                                    value={selectedTurno}
+                                                    onValueChange={(value) => setSelectedTurno(value)}
+                                                    placeholder="Seleccionar turno"
+                                                    options={[
+                                                        { value: "Diurno", label: "Diurno" },
+                                                        { value: "Vespertino", label: "Vespertino" },
+                                                        { value: "Nocturno", label: "Nocturno" },
+                                                        { value: "A distancia", label: "A distancia" }
+                                                    ]}
+                                                />
+                                            </div>
                                             {/* ºººº 1º CURSO ºººº */}
                                             {filteredPrimer.length > 0 && (
                                                 <>
+                                                    <Separator />
                                                     <h4 className="font-medium mb-2 top-0 bg-white/90 backdrop-blur">
                                                         Primer curso
                                                     </h4>
@@ -566,10 +625,10 @@ const AddStudentButton: React.FC = () => {
                                                     />
                                                 </>
                                             )}
-                                            <Separator />
                                             {/* ºººº 2º CURSO ºººº */}
                                             {filteredSegundo.length > 0 && (
                                                 <>
+                                                    <Separator />
                                                     <h4 className="font-medium mb-2 sticky top-0 bg-white/90 backdrop-blur">
                                                         Segundo curso
                                                     </h4>

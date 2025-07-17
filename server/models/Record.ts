@@ -7,6 +7,7 @@ export const RecordSchema = z.object({
   id_estudiante: z.number().int().positive().min(1),
   ano_inicio: z.number().int(),
   ano_fin: z.number().int(),
+  turno: z.string().max(20),
   convocatoria: z.enum(['Ordinaria', 'Extraordinaria']),
   id_ciclo: z.number().int().positive().min(1),
   fecha_pago_titulo: z.preprocess((arg) => {

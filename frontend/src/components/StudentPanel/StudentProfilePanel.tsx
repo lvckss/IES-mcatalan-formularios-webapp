@@ -188,6 +188,9 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
                   <div className="text-sm font-medium text-muted-foreground">Apellido 2:</div>
                   <div>{fullData?.student.apellido_2}</div>
 
+                  <div className="text-sm font-medium text-muted-foreground">Sexo:</div>
+                  <div>{fullData?.student.sexo}</div>
+
                   <div className="text-sm font-medium text-muted-foreground">ID Legal:</div>
                   <div>{fullData?.student.id_legal}</div>
 
@@ -199,7 +202,7 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
                   }</div>
 
                   <div className="text-sm font-medium text-muted-foreground">Número de expediente:</div>
-                  <div>{fullData?.student.num_expediente}</div>
+                  <div>{fullData?.student.id_estudiante}</div>
                 </div>
               </CardContent>
             </Card>
@@ -260,7 +263,7 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
                     <div key={anio_escolar.id_expediente} className="mt-6">
                       <div className="mb-4">
                         <p className="text-sm text-muted-foreground">
-                          {anio_escolar.ano_inicio}-{anio_escolar.ano_fin}
+                          {anio_escolar.ano_inicio}-{anio_escolar.ano_fin} | {anio_escolar.turno}
                         </p>
                       </div>
 

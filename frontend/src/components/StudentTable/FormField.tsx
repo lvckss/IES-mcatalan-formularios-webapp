@@ -45,6 +45,7 @@ const FormField: React.FC<FormFieldProps> = ({
         value={value}
         onChange={handleChange}
         placeholder={placeholder}
+        autoComplete="off"
         required={required}
         className={clsx("col-span-3", uppercase && "uppercase")}
       />
