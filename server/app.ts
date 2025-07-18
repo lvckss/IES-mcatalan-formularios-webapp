@@ -26,13 +26,6 @@ const apiRoutes = app.basePath("/api")
     .route("/records", recordsRoute)
     .route("/enrollments", enrollmentsRoute)
     .route("/directivos", directivosRoute);
-/* 
-apiRoutes.route("/calificaciones", calificacionesRoute);
-apiRoutes.route("/certificados", certificadosRoute);
-apiRoutes.route("/firmantes", firmantesRoute);
-apiRoutes.route("/modulos", modulosRoute);
-apiRoutes.route("/regulaciones", regulacionesRoute);
-*/
 
 
 // ----------------------------------------------------------------------------------------------------

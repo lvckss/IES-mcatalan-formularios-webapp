@@ -88,7 +88,10 @@ async function createStudent(studentData: PostStudent) {
         json: studentData,
     });
     if (!response.ok) {
-        throw new Error('Error al crear el estudiante');
+        const errorBody = await response.json();
+        const error: any = new Error(errorBody.error || 'Error al crear el estudiante');
+        error.status = response.status;
+        throw error;
     }
     return response.json();
 }
@@ -254,8 +257,9 @@ const AddStudentButton: React.FC = () => {
     if (ciclosError) return 'An error has occurred: ' + ciclosError.message;
 
     const handleIDType = (value: string) => {
-        setErrorLogicaID(null);
         setSelectedIDType(value);
+        setErrorLogicaID(null);
+        setSelectedID("");
     };
 
     const calculateDNILetter = (number: string): string => {
@@ -331,9 +335,9 @@ const AddStudentButton: React.FC = () => {
 
 
     const handleSubmit = async (e: React.FormEvent) => {
-        // ------- FUNCIONES DEL HANDLE SUBMIT --------
+        // ------- FUNCIONES DEL HANDLE SUBMIT PARA LA LÓGICA DE ESTUDIANTE YA EXISTENTE --------
         const isDuplicateStudentError = (err: any) =>
-            err?.response?.status === 23505
+            err?.status === 409;
 
         const ensureStudent = async (studentData: PostStudent) => {
             try {
@@ -341,7 +345,6 @@ const AddStudentButton: React.FC = () => {
                 return { studentId: estudiante.id_estudiante, created: true };
             } catch (err: any) {
                 if (isDuplicateStudentError(err)) {
-                    console.log("error XDXDXDXDXDXDXDD")
                     const student = await getStudentByLegalId(studentData.id_legal); // GET /students?legal=...
                     if (!student) throw err;
                     return { studentId: student.id_estudiante, created: false };
@@ -373,7 +376,8 @@ const AddStudentButton: React.FC = () => {
             id_legal: selectedID,
             tipo_id_legal: selectedIDType,
             fecha_nac: fechaNacimiento, // Formato YYYY-MM-DD
-            num_tfno: num_tfno
+            num_tfno: num_tfno,
+            observaciones: ''
         };
 
         const matriculas: MatriculaPrevia[] = Object.entries(selectedModules).map(([id]) => ({
@@ -385,11 +389,9 @@ const AddStudentButton: React.FC = () => {
         const cicloIDPrimero = cursoIds['1º'];
 
         try {
+
             const { studentId, created: studentCreated } = await ensureStudent(studentData);
 
-            if (!studentCreated) {
-                toast("El estudiante ya existía; se usará el registro existente.");
-            }
 
             // Crear datos de los expedientes con el ID del estudiante
             const recordData: PostRecord = {
@@ -417,6 +419,7 @@ const AddStudentButton: React.FC = () => {
 
             // Invalidate the students query to trigger a refetch and update the list
             queryClient.invalidateQueries({ queryKey: ['get-total-students'] });
+            queryClient.invalidateQueries({ queryKey: ['full-student-data', studentId] });
 
             // Cerrar diálogo y resetear formulario
             setOpen(false);
@@ -435,7 +438,12 @@ const AddStudentButton: React.FC = () => {
             setSelectedYear("");
             setSelectedTurno("");
             // Resetear otros campos si es necesario
-            toast("Estudiante, expediente y matrículas creados con éxito.");
+            if (!studentCreated) {
+                toast("El estudiante ya existía; se usará el registro existente.");
+            }
+            else {
+                toast("Estudiante, expediente y matrículas creados con éxito.");
+            }
         } catch (error) {
             console.error('Error:', error);
             alert("Error al guardar los datos.");
@@ -503,7 +511,7 @@ const AddStudentButton: React.FC = () => {
                                                     name="id_legal"
                                                     className="w-fit"
                                                     value={selectedID}
-                                                    onChange={(e) => handleID(selectedIDType, e.target.value)}
+                                                    onChange={(e) => handleID(selectedIDType, e.target.value.toUpperCase())}
                                                 />
                                             </div>
                                         </div>

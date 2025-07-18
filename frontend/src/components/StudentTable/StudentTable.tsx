@@ -209,7 +209,7 @@ function StudentDeleteButton({ id }: { id: number }) {
   return (
     <Button variant={'outline'} size={'icon'} onClick={() => mutation.mutate({ id })} disabled={mutation.isPending}>
       {mutation.isPending ? "..." : (
-        <Trash className='h-6 w-6 text-red-400' />
+        <Trash className='h-8 w-8 text-red-400' />
       )}
     </Button>
   );

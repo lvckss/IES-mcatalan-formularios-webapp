@@ -7,7 +7,8 @@ CREATE TABLE Estudiantes (
     num_tfno VARCHAR(20),
     id_legal VARCHAR(20) UNIQUE NOT NULL,
     tipo_id_legal VARCHAR(50) NOT NULL,
-    fecha_nac DATE NOT NULL
+    fecha_nac DATE NOT NULL,
+    observaciones VARCHAR(5000)
 );
 
 CREATE TABLE Ciclos (

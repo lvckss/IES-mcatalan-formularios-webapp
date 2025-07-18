@@ -15,12 +15,19 @@ export const getStudents = async (): Promise<Student[]> => {
 };
 
 export const createStudent = async (student: PostStudent): Promise<Student> => {
-  const results = await sql`
-    INSERT INTO Estudiantes (nombre, apellido_1, apellido_2, sexo, id_legal, tipo_id_legal, fecha_nac, num_tfno)
-    VALUES (${student.nombre}, ${student.apellido_1}, ${student.apellido_2 ?? null}, ${student.sexo}, ${student.id_legal}, ${student.tipo_id_legal}, ${student.fecha_nac}, ${student.num_tfno ?? null})
+  try {
+    const results = await sql`
+    INSERT INTO Estudiantes (nombre, apellido_1, apellido_2, sexo, id_legal, tipo_id_legal, fecha_nac, num_tfno, observaciones)
+    VALUES (${student.nombre}, ${student.apellido_1}, ${student.apellido_2 ?? null}, ${student.sexo}, ${student.id_legal}, ${student.tipo_id_legal}, ${student.fecha_nac}, ${student.num_tfno ?? null}, ${student.observaciones ?? null})
     RETURNING *
   `;
   return StudentSchema.parse(results[0]);
+  } catch (error: any) {
+    if (error.code === '23505') {
+      throw new Error('UNIQUE_VIOLATION')
+    }
+    throw error
+  }
 };
 
 export const getStudentById = async (id: number): Promise<Student> => {
@@ -38,6 +45,17 @@ export const deleteStudent = async (id: number): Promise<Student> => {
   return StudentSchema.parse(results[0]);
 };
 
+export const updateStudentObservaciones = async (id: number, observaciones: string): Promise<Student> => {
+  const results = await sql`
+    UPDATE Estudiantes
+    SET observaciones = ${observaciones}
+    WHERE id_estudiante = ${id}
+    RETURNING *
+  `;
+  if (!results[0]) throw new Error("No such student");
+  return StudentSchema.parse(results[0]);
+};
+
 export const getStudentFullInfo = async (studentId: number): Promise<FullStudentData> => {
   const results = await sql`
     SELECT 
@@ -50,6 +68,7 @@ export const getStudentFullInfo = async (studentId: number): Promise<FullStudent
         est.tipo_id_legal AS student_tipo_id_legal,
         est.fecha_nac AS student_fecha_nac,
         est.num_tfno AS student_num_tfno,
+        est.observaciones AS student_observaciones,
         e.id_expediente,
         e.ano_inicio,
         e.ano_fin,
@@ -99,6 +118,7 @@ export const getStudentFullInfo = async (studentId: number): Promise<FullStudent
     student_tipo_id_legal,
     student_fecha_nac,
     student_num_tfno,
+    student_observaciones
   } = rawData[0];
 
   const student: Student = {
@@ -110,7 +130,8 @@ export const getStudentFullInfo = async (studentId: number): Promise<FullStudent
     id_legal: student_id_legal,
     tipo_id_legal: student_tipo_id_legal,
     fecha_nac: student_fecha_nac,
-    num_tfno: student_num_tfno
+    num_tfno: student_num_tfno,
+    observaciones: student_observaciones
   };
 
   // Group rows by expediente

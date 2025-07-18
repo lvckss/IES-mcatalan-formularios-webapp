@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { ScrollArea } from "@/components/ui/scroll-area"
 import SelectField from "../StudentTable/SelectField"
 import PdfCertificateGeneratorButton from "@/components/StudentPanel/PdfGeneratorButton"
+import TextareaForm from "./ObservacionesArea"
 
 import { api } from "@/lib/api"
 
@@ -157,8 +158,11 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
       onOpenChange={(open) => {
         if (!open) {
           onClose();
-          setSelectedCycle("");
-          setSelectedYear("");
+          setTimeout(() => {
+            setSelectedCycle("");
+            setSelectedYear("");
+            setSelectedConvocatoria("");
+          }, 500);
         }
       }}
     >
@@ -204,6 +208,7 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
                   <div className="text-sm font-medium text-muted-foreground">Número de expediente:</div>
                   <div>{fullData?.student.id_estudiante}</div>
                 </div>
+                <TextareaForm observaciones={fullData?.student.observaciones ?? ""} id_estudiante={id}/>
               </CardContent>
             </Card>
 
@@ -226,7 +231,7 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
                         onValueChange={handleCycleChange}
                         placeholder="Ciclo"
                         options={cycleOptions}
-                        width={300} 
+                        width={300}
                       />
                     </div>
 
