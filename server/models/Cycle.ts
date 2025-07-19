@@ -7,6 +7,7 @@ export const CycleSchema = z.object({
   codigo: z.string().max(20),
   norma_1: z.string(),
   norma_2: z.string(),
+  ley: z.string().max(10)
 });
 
 export const createCycleSchema = CycleSchema.omit({ id_ciclo: true });

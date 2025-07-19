@@ -49,12 +49,18 @@ async function getFullStudentData(id: number): Promise<FullStudentData> {
   return { student, records };
 }
 
-// -- Lista de ciclos únicos ------------------------------------
-async function getCiclosUnicos() {
-  const response = await api.cycles['by-name'].$get();
+// -- Lista de ciclos únicos por ley --------------------------------
+async function getCiclosByLey(ley: string) {
+  const response = await api.cycles.law[':ley'].$get({
+    param: { ley }
+  })
+
+  if (!response) {
+    throw new Error("no existen ciclos con esa ley");
+  }
+
   const data = await response.json();
-  // La respuesta es { ciclos: [...] }
-  return data.ciclos;
+  return data.ciclo;
 }
 
 // -- Ciclo formativo por código ---------------------------------
@@ -141,6 +147,7 @@ interface NewEnrollmentButtonProps {
 const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, isOpen, onClose }) => {
 
   // -------------------- ESTADO LOCAL ---------------------------
+  const [selectedLey, setSelectedLey] = useState<string>("");
   const [selectedCiclo, setSelectedCiclo] = useState<string>("");
   const [selectedAnioEscolar, setSelectedAnioEscolar] = useState<string>("");
   const [modulesFilter, setModulesFilter] = useState<string>("");
@@ -170,11 +177,16 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
     }
   });
 
-  // --- 2. Ciclos únicos (para el select) -----------------------
-  const { data: ciclosUnicosData } = useQuery({
-    queryKey: ['ciclos'],
-    queryFn: getCiclosUnicos,
-    staleTime: 5 * 60 * 1000, // Cache 5 min
+  // --- 2. Ciclos únicos por ley (para el select) -----------------------
+  const {
+    isPending: ciclosLoading,
+    error: ciclosError,
+    data: ciclosByLeyData = []
+  } = useQuery({
+    queryKey: ['ciclos-by-ley', selectedLey],
+    queryFn: () => getCiclosByLey(selectedLey),
+    enabled: !!selectedLey,
+    staleTime: 5 * 60 * 1000, // Cacheamos los ciclos cada 5 minutos para evitar overloadear la API
   });
 
   // --- 3. Ciclos según código seleccionado ---------------------
@@ -218,8 +230,8 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
   }, [modulosQueries, cursoIds]);
 
   // ------------------ FILTROS DE MÓDULOS -----------------------
-  const modulosPrimerCurso = modulosByCurso['1º'] ?? [];
-  const modulosSegundoCurso = modulosByCurso['2º'] ?? [];
+  const modulosPrimerCurso = modulosByCurso['1'] ?? [];
+  const modulosSegundoCurso = modulosByCurso['2'] ?? [];
 
   const filteredPrimer = useMemo(
     () =>
@@ -241,6 +253,12 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
   // =============================================================
   // ============== MANEJADORES DE EVENTOS =======================
   // =============================================================
+  const handleLeyChange = (ley: string) => {
+    setSelectedLey(ley);
+    setSelectedCiclo("");
+    setSelectedModules({});
+    setModulesFilter("");
+  }
 
   const handleCicloChange = (value: string) => {
     setSelectedCiclo(value);
@@ -270,7 +288,7 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
 
     const [anoInicio, anoFin] = selectedAnioEscolar.split('-').map(Number);
 
-    const cicloIDPrimero = cursoIds['1º'];
+    const cicloIDPrimero = cursoIds['1'];
 
     const recordData: PostRecord = {
       id_estudiante: student_id,
@@ -338,6 +356,23 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
             </div>
           </DialogHeader>
 
+          {/* ---------- SELECT LEY FORM. ----------- */}
+          <div>
+            <SelectField
+              label="Ley Educativa"
+              name="ley_educativa"
+              value={selectedLey}
+              onValueChange={handleLeyChange}
+              placeholder="Seleccionar ley"
+              options={[
+                { label: "LOGSE", value: "LOGSE" },
+                { label: "LOE", value: "LOE" },
+                { label: "LFP", value: "LFP" },
+              ]}
+              width={1000}
+            />
+          </div>
+
           {/* ---------- SELECT CICLO FORM. ----------- */}
           <div>
             <SelectField
@@ -346,7 +381,7 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
               value={selectedCiclo ? `${selectedCiclo}` : ""}
               onValueChange={handleCicloChange}
               placeholder="Seleccionar ciclo"
-              options={(ciclosUnicosData ?? []).map((ciclo) => ({
+              options={(ciclosByLeyData ?? []).map((ciclo) => ({
                 value: `${ciclo.codigo}`,
                 label: `${ciclo.nombre} (${ciclo.codigo})`,
               }))}

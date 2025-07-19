@@ -1,7 +1,14 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { type Module, ModuleSchema, createModuleSchema } from "../models/Module";
-import { getModules, createModule, getModuleById, deleteModule, getModuleByCycleId } from "../controllers/moduleController";
+import { 
+  getModules,
+  createModule,
+  getModuleById,
+  deleteModule,
+  getModuleByCycleId,
+  getModulesByCycleCodeAndCurso
+} from "../controllers/moduleController";
 
 export const modulesRoute = new Hono()
   .get("/", async (c) => {
@@ -22,6 +29,12 @@ export const modulesRoute = new Hono()
     const cycleId = Number(c.req.param("cycle_id"));
     const result = await getModuleByCycleId(cycleId);
     return c.json({ modulos: result });
+  })
+  .get("cycle/:cycle_code/curso/:curso", async (c) => {
+    const cycle_code = String(c.req.param("cycle_code"))
+    const curso = String(c.req.param("curso"))
+    const result = await getModulesByCycleCodeAndCurso(cycle_code, curso)
+    return c.json({ modulos: result })
   })
   .delete("/:id", async (c) => {
     const id = Number(c.req.param("id"));

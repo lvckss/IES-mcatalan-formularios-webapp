@@ -1,7 +1,15 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { type Cycle, CycleSchema, createCycleSchema } from "../models/Cycle";
-import { getCycles, createCycle, getCycleById, deleteCycle, getCyclesByName, getCycleByCode } from "../controllers/cycleController";
+import { 
+  getCycles, 
+  createCycle, 
+  getCycleById, 
+  deleteCycle, 
+  getCyclesByName, 
+  getCycleByCode,
+  getCycleByLaw
+} from "../controllers/cycleController";
 
 export const cyclesRoute = new Hono()
   .get("/", async (c) => {
@@ -15,6 +23,11 @@ export const cyclesRoute = new Hono()
   .get("/code/:codigo", async (c) => {
     const code = String(c.req.param("codigo"));
     const result = await getCycleByCode(code);
+    return c.json({ ciclo: result });
+  })
+  .get("/law/:ley", async (c) => {
+    const law = String(c.req.param("ley"));
+    const result = await getCycleByLaw(law);
     return c.json({ ciclo: result });
   })
   .post("/", zValidator("json", createCycleSchema), async (c) => {

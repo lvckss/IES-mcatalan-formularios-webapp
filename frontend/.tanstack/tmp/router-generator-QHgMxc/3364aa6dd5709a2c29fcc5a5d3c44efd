@@ -1,0 +1,9 @@
+import { createFileRoute } from '@tanstack/react-router'
+
+export const Route = createFileRoute('/estudiantes copy')({
+  component: Estudiantes,
+})
+
+function Estudiantes() {
+  return <div className="p-2">Aquí van los estudiantes</div>
+}

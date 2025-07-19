@@ -2,6 +2,8 @@ import React from 'react';
 import { UsersIcon, FileIcon, AwardIcon, LayoutDashboardIcon, Package2Icon } from '@/components/icons/index';
 import logo from '@/assets/ies-mcatalan-logo.png';
 
+import { createRootRoute, Link, Outlet } from '@tanstack/react-router'
+
 interface SidebarProps {
   setActiveTab: (tab: 'Estudiantes' | 'Introducir por acta') => void;
   activeTab: 'Estudiantes' | 'Introducir por acta';

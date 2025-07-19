@@ -59,15 +59,18 @@ async function getCiclosByCodigo({ codigo }: { codigo: string }) {
     return data.ciclo;
 }
 
-// Fetch ciclos sin diferenciar curso
-// Función para obtener los ciclos sin duplicados (por nombre) 
-async function getCiclosUnicos() {
-    // La nueva ruta es GET /por-nombre bajo el controlador de ciclos
-    // En tu cliente generado por Hono queda algo así:
-    const response = await api.cycles['by-name'].$get();
+// Fetch ciclos sin diferenciar curso POR LEY (LOE, LOGSE o LFP)
+async function getCiclosByLey(ley: string) {
+    const response = await api.cycles.law[':ley'].$get({
+        param: { ley }
+    })
+
+    if (!response) {
+        throw new Error("no existen ciclos con esa ley");
+    }
+
     const data = await response.json();
-    // La respuesta es { ciclos: [...] }
-    return data.ciclos;
+    return data.ciclo;
 }
 
 async function getModulosByCycleId({ ciclo_id }: { ciclo_id: number }) {
@@ -139,6 +142,7 @@ const AddStudentButton: React.FC = () => {
     const [selectedSexo, setSelectedSexo] = useState<string>("");
     const [num_tfno, setNum_tfno] = useState<string | null>(null);
     const [fechaNacimiento, setFechaNacimiento] = useState<Date | undefined>(undefined);
+    const [selectedLey, setSelectedLey] = useState<string>("");
     const [selectedCiclo, setSelectedCiclo] = useState<string>("");
     const [selectedModules, setSelectedModules] = useState<Record<number, [string, number | null]>>({});
     const [modulesFilter, setModulesFilter] = useState<string>("");
@@ -150,9 +154,14 @@ const AddStudentButton: React.FC = () => {
     // Instantiate query client
     const queryClient = useQueryClient();
 
-    const { isPending: ciclosLoading, error: ciclosError, data: ciclosData } = useQuery({
-        queryKey: ['ciclos'],
-        queryFn: getCiclosUnicos,
+    const { 
+        isPending: ciclosLoading, 
+        error: ciclosError, 
+        data: ciclosData = []
+    } = useQuery({
+        queryKey: ['ciclos-by-ley', selectedLey],
+        queryFn: () => getCiclosByLey(selectedLey),
+        enabled: !!selectedLey,
         staleTime: 5 * 60 * 1000, // Cacheamos los ciclos cada 5 minutos para evitar overloadear la API
     });
 
@@ -194,8 +203,8 @@ const AddStudentButton: React.FC = () => {
     }, [modulosQueries, cursoIds]);
 
     /* —–––––––––––––––––––––––––––– módulos en bruto —––––––––––––––––––––––––– */
-    const modulosPrimerCurso = modulosByCurso['1º'] ?? [];
-    const modulosSegundoCurso = modulosByCurso['2º'] ?? [];
+    const modulosPrimerCurso = modulosByCurso['1'] ?? [];
+    const modulosSegundoCurso = modulosByCurso['2'] ?? [];
 
     /* —–––––––––––––––––––– filtrados por texto ––––––––––––––––––––––––––––––– */
     const filteredPrimer = useMemo(
@@ -227,7 +236,7 @@ const AddStudentButton: React.FC = () => {
         mutationFn: createMatriculas,
     });
 
-    const showSeparator = selectedCiclo && selectedCiclo !== "unassigned";
+    const showSeparator = selectedLey && selectedCiclo && selectedCiclo !== "unassigned";
     const showModules = showSeparator
     // gestiona el estado de los modulos
     const handleModuleToggle = (moduleId: number) => {
@@ -246,6 +255,13 @@ const AddStudentButton: React.FC = () => {
         setFechaNacimiento(date);
     };
 
+    const handleLeyChange = (ley: string) => {
+        setSelectedLey(ley);
+        setSelectedCiclo('');
+        setSelectedModules({});
+        setModulesFilter("");
+    }
+
     // Add this function to handle ciclo selection
     const handleCicloChange = (value: string) => {
         setSelectedCiclo(value);
@@ -253,7 +269,6 @@ const AddStudentButton: React.FC = () => {
         setModulesFilter("");
     };
 
-    if (ciclosLoading) return 'Loading...';
     if (ciclosError) return 'An error has occurred: ' + ciclosError.message;
 
     const handleIDType = (value: string) => {
@@ -386,7 +401,7 @@ const AddStudentButton: React.FC = () => {
         }));
 
         // da igual si pillamos la id de primero o segundo, nos importa para luego pillar el código e.g (SAN301-LOE)
-        const cicloIDPrimero = cursoIds['1º'];
+        const cicloIDPrimero = cursoIds['1'];
 
         try {
 
@@ -469,7 +484,7 @@ const AddStudentButton: React.FC = () => {
             <DialogContent
                 /* 1. keep the two possible widths you already had */
                 className={cn(
-                    selectedCiclo && selectedCiclo !== "unassigned"
+                    selectedLey && selectedCiclo && selectedCiclo !== "unassigned"
                         ? "sm:max-w-[1000px]"
                         : "sm:max-w-[450px]",
                     /* 2. NEW ­– freeze the height */
@@ -554,6 +569,22 @@ const AddStudentButton: React.FC = () => {
                                     <DatePicker label="Fecha de nacimiento" name="fecha_nacimiento" onChange={handleDateChange} />
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="ley" className="text-right font-medium">Ley educativa</Label>
+                                    <SelectField
+                                        label="Ley Educativa"
+                                        name="ley_educativa"
+                                        value={selectedLey}
+                                        onValueChange={handleLeyChange}
+                                        placeholder="Seleccionar ley"
+                                        options={[
+                                            {label: "LOGSE", value: "LOGSE"},
+                                            {label: "LOE", value: "LOE"},
+                                            {label: "LFP", value: "LFP"},
+                                        ]}
+                                        width={310}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
                                     <Label htmlFor="ciclo_formativo" className="text-right font-medium">Ciclo Formativo</Label>
                                     <SelectField
                                         label="Ciclo Formativo"
@@ -561,10 +592,14 @@ const AddStudentButton: React.FC = () => {
                                         value={selectedCiclo ? `${selectedCiclo}` : ""}
                                         onValueChange={handleCicloChange}
                                         placeholder="Seleccionar ciclo"
-                                        options={ciclosData.map((ciclo) => ({
+                                        options={
+                                            selectedLey
+                                            ? ciclosData.map((ciclo) => ({
                                             value: `${ciclo.codigo}`,
                                             label: `${ciclo.nombre} (${ciclo.codigo})`,
-                                        }))}
+                                        }))
+                                        : [{ label: "Selecciona una ley antes", value: 'nothing bro'}]
+                                    }
                                         width={310}
                                     />
                                 </div>
@@ -587,7 +622,7 @@ const AddStudentButton: React.FC = () => {
                                     placeholder="Filtrar módulos"
                                     className="p-1 border border-gray-300 rounded mb-5 mr-5 w-full pl-3"
                                 />
-                                {selectedCiclo && (
+                                {selectedLey && selectedCiclo && (
                                     <>
                                         {/* search bar … unchanged … */}
                                         {/* ▸▸▸ NEW WRAPPER ◂◂◂  — 60 % viewport height max */}

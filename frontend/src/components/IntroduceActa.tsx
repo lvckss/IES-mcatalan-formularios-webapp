@@ -17,11 +17,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 import { Plus, Save, RefreshCw } from "lucide-react"
 
-async function getCiclosUnicos() {
-  const response = await api.cycles['by-name'].$get();
+// Fetch ciclos sin diferenciar curso POR LEY (LOE, LOGSE o LFP)
+async function getCiclosByLey(ley: string) {
+  const response = await api.cycles.law[':ley'].$get({
+    param: { ley }
+  })
+
+  if (!response) {
+    throw new Error("no existen ciclos con esa ley");
+  }
+
   const data = await response.json();
-  // La respuesta es { ciclos: [...] }
-  return data.ciclos;
+  return data.ciclo;
 }
 
 const generateSchoolYearOptions = (): { value: string; label: string }[] => {
@@ -62,15 +69,21 @@ const tablaSchema = z.object({
 type tablaForm = z.infer<typeof tablaSchema>
 
 const IntroduceActa: React.FC = () => {
+  const [selectedLey, setSelectedLey] = useState<string>("");
   const [selectedCiclo, setSelectedCiclo] = useState<string>("");
   const [selectedCurso, setSelectedCurso] = useState<string>("");
   const [selectedAnioEscolar, setSelectedAnioEscolar] = useState<string>("");
   const [numEstudiantes, setNumEstudiantes] = useState<number>(0);
   const [numAsignaturas, setNumAsignaturas] = useState<number>(0);
 
-  const { isPending: ciclosLoading, error: ciclosError, data: ciclosData } = useQuery({
-    queryKey: ['ciclos'],
-    queryFn: getCiclosUnicos,
+  const {
+    isPending: ciclosLoading,
+    error: ciclosError,
+    data: ciclosData = []
+  } = useQuery({
+    queryKey: ['ciclos-by-ley', selectedLey],
+    queryFn: () => getCiclosByLey(selectedLey),
+    enabled: !!selectedLey,
     staleTime: 5 * 60 * 1000, // Cacheamos los ciclos cada 5 minutos para evitar overloadear la API
   });
 
@@ -152,6 +165,21 @@ const IntroduceActa: React.FC = () => {
       <div className='mt-5 ml-5'>
         <div>
           <div>
+            <SelectField
+              label="Ley Educativa"
+              name="ley_educativa"
+              value={selectedLey}
+              onValueChange={(value) => setSelectedLey(value)}
+              placeholder="Seleccionar ley"
+              options={[
+                { label: "LOGSE", value: "LOGSE" },
+                { label: "LOE", value: "LOE" },
+                { label: "LFP", value: "LFP" },
+              ]}
+              width={310}
+            />
+          </div>
+          <div className='mt-1'>
             <SelectField
               label="Ciclo Formativo"
               name="ciclo_formativo"

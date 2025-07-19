@@ -25,6 +25,18 @@ export const getModuleByCycleId = async (id: number): Promise<Module[]> => {
   return results.map((result: any) => ModuleSchema.parse(result));
 };
 
+export const getModulesByCycleCodeAndCurso = async (cycle_code: string, curso: string): Promise<Module[]> => {
+  const results = await sql`
+    SELECT m.*
+    FROM ciclos AS c
+    JOIN modulos AS m ON m.id_ciclo = c.id_ciclo
+    WHERE c.codigo = ${cycle_code}
+    AND c.curso = ${curso}`
+  ;
+
+  return results.map((result: any) => ModuleSchema.parse(result))
+}
+
 export const deleteModule = async (id: number): Promise<Module> => {
   const results = await sql`DELETE FROM Modulos WHERE id_modulo = ${id} RETURNING *`;
   return ModuleSchema.parse(results[0]);
