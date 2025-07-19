@@ -1,44 +1,16 @@
 import { createFileRoute } from '@tanstack/react-router';
-
-import { useState } from 'react';
-
-import Sidebar from "@/components/Sidebar";
-import Header from "@/components/Header";
 import Estudiantes from "@/components/StudentTable/Students";
-import IntroduceActa from "@/components/IntroduceActa";
-import { ThemeProvider } from "@/components/theme-provider";
-
-import { Toaster } from '@/components/ui/sonner';
+import Header from "@/components/Header";
 
 export const Route = createFileRoute('/')({
-  component: Index,
+  component: IndexEstudiantesPage,
 })
 
-function Index() {
-
-  const [activeTab, setActiveTab] = useState<'Estudiantes' | 'Introducir por acta'>('Estudiantes');
-
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'Estudiantes':
-        return <Estudiantes />;
-      case 'Introducir por acta':
-        return <IntroduceActa />;
-      default:
-        return <Estudiantes />;
-    }
-  };
-
+function IndexEstudiantesPage() {
   return (
-    <ThemeProvider defaultTheme='light' storageKey='vite-ui-theme'>
-      <div className="flex min-h-screen w-full">
-        <Sidebar setActiveTab={setActiveTab} activeTab={activeTab} />
-        <div className="flex flex-1 flex-col">
-          <Header activeTab={activeTab as 'students' | 'certificates'} />
-          {renderContent()}
-        </div>
-      </div>
-      <Toaster />
-    </ThemeProvider>
-  );
+    <>
+      <Header activeTab='Estudiantes:'></Header>
+      <Estudiantes />
+    </>
+  )
 }

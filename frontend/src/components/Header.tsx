@@ -4,7 +4,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLab
 import { MenuIcon } from '@/components/icons/index';
 
 interface HeaderProps {
-  activeTab: 'students' | 'certificates';
+  activeTab: string;
 }
 
 const Header: React.FC<HeaderProps> = ({ activeTab }) => {
