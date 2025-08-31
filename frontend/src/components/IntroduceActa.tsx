@@ -224,7 +224,7 @@ const IntroduceActa: React.FC = () => {
 
   // ==================== RENDER ====================
   return (
-    <div>
+    <div className='min-w-0'>
       {/* FILTROS DE CABECERA (LEY, CICLO, CURSO, AÑO) */}
       <div className='mt-5 ml-5'>
         {/* FILTRO DE CICLO, CURSO Y AÑO */}
@@ -257,7 +257,7 @@ const IntroduceActa: React.FC = () => {
                 value: `${ciclo.codigo}`,
                 label: `${ciclo.nombre} (${ciclo.codigo})`,
               }))}
-              width={1000}
+              width={600}
             />
           </div>
           {/* CURSO (1º / 2º) */}
@@ -269,7 +269,7 @@ const IntroduceActa: React.FC = () => {
               onValueChange={(value) => setSelectedCurso(value)}
               placeholder="Curso"
               options={[{ value: '1', label: '1°' }, { value: '2', label: '2°' }]}
-              width={1000}
+              width={600}
             />
           </div>
           {/* AÑO ESCOLAR */}
@@ -281,191 +281,193 @@ const IntroduceActa: React.FC = () => {
               onValueChange={(value) => setSelectedAnioEscolar(value)}
               placeholder="Año escolar"
               options={generateSchoolYearOptions()}
-              width={1000}
+              width={600}
             />
           </div>
         </div>
       </div>
 
       {/* TARJETA PRINCIPAL CON LA TABLA Y CONTROLES */}
-      <div className='mt-2 ml-5 mr-5'>
-        <Card>
-          <CardHeader>
-            <CardTitle>Evaluación de Estudiantes</CardTitle>
-            <CardDescription>Introduce manualmente los datos de evaluación de los alumnos</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* CONTROLES DE CONFIGURACIÓN DE LA TABLA */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-              {/* NÚMERO DE ESTUDIANTES */}
-              <div className="space-y-2">
-                <Label htmlFor="numEstudiantes">Número de estudiantes</Label>
-                <Input
-                  id="numEstudiantes"
-                  type="number"
-                  min="1"
-                  max="50"
-                  value={numEstudiantes}
-                  onChange={handleNumEstudiantesChange}
-                />
+      <div className='min-w-0'>
+        <div className='px-5 mt-2 min-w-0'>
+          <Card>
+            <CardHeader>
+              <CardTitle>Evaluación de Estudiantes</CardTitle>
+              <CardDescription>Introduce manualmente los datos de evaluación de los alumnos</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6 min-w-0">
+              {/* CONTROLES DE CONFIGURACIÓN DE LA TABLA */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                {/* NÚMERO DE ESTUDIANTES */}
+                <div className="space-y-2">
+                  <Label htmlFor="numEstudiantes">Número de estudiantes</Label>
+                  <Input
+                    id="numEstudiantes"
+                    type="number"
+                    min="1"
+                    max="50"
+                    value={numEstudiantes}
+                    onChange={handleNumEstudiantesChange}
+                  />
+                </div>
+                {/* NÚMERO DE ASIGNATURAS */}
+                <div className="space-y-2">
+                  <Label htmlFor="numSubjects">Número de asignaturas</Label>
+                  <Input
+                    id="numSubjects"
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={numAsignaturas}
+                    onChange={(e) => setNumAsignaturas(Number(e.target.value))}
+                  />
+                </div>
+                {/* BOTÓN GENERAR / ACTUALIZAR */}
+                <Button onClick={generateTable} variant="outline" className="w-full bg-transparent">
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Generar/Actualizar Tabla
+                </Button>
               </div>
-              {/* NÚMERO DE ASIGNATURAS */}
-              <div className="space-y-2">
-                <Label htmlFor="numSubjects">Número de asignaturas</Label>
-                <Input
-                  id="numSubjects"
-                  type="number"
-                  min="1"
-                  max="20"
-                  value={numAsignaturas}
-                  onChange={(e) => setNumAsignaturas(Number(e.target.value))}
-                />
-              </div>
-              {/* BOTÓN GENERAR / ACTUALIZAR */}
-              <Button onClick={generateTable} variant="outline" className="w-full bg-transparent">
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Generar/Actualizar Tabla
-              </Button>
-            </div>
 
-            {/* TABLA COMPLETA */}
-            <form className="space-y-4">
-              <div className="border rounded-lg overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-16">#</TableHead>
-                      <TableHead className="min-w-[100px]">Apellido 1</TableHead>
-                      <TableHead className="min-w-[100px]">Apellido 2</TableHead>
-                      <TableHead className="min-w-[100px]">Nombre</TableHead>
-                      {Array.from({ length: nAsign }, (_, i) => (
-                        <TableHead key={i} className="w-24 text-center">
-                          {/* NÚMERO DE COLUMNA Y SELECT DE MÓDULO */}
-                          <div>{i + 1}</div>
-                          <SelectField
-                            label=""
-                            name={`module_col_${i}`}
-                            value={selectedModuleCodes[i] || ""}
-                            onValueChange={(value) => {
-                              setSelectedModuleCodes((prev) => {
-                                const copy = [...prev];
-                                copy[i] = value;
-                                return copy;
-                              });
-                            }}
-                            placeholder="Seleccionar módulo"
-                            options={modulesData.map((modulo) => ({
-                              value: modulo.codigo_modulo,
-                              label: modulo.nombre,
-                            }))}
-                            width={100}
-                          />
-                        </TableHead>
-                      ))}
-                      <TableHead className="w-24 text-center bg-muted">Media</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {fields.map((field, studentIndex) => (
-                      <TableRow key={field.id}>
-                        <TableCell className="font-medium text-center">{studentIndex + 1}</TableCell>
-                        {/* CELDA: APELLIDO 1 */}
-                        <TableCell>
-                          <Input
-                            {...form.register(`students.${studentIndex}.apellido1`)}
-                            placeholder="..."
-                            data-row={studentIndex}
-                            data-col="0"
-                            className={form.formState.errors.students?.[studentIndex]?.apellido1 ? "border-red-500" : ""}
-                          />
-                          {form.formState.errors.students?.[studentIndex]?.apellido1 && (
-                            <p className="text-sm text-red-500 mt-1">
-                              {form.formState.errors.students[studentIndex]?.apellido1?.message}
-                            </p>
-                          )}
-                        </TableCell>
-                        {/* CELDA: APELLIDO 2 */}
-                        <TableCell>
-                          <Input
-                            {...form.register(`students.${studentIndex}.apellido2`)}
-                            placeholder="..."
-                            data-row={studentIndex}
-                            data-col="1"
-                            className={form.formState.errors.students?.[studentIndex]?.apellido2 ? "border-red-500" : ""}
-                          />
-                          {form.formState.errors.students?.[studentIndex]?.apellido2 && (
-                            <p className="text-sm text-red-500 mt-1">
-                              {form.formState.errors.students[studentIndex]?.apellido2?.message}
-                            </p>
-                          )}
-                        </TableCell>
-                        {/* CELDA: NOMBRE */}
-                        <TableCell>
-                          <Input
-                            {...form.register(`students.${studentIndex}.nombre`)}
-                            placeholder="..."
-                            data-row={studentIndex}
-                            data-col="2"
-                            className={form.formState.errors.students?.[studentIndex]?.nombre ? "border-red-500" : ""}
-                          />
-                          {form.formState.errors.students?.[studentIndex]?.nombre && (
-                            <p className="text-sm text-red-500 mt-1">
-                              {form.formState.errors.students[studentIndex]?.nombre?.message}
-                            </p>
-                          )}
-                        </TableCell>
-                        {/* CELDAS: NOTAS */}
-                        {Array.from({ length: nAsign }, (_, gradeIndex) => (
-                          <TableCell key={gradeIndex}>
-                            <Input
-                              {...form.register(`students.${studentIndex}.notas.${gradeIndex}`, {
-                                valueAsNumber: true,
-                              })}
-                              type="number"
-                              min="0"
-                              max="10"
-                              step="0.1"
-                              placeholder="0.0"
-                              data-row={studentIndex}
-                              data-col={gradeIndex + 1}
-                              className={
-                                form.formState.errors.students?.[studentIndex]?.notas?.[gradeIndex]
-                                  ? "border-red-500 text-center"
-                                  : "text-center"
-                              }
+              {/* TABLA COMPLETA */}
+              <form>
+                <div className="border rounded-lg overflow-x-auto max-w-full">
+                  <Table className='min-w-fit '>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-16">#</TableHead>
+                        <TableHead className="min-w-[100px]">Apellido 1</TableHead>
+                        <TableHead className="min-w-[100px]">Apellido 2</TableHead>
+                        <TableHead className="min-w-[100px]">Nombre</TableHead>
+                        {Array.from({ length: nAsign }, (_, i) => (
+                          <TableHead key={i} className="w-24 text-center">
+                            {/* NÚMERO DE COLUMNA Y SELECT DE MÓDULO */}
+                            <div>{i + 1}</div>
+                            <SelectField
+                              label=""
+                              name={`module_col_${i}`}
+                              value={selectedModuleCodes[i] || ""}
+                              onValueChange={(value) => {
+                                setSelectedModuleCodes((prev) => {
+                                  const copy = [...prev];
+                                  copy[i] = value;
+                                  return copy;
+                                });
+                              }}
+                              placeholder="Seleccionar módulo"
+                              options={modulesData.map((modulo) => ({
+                                value: modulo.codigo_modulo,
+                                label: modulo.nombre,
+                              }))}
+                              width={100}
                             />
-                            {form.formState.errors.students?.[studentIndex]?.notas?.[gradeIndex] && (
-                              <p className="text-xs text-red-500 mt-1">0-10</p>
+                          </TableHead>
+                        ))}
+                        <TableHead className="text-center bg-muted">Media</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {fields.map((field, studentIndex) => (
+                        <TableRow key={field.id}>
+                          <TableCell className="font-medium text-center">{studentIndex + 1}</TableCell>
+                          {/* CELDA: APELLIDO 1 */}
+                          <TableCell>
+                            <Input
+                              {...form.register(`students.${studentIndex}.apellido1`)}
+                              placeholder="..."
+                              data-row={studentIndex}
+                              data-col="0"
+                              className={form.formState.errors.students?.[studentIndex]?.apellido1 ? "border-red-500" : ""}
+                            />
+                            {form.formState.errors.students?.[studentIndex]?.apellido1 && (
+                              <p className="text-sm text-red-500 mt-1">
+                                {form.formState.errors.students[studentIndex]?.apellido1?.message}
+                              </p>
                             )}
                           </TableCell>
-                        ))}
-                        {/* CELDA: MEDIA */}
-                        <TableCell className="bg-muted">
-                          <div className="text-center font-medium">
-                            {form.watch(`students.${studentIndex}.nota_final`)?.toFixed(2) || "0.00"}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                          {/* CELDA: APELLIDO 2 */}
+                          <TableCell>
+                            <Input
+                              {...form.register(`students.${studentIndex}.apellido2`)}
+                              placeholder="..."
+                              data-row={studentIndex}
+                              data-col="1"
+                              className={form.formState.errors.students?.[studentIndex]?.apellido2 ? "border-red-500" : ""}
+                            />
+                            {form.formState.errors.students?.[studentIndex]?.apellido2 && (
+                              <p className="text-sm text-red-500 mt-1">
+                                {form.formState.errors.students[studentIndex]?.apellido2?.message}
+                              </p>
+                            )}
+                          </TableCell>
+                          {/* CELDA: NOMBRE */}
+                          <TableCell>
+                            <Input
+                              {...form.register(`students.${studentIndex}.nombre`)}
+                              placeholder="..."
+                              data-row={studentIndex}
+                              data-col="2"
+                              className={form.formState.errors.students?.[studentIndex]?.nombre ? "border-red-500" : ""}
+                            />
+                            {form.formState.errors.students?.[studentIndex]?.nombre && (
+                              <p className="text-sm text-red-500 mt-1">
+                                {form.formState.errors.students[studentIndex]?.nombre?.message}
+                              </p>
+                            )}
+                          </TableCell>
+                          {/* CELDAS: NOTAS */}
+                          {Array.from({ length: nAsign }, (_, gradeIndex) => (
+                            <TableCell key={gradeIndex}>
+                              <Input
+                                {...form.register(`students.${studentIndex}.notas.${gradeIndex}`, {
+                                  valueAsNumber: true,
+                                })}
+                                type="number"
+                                min="0"
+                                max="10"
+                                step="0.1"
+                                placeholder="0.0"
+                                data-row={studentIndex}
+                                data-col={gradeIndex + 1}
+                                className={
+                                  form.formState.errors.students?.[studentIndex]?.notas?.[gradeIndex]
+                                    ? "border-red-500 text-center"
+                                    : "text-center"
+                                }
+                              />
+                              {form.formState.errors.students?.[studentIndex]?.notas?.[gradeIndex] && (
+                                <p className="text-xs text-red-500 mt-1">0-10</p>
+                              )}
+                            </TableCell>
+                          ))}
+                          {/* CELDA: MEDIA */}
+                          <TableCell className="bg-muted">
+                            <div className="text-center font-medium">
+                              {form.watch(`students.${studentIndex}.nota_final`)?.toFixed(2) || "0.00"}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
 
-              {/* ACCIONES: AÑADIR + GUARDAR */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-between">
-                <Button type="button" variant="outline" onClick={addStudent} className="w-full sm:w-auto bg-transparent">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Añadir Estudiante
-                </Button>
+                {/* ACCIONES: AÑADIR + GUARDAR */}
+                <div className="flex flex-col sm:flex-row gap-4 justify-between">
+                  <Button type="button" variant="outline" onClick={addStudent} className="w-full sm:w-auto bg-transparent">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Añadir Estudiante
+                  </Button>
 
-                <Button type="submit" className="w-full sm:w-auto">
-                  {/* <Save className="w-4 h-4 mr-2" /> */}
-                  Guardar Evaluación
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+                  <Button type="submit" className="w-full sm:w-auto">
+                    {/* <Save className="w-4 h-4 mr-2" /> */}
+                    Guardar Evaluación
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

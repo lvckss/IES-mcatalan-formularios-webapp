@@ -1,7 +1,16 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import  { createStudentSchema } from "../models/Student";
-import { getStudents, createStudent, getStudentById, deleteStudent, getStudentFullInfo, getStudentByLegalId, updateStudentObservaciones } from "../controllers/studentController";
+import {
+  getStudents,
+  createStudent,
+  getStudentById,
+  deleteStudent,
+  getStudentFullInfo,
+  getStudentByLegalId,
+  updateStudentObservaciones,
+  getAllStudentsFromCycleYearCurso
+} from "../controllers/studentController";
 
 import { z } from "zod";
 
@@ -46,6 +55,15 @@ export const studentsRoute = new Hono()
     } catch (error) {
       return c.json({ error: "No se pudo actualizar observaciones." }, 500);
     }
+  })
+  .get("/:cycle_code/:ano_inicio/:ano_fin/:curso", async (c) => {
+    const cycle_code = c.req.param("cycle_code");
+    const ano_inicio = Number(c.req.param("ano_inicio"));
+    const ano_fin = Number(c.req.param("ano_fin"));
+    const curso = c.req.param("curso");
+
+    const result = await getAllStudentsFromCycleYearCurso(cycle_code, ano_inicio, ano_fin, curso)
+    return c.json({ estudiantes: result })
   })
   .get("/fullInfo/:id", async (c) => {
     const id = Number(c.req.param("id"));

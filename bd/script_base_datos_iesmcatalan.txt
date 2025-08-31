@@ -39,6 +39,7 @@ CREATE TABLE Expedientes (
     turno VARCHAR(20) NOT NULL CHECK (turno IN ('Diurno', 'Vespertino', 'Nocturno', 'A distancia')),
     convocatoria VARCHAR(50) NOT NULL CHECK (convocatoria IN ('Ordinaria', 'Extraordinaria')),
     fecha_pago_titulo DATE,
+    vino_traslado boolean NOT NULL DEFAULT false,
     FOREIGN KEY (id_estudiante) REFERENCES Estudiantes(id_estudiante) ON DELETE CASCADE,
     FOREIGN KEY (id_ciclo) REFERENCES Ciclos(id_ciclo) ON DELETE CASCADE,
     UNIQUE (id_estudiante, id_ciclo, ano_inicio, ano_fin)  -- Prevents duplicates

@@ -17,6 +17,18 @@ import {
   useReactTable
 } from '@tanstack/react-table';
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 
@@ -188,30 +200,68 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
 
 export default StudentTable;
 
-function StudentDeleteButton({ id }: { id: number }) {
+  type DeleteStudentArgs = { id: number };
+// assume deleteStudent: (args: DeleteStudentArgs) => Promise<void>
+
+export function StudentDeleteButton({ id }: { id: number }) {
   const queryClient = useQueryClient();
+  const [open, setOpen] = React.useState(false);
+
   const mutation = useMutation({
     mutationFn: deleteStudent,
     onError: () => {
       toast("No se pudo eliminar el estudiante con éxito.", {
-        description: `ID del estudiante: ${id}`
+        description: `ID del estudiante: ${id}`,
       });
     },
     onSuccess: () => {
       toast("Estudiante eliminado con éxito.", {
-        description: `ID del estudiante: ${id}`
+        description: `ID del estudiante: ${id}`,
       });
-
-      queryClient.invalidateQueries({ queryKey: ['get-total-students'] });
+      queryClient.invalidateQueries({ queryKey: ["get-total-students"] });
+      setOpen(false); // cerrar al terminar
     },
-  })
+  });
 
   return (
-    <Button variant={'outline'} size={'icon'} onClick={() => mutation.mutate({ id })} disabled={mutation.isPending}>
-      {mutation.isPending ? "..." : (
-        <Trash className='h-8 w-8 text-red-400' />
-      )}
-    </Button>
+    <AlertDialog open={open} onOpenChange={setOpen}>
+      <AlertDialogTrigger asChild>
+        <Button
+          variant="outline"
+          size="icon"
+          disabled={mutation.isPending}
+          aria-label={`Eliminar estudiante ${id}`}
+        >
+          {mutation.isPending ? "..." : <Trash className="h-5 w-5 text-red-500" />}
+        </Button>
+      </AlertDialogTrigger>
+
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>¿Seguro que quieres eliminarlo?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Esta acción no se puede deshacer. Se eliminarán los datos del
+            estudiante con ID <b>{id}</b>.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={mutation.isPending}>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            // Evita que el diálogo se cierre automáticamente;
+            // lo cerraremos en onSuccess.
+            onClick={(e) => {
+              e.preventDefault();
+              mutation.mutate({ id });
+            }}
+            disabled={mutation.isPending}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {mutation.isPending ? "Eliminando..." : "Sí, eliminar"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 

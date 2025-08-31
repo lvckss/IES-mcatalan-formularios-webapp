@@ -23,14 +23,25 @@ import {
 interface DatePickerProps {
   label: string;
   name: string;
+  value?: Date | null;
   onChange?: (date: Date | undefined) => void;
 }
 
-const DatePicker: React.FC<DatePickerProps> = ({ label, name, onChange }) => {
+const DatePicker: React.FC<DatePickerProps> = ({ label, name, value, onChange }) => {
+  const initial = value ?? undefined;
   const [date, setDate] = React.useState<Date>()
   const [month, setMonth] = React.useState<number>(new Date().getMonth())
   const [year, setYear] = React.useState<number>(new Date().getFullYear())
   const [isPopoverOpen, setIsPopoverOpen] = React.useState(false)
+
+  React.useEffect(() => {
+    const d = value ?? undefined;
+    setDate(d);
+    if (d) {
+      setMonth(d.getMonth());
+      setYear(d.getFullYear());
+    }
+  }, [value]);
 
   const years = Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i)
   const months = [

@@ -146,17 +146,18 @@ const AddStudentButton: React.FC = () => {
     const [selectedCiclo, setSelectedCiclo] = useState<string>("");
     const [selectedModules, setSelectedModules] = useState<Record<number, [string, number | null]>>({});
     const [modulesFilter, setModulesFilter] = useState<string>("");
-    const [selectedIDType, setSelectedIDType] = useState<string>("");
+    const [selectedIDType, setSelectedIDType] = useState<string>("dni");
     const [selectedTurno, setSelectedTurno] = useState<string>("");
     const [selectedID, setSelectedID] = useState<string>("");
     const [errorLogicaID, setErrorLogicaID] = useState<string | null>(null);
     const [selectedYear, setSelectedYear] = useState<string>("");
+    const [vinoTraslado, setVinoTraslado] = useState<boolean>(false);
     // Instantiate query client
     const queryClient = useQueryClient();
 
-    const { 
-        isPending: ciclosLoading, 
-        error: ciclosError, 
+    const {
+        isPending: ciclosLoading,
+        error: ciclosError,
         data: ciclosData = []
     } = useQuery({
         queryKey: ['ciclos-by-ley', selectedLey],
@@ -417,6 +418,7 @@ const AddStudentButton: React.FC = () => {
                 convocatoria: "Ordinaria" as "Ordinaria" | "Extraordinaria",
                 id_ciclo: Number(cicloIDPrimero),
                 fecha_pago_titulo: null,
+                vino_traslado: vinoTraslado
             };
 
             const recordResponse = await mutationExpediente.mutateAsync(recordData);
@@ -577,9 +579,9 @@ const AddStudentButton: React.FC = () => {
                                         onValueChange={handleLeyChange}
                                         placeholder="Seleccionar ley"
                                         options={[
-                                            {label: "LOGSE", value: "LOGSE"},
-                                            {label: "LOE", value: "LOE"},
-                                            {label: "LFP", value: "LFP"},
+                                            { label: "LOGSE", value: "LOGSE" },
+                                            { label: "LOE", value: "LOE" },
+                                            { label: "LFP", value: "LFP" },
                                         ]}
                                         width={310}
                                     />
@@ -594,13 +596,21 @@ const AddStudentButton: React.FC = () => {
                                         placeholder="Seleccionar ciclo"
                                         options={
                                             selectedLey
-                                            ? ciclosData.map((ciclo) => ({
-                                            value: `${ciclo.codigo}`,
-                                            label: `${ciclo.nombre} (${ciclo.codigo})`,
-                                        }))
-                                        : [{ label: "Selecciona una ley antes", value: 'nothing bro'}]
-                                    }
+                                                ? ciclosData.map((ciclo) => ({
+                                                    value: `${ciclo.codigo}`,
+                                                    label: `${ciclo.nombre} (${ciclo.codigo})`,
+                                                }))
+                                                : [{ label: "Selecciona una ley antes", value: 'nothing bro' }]
+                                        }
                                         width={310}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="ciclo_formativo" className="text-right font-medium">¿Vino de traslado?</Label>
+                                    <Checkbox
+                                        id="vino_traslado"
+                                        checked={vinoTraslado}
+                                        onCheckedChange={(value) => setVinoTraslado(value === true)}
                                     />
                                 </div>
                             </div>

@@ -43,6 +43,7 @@ type StudentRecord = {
   ciclo_codigo: string;
   id_matricula: number;
   fecha_pago_titulo: Date | undefined;
+  vino_traslado: Boolean;
   id_modulo: number;
   module_nombre: string;
   codigo_modulo: string;
@@ -82,6 +83,7 @@ const StudentRecordSchema = z.object({
     }
     return arg;
   }, z.date().optional()).nullable(),
+  vino_traslado: z.boolean().default(false),
   record_id_ciclo: z.number(),
   turno: z.enum(['Diurno', 'Vespertino', 'Nocturno', 'A distancia']),
   convocatoria: z.enum(['Ordinaria', 'Extraordinaria']),

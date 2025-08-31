@@ -30,3 +30,16 @@ export const getEnrollmentsByRecordId = async (record_id: number): Promise<Enrol
   const results = await sql`SELECT * FROM Matriculas WHERE id_expediente = ${record_id}`;
   return results.map(enrollment => EnrollmentSchema.parse(enrollment));
 }
+
+export const patchEnrollmentNota = async (record_id: number, module_id: number, nota: string): Promise<Enrollment> => {
+  const result = await sql`
+    UPDATE Matriculas
+    SET nota = ${nota}::nota_enum
+    WHERE id_expediente = ${record_id}
+      AND id_modulo     = ${module_id}
+    RETURNING id_matricula, id_expediente, id_modulo, nota;
+  `;
+
+  if (!result[0]) throw new Error("No existe la matrícula");
+  return EnrollmentSchema.parse(result[0])
+}

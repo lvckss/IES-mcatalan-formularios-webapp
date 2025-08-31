@@ -9,38 +9,31 @@ import logo from '@/assets/ies-mcatalan-logo.png';
 
 export const Route = createRootRoute({
     component: () => (
-        <ThemeProvider defaultTheme='light' storageKey='vite-ui-theme'>
-            <div className="flex min-h-screen w-full">
+        <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
+            {/* Grid de 2 columnas en md+, una sola columna en móvil */}
+            <div className="grid min-h-screen w-full overflow-x-clip grid-cols-1 md:grid-cols-[16rem_minmax(0,1fr)]">
                 {/* SIDEBAR */}
-                <aside className="bg-background border-r border-border hidden md:flex flex-col text-s h-screen w-64">
-                    <a href="#" className="flex items-center gap-2 p-4 ">
+                <aside className="hidden md:block">
+                    <a href="#" className="flex items-center gap-2 p-4">
                         <Package2Icon className="h-6 w-6" />
                         <span className="font-semibold">Gestor de Certificados</span>
                     </a>
-                    <nav className="flex flex-col gap-1 flex-grow overflow-hidden">
+
+                    {/* El nav puede seguir en flex */}
+                    <nav className="flex flex-col gap-1 h-[calc(100vh-64px)] overflow-hidden">
                         <Link to="/estudiantes" className="[&.active]:font-bold [&.active]:text-black flex items-center gap-2 rounded-md px-3 py-2 text-muted-foreground hover:bg-muted hover:text-foreground">
-                            <UsersIcon className={`h-4 w-4 `} />
+                            <UsersIcon className="h-4 w-4" />
                             Estudiantes
                         </Link>
                         <Link to="/introducir-acta" className="flex items-center gap-2 rounded-md px-3 py-2 text-muted-foreground hover:bg-muted hover:text-foreground [&.active]:font-bold [&.active]:text-black">
-                            <FileIcon className={`h-4 w-4`} />
+                            <FileIcon className="h-4 w-4" />
                             Introducir por acta
                         </Link>
-                        <a
-                            href="#"
-                            className="flex items-center gap-2 rounded-md px-3 py-2 text-muted-foreground hover:bg-muted hover:text-foreground"
-                        >
-                            <AwardIcon className="h-4 w-4" />
-                            <span>Emisión</span>
-                        </a>
-                        <a
-                            href="#"
-                            className="flex items-center gap-2 rounded-md px-3 py-2 text-muted-foreground hover:bg-muted hover:text-foreground"
-                        >
-                            <LayoutDashboardIcon className="h-4 w-4" />
-                            <span>Administración</span>
-                        </a>
-                        <div className="relative p-4 flex-shrink-0 mt-auto">
+
+                        {/* …resto… */}
+
+                        {/* CLIP al logo transformado */}
+                        <div className="relative p-4 mt-auto">
                             <div className="relative w-full h-60">
                                 <img
                                     src={logo}
@@ -52,11 +45,12 @@ export const Route = createRootRoute({
                         </div>
                     </nav>
                 </aside>
-                {/* CONTENT */}
-                <div className="flex flex-1 flex-col">
+
+                {/* CONTENT: minmax(0,1fr) ya permite encoger; añade min-w-0 por seguridad */}
+                <div className="min-w-0 overflow-x-clip">
                     <Outlet />
                 </div>
-                {/* <TanStackRouterDevtools /> */}
+
                 <Toaster />
             </div>
         </ThemeProvider>

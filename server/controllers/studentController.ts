@@ -21,7 +21,7 @@ export const createStudent = async (student: PostStudent): Promise<Student> => {
     VALUES (${student.nombre}, ${student.apellido_1}, ${student.apellido_2 ?? null}, ${student.sexo}, ${student.id_legal}, ${student.tipo_id_legal}, ${student.fecha_nac}, ${student.num_tfno ?? null}, ${student.observaciones ?? null})
     RETURNING *
   `;
-  return StudentSchema.parse(results[0]);
+    return StudentSchema.parse(results[0]);
   } catch (error: any) {
     if (error.code === '23505') {
       throw new Error('UNIQUE_VIOLATION')
@@ -56,6 +56,19 @@ export const updateStudentObservaciones = async (id: number, observaciones: stri
   return StudentSchema.parse(results[0]);
 };
 
+export const getAllStudentsFromCycleYearCurso = async (cycle_code: string, ano_inicio: number, ano_fin: number, curso: string): Promise<Student[]> => {
+  const results = await sql`
+    SELECT est.*
+    FROM estudiantes est
+    JOIN expedientes exp ON est.id_estudiante = exp.id_estudiante
+    JOIN ciclos ci ON ci.id_ciclo = exp.id_ciclo
+    WHERE ci.codigo = ${cycle_code} AND exp.ano_inicio = ${ano_inicio} AND exp.ano_fin = ${ano_fin} AND ci.curso = ${curso}
+    ORDER BY est.apellido_1, est.apellido_2, est.nombre
+  `;
+  
+  return results.map((result: any) => StudentSchema.parse(result));
+}
+
 export const getStudentFullInfo = async (studentId: number): Promise<FullStudentData> => {
   const results = await sql`
     SELECT 
@@ -73,6 +86,7 @@ export const getStudentFullInfo = async (studentId: number): Promise<FullStudent
         e.ano_inicio,
         e.ano_fin,
         e.fecha_pago_titulo::timestamp AS fecha_pago_titulo,
+        e.vino_traslado,
         e.id_ciclo AS record_id_ciclo,
         e.convocatoria AS convocatoria,
         e.turno AS turno,
@@ -148,6 +162,7 @@ export const getStudentFullInfo = async (studentId: number): Promise<FullStudent
         convocatoria: rec.convocatoria as RecordExtended['convocatoria'],
         turno: rec.turno,
         fecha_pago_titulo: rec.fecha_pago_titulo ?? null,
+        vino_traslado: rec.vino_traslado,
         id_ciclo: rec.record_id_ciclo,
         ciclo_codigo: rec.ciclo_codigo,
         ciclo_nombre: rec.record_ciclo_nombre,
@@ -164,7 +179,6 @@ export const getStudentFullInfo = async (studentId: number): Promise<FullStudent
       nombre_modulo: rec.module_nombre,
       codigo_modulo: rec.codigo_modulo
     };
-
     currentRecord.enrollments.push(enrollment);
   });
 

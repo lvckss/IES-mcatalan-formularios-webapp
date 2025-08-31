@@ -10,6 +10,8 @@
 --       norma_2 TEXT NOT NULL,
 --       ley VARCHAR(15) NOT NULL,
 --   );
+
+-- 1
 INSERT INTO
         Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
 VALUES
@@ -22,6 +24,7 @@ VALUES
                 'LOGSE'
         );
 
+--2
 INSERT INTO
         Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
 VALUES
@@ -34,6 +37,7 @@ VALUES
                 'LOGSE'
         );
 
+-- 3
 INSERT INTO
         Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
 VALUES
@@ -46,18 +50,7 @@ VALUES
                 'LOGSE'
         );
 
-INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
-VALUES
-        (
-                '2',
-                'Conducción de Actividades Físico-Deportivas en el Medio Natural',
-                'AFD201_LOGSE',
-                'Real Decreto 2049/1995 14/02/1996',
-                'Real Decreto 1263/1997 12/09/1997',
-                'LOGSE'
-        );
-
+-- 4
 INSERT INTO
         Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
 VALUES
@@ -70,6 +63,7 @@ VALUES
                 'LOGSE'
         );
 
+-- 5
 INSERT INTO
         Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
 VALUES
@@ -82,6 +76,7 @@ VALUES
                 'LOGSE'
         );
 
+-- 6
 INSERT INTO
         Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
 VALUES
@@ -94,6 +89,7 @@ VALUES
                 'LOGSE'
         );
 
+-- 7
 INSERT INTO
         Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
 VALUES
@@ -106,6 +102,7 @@ VALUES
                 'LOGSE'
         );
 
+-- 8
 INSERT INTO
         Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
 VALUES
@@ -118,6 +115,7 @@ VALUES
                 'LOE'
         );
 
+-- 9
 INSERT INTO
         Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
 VALUES
@@ -130,6 +128,7 @@ VALUES
                 'LOE'
         );
 
+-- 10
 INSERT INTO
         Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
 VALUES
@@ -142,6 +141,7 @@ VALUES
                 'LOE'
         );
 
+-- 11
 INSERT INTO
         Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
 VALUES
@@ -154,6 +154,7 @@ VALUES
                 'LOE'
         );
 
+-- 12
 INSERT INTO
         Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
 VALUES
@@ -166,6 +167,7 @@ VALUES
                 'LOE'
         );
 
+-- 13
 INSERT INTO
         Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
 VALUES
@@ -178,6 +180,7 @@ VALUES
                 'LOE'
         );
 
+-- 14
 INSERT INTO
         Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
 VALUES
@@ -190,6 +193,7 @@ VALUES
                 'LOE'
         );
 
+-- 15
 INSERT INTO
         Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
 VALUES
@@ -202,6 +206,7 @@ VALUES
                 'LOE'
         );
 
+-- 16
 INSERT INTO
         Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
 VALUES
@@ -214,6 +219,7 @@ VALUES
                 'LOE'
         );
 
+-- 17
 INSERT INTO
         Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
 VALUES
@@ -226,6 +232,7 @@ VALUES
                 'LOE'
         );
 
+-- 18
 INSERT INTO
         Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
 VALUES
@@ -238,6 +245,7 @@ VALUES
                 'LOE'
         );
 
+-- 19
 INSERT INTO
         Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
 VALUES
@@ -250,6 +258,7 @@ VALUES
                 'LOE'
         );
 
+-- 20
 INSERT INTO
         Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
 VALUES
@@ -262,6 +271,7 @@ VALUES
                 'LFP'
         );
 
+-- 21
 INSERT INTO
         Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
 VALUES

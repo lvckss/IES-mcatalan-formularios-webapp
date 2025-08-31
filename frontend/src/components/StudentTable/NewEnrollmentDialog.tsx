@@ -17,11 +17,13 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Label } from "@/components/ui/label";
 
 import SelectField from "@/components/StudentTable/SelectField";
 import { toast } from "sonner";
 
 import { PostStudent, PostRecord, PostEnrollment } from "@/types";
+import { useRowState } from "react-table";
 
 
 // ===============================================================
@@ -153,6 +155,7 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
   const [modulesFilter, setModulesFilter] = useState<string>("");
   const [selectedModules, setSelectedModules] = useState<Record<number, [string, number | null]>>({});
   const [selectedTurno, setSelectedTurno] = useState<string>("");
+  const [vinoTraslado, setVinoTraslado] = useState<boolean>(false);
 
   const queryClient = useQueryClient();
 
@@ -298,6 +301,7 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
       turno: selectedTurno,
       id_ciclo: Number(cicloIDPrimero),
       fecha_pago_titulo: null,
+      vino_traslado: vinoTraslado,
     };
 
     const recordResponse = await mutationExpediente.mutateAsync(recordData);
@@ -417,6 +421,16 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
                 { value: "A distancia", label: "A distancia" }
               ]}
               width={1000}
+            />
+          </div>
+
+          {/* ---------- VINO DE TRASLADO CHECKBOX ------------- */}
+          <div className="flex items-center ml-2">
+            <Label htmlFor="ciclo_formativo" className="text-right font-medium mr-2">Traslado</Label>
+            <Checkbox
+              id="vino_traslado"
+              checked={vinoTraslado}
+              onCheckedChange={(value) => setVinoTraslado(value === true)}
             />
           </div>
 

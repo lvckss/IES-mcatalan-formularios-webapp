@@ -17,6 +17,7 @@ export const RecordSchema = z.object({
     }
     return arg;
   }, z.date().optional()).nullable(),
+  vino_traslado: z.boolean().default(false),
 });
 
 export const createRecordSchema = RecordSchema.omit({ id_expediente: true });
