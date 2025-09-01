@@ -132,6 +132,33 @@ async function getStudentByLegalId(legal_id: string) {
     return data.estudiante;
 }
 
+// -- Saber si la asignatura se puede aprobar o no
+async function checkModuloAprobable(id_estudiante: number, id_modulo: number) {
+    const response = await api.enrollments.puedeAprobar[':id_estudiante'][':id_modulo'].$get({
+        param: { id_estudiante: String(id_estudiante), id_modulo: String(id_modulo) }
+    });
+
+    if (!response.ok) {
+        throw new Error("Error al tratar de saber si el módulo se podía aprobar.")
+    }
+    const data = await response.json();
+    return data.result;
+}
+
+// -- Saber si un alumno puede matricularse a un ciclo en un año determinado o no
+// (por si ya lo está cursando ese año) [ el parámetro periodo es por ejemplo el string "2024-2025" ]
+async function checkCicloCursableEnPeriodo(id_estudiante: number, id_ciclo: number, periodo: string) {
+    const response = await api.records.puedeMatricularse[":id_estudiante"][":id_ciclo"][":periodo"].$get({
+        param: { id_estudiante: String(id_estudiante), id_ciclo: String(id_ciclo), periodo: String(periodo) }
+    });
+
+    if (!response.ok) {
+        throw new Error("Error al tratar de saber si el ciclo es cursable en el periodo determinado.")
+    }
+    const data = await response.json();
+    return data.result;
+}
+
 // ===========================================================================================================================
 
 const AddStudentButton: React.FC = () => {
@@ -194,6 +221,22 @@ const AddStudentButton: React.FC = () => {
         })),
     });
 
+    const { data: existingStudent } = useQuery({
+        queryKey: ['student-by-legal', selectedIDType, selectedID],
+        queryFn: async () => {
+            if (!selectedID) return null;
+            try {
+                const s = await getStudentByLegalId(selectedID);
+                return s as { id_estudiante: number } | null;
+            } catch {
+                return null; // no existe → alumno nuevo
+            }
+        },
+        enabled: Boolean(selectedIDType && selectedID && !errorLogicaID),
+        staleTime: 5 * 60 * 1000,
+    });
+
+
     const modulosByCurso = useMemo(() => {
         const out: Record<string, any[]> = {};
         modulosQueries.forEach((q, idx) => {
@@ -225,6 +268,88 @@ const AddStudentButton: React.FC = () => {
     );
 
 
+    const showSeparator = Boolean(selectedLey && selectedCiclo && selectedCiclo !== "unassigned");
+    const showModules = showSeparator;
+
+    const existingStudentId = existingStudent?.id_estudiante ?? null;
+
+    // --- Opciones de año escolar (memo) ---
+    const schoolYearOptions = useMemo(() => {
+        const currentYear = new Date().getFullYear();
+        const startYear = 2014;
+        const ops: { value: string; label: string }[] = [];
+        for (let year = currentYear; year >= startYear; year--) {
+            const sy = `${year}-${year + 1}`;
+            ops.push({ value: sy, label: sy });
+        }
+        return ops;
+    }, []);
+
+    // id ciclo de 1º (el que usas para crear el expediente)
+    const cicloIDPrimero = cursoIds['1'];
+
+    // Si NO hay estudiante existente aún, ningún año debe ir deshabilitado.
+    // Si sí hay estudiante, preguntamos año a año.
+    const canEnrollQueries = useQueries({
+        queries: schoolYearOptions.map((opt) => ({
+            queryKey: ['can-enroll-period', existingStudentId, cicloIDPrimero, opt.value] as const,
+            queryFn: () => checkCicloCursableEnPeriodo(existingStudentId!, Number(cicloIDPrimero), opt.value),
+            enabled: Boolean(existingStudentId && selectedCiclo && cicloIDPrimero), // solo cuando ya podemos chequear
+            staleTime: 5 * 60 * 1000,
+        })),
+    });
+
+    // Set con años deshabilitados (NO puede cursar => disabled)
+    const disabledYearSet = useMemo(() => {
+        // Si no hay estudiante existente, no deshabilitamos nada.
+        if (!existingStudentId) return new Set<string>();
+        const s = new Set<string>();
+        canEnrollQueries.forEach((q, idx) => {
+            const period = schoolYearOptions[idx]?.value;
+            if (period && q.data === false) s.add(period);
+        });
+        return s;
+    }, [canEnrollQueries, schoolYearOptions, existingStudentId]);
+
+    // Si cambias de ciclo y el año seleccionado queda deshabilitado, límpialo.
+    useEffect(() => {
+        if (selectedYear && disabledYearSet.has(selectedYear)) {
+            setSelectedYear("");
+        }
+    }, [disabledYearSet, selectedYear]);
+
+
+    // ---------- Manejo de las IDs de los módulos en caso ya haberlos cursado -------
+
+    // IDs de todos los módulos (1º y 2º). Usa los arrays “brutos” para cubrir todo.
+    const allModuleIds = useMemo(() => {
+        const ids1 = (modulosPrimerCurso ?? []).map((m: any) => m.id_modulo);
+        const ids2 = (modulosSegundoCurso ?? []).map((m: any) => m.id_modulo);
+        return Array.from(new Set([...ids1, ...ids2]));
+    }, [modulosPrimerCurso, modulosSegundoCurso]);
+
+    // Lanza una query por módulo (true = se puede aprobar, false = ya tiene un aprobado)
+    const approveChecks = useQueries({
+        queries: allModuleIds.map((id) => ({
+            queryKey: ['can-approve', existingStudentId, id] as const,
+            queryFn: () => checkModuloAprobable(existingStudentId!, id),
+            enabled: Boolean(showModules && existingStudentId && allModuleIds.length > 0),
+            staleTime: 5 * 60 * 1000,
+        })),
+    });
+
+    // Set de módulos que deben estar deshabilitados (NO se puede aprobar ⇒ ya aprobado antes)
+    const disabledSet = useMemo(() => {
+        const s = new Set<number>();
+        approveChecks.forEach((q, idx) => {
+            const id = allModuleIds[idx];
+            if (q.data === false) s.add(id);
+        });
+        return s;
+    }, [approveChecks, allModuleIds]);
+
+
+
     const mutationStudent = useMutation({
         mutationFn: createStudent,
     });
@@ -237,10 +362,12 @@ const AddStudentButton: React.FC = () => {
         mutationFn: createMatriculas,
     });
 
-    const showSeparator = selectedLey && selectedCiclo && selectedCiclo !== "unassigned";
-    const showModules = showSeparator
     // gestiona el estado de los modulos
     const handleModuleToggle = (moduleId: number) => {
+        if (disabledSet.has(moduleId)) {
+            toast("Este módulo ya está aprobado para este estudiante; no se puede seleccionar.");
+            return;
+        }
         setSelectedModules(prev => {
             const newState = { ...prev };
             if (moduleId in newState) {
@@ -369,6 +496,7 @@ const AddStudentButton: React.FC = () => {
             }
         };
 
+
         e.preventDefault(); // Evita el comportamiento por defecto del formulario
 
         // Validar campos obligatorios
@@ -408,6 +536,18 @@ const AddStudentButton: React.FC = () => {
 
             const { studentId, created: studentCreated } = await ensureStudent(studentData);
 
+            // ...dentro de try, después de obtener { studentId, created: studentCreated } y ANTES de crear el record
+            const cicloIDPrimero = cursoIds['1'];
+            const canEnroll = await checkCicloCursableEnPeriodo(
+                studentId,
+                Number(cicloIDPrimero),
+                selectedYear
+            );
+
+            if (!canEnroll) {
+                toast("Ese año escolar ya está cursado para este ciclo por este estudiante.");
+                return;
+            }
 
             // Crear datos de los expedientes con el ID del estudiante
             const recordData: PostRecord = {
@@ -427,6 +567,7 @@ const AddStudentButton: React.FC = () => {
             // Añadir el ID del expediente a cada matrícula
             const matriculasWithRecord = matriculas.map(matricula => ({
                 ...matricula,
+                id_estudiante: studentId,
                 id_expediente: recordId,
             }));
 
@@ -645,7 +786,14 @@ const AddStudentButton: React.FC = () => {
                                                     value={selectedYear}
                                                     onValueChange={(value) => setSelectedYear(value)}
                                                     placeholder="Seleccionar año escolar"
-                                                    options={generateSchoolYearOptions()}
+                                                    options={schoolYearOptions.map(o => {
+                                                        const isDisabled = disabledYearSet.has(o.value);
+                                                        return {
+                                                            value: o.value,
+                                                            label: isDisabled ? `${o.label} (ya existe)` : o.label,
+                                                            disabled: isDisabled,
+                                                        };
+                                                    })}
                                                 />
                                             </div>
                                             <div className="grid grid-cols-5 items-center mb-1 mt-1">
@@ -675,6 +823,7 @@ const AddStudentButton: React.FC = () => {
                                                         modules={filteredPrimer}
                                                         selectedModules={selectedModules}
                                                         onModuleToggle={handleModuleToggle}
+                                                        disabledSet={disabledSet}
                                                     />
                                                 </>
                                             )}
@@ -689,6 +838,7 @@ const AddStudentButton: React.FC = () => {
                                                         modules={filteredSegundo}
                                                         selectedModules={selectedModules}
                                                         onModuleToggle={handleModuleToggle}
+                                                        disabledSet={disabledSet}
                                                     />
                                                 </>
                                             )}
@@ -708,25 +858,37 @@ const AddStudentButton: React.FC = () => {
 };
 
 // Memoized ModuleList component
-const ModuleList = React.memo(({ modules, selectedModules, onModuleToggle }: {
+const ModuleList = React.memo(({ modules, selectedModules, onModuleToggle, disabledSet }: {
     modules: any[],
     selectedModules: Record<number, [string, number | null]>,
     onModuleToggle: (moduleId: number) => void,
+    disabledSet: Set<number>,
 }) => (
     <div className="space-y-3">
         {modules.map((module) => {
+            const disabled = disabledSet.has(module.id_modulo);
+            const checked = module.id_modulo in selectedModules;
+
             return (
-                <div key={module.id_modulo} className="flex">
+                <div key={module.id_modulo} className="flex items-center">
                     <Checkbox
                         id={`module-${module.id_modulo}`}
-                        checked={module.id_modulo in selectedModules}
+                        checked={checked}
+                        disabled={disabled}
                         onCheckedChange={() => onModuleToggle(module.id_modulo)}
                     />
-                    <span className="text-sm font-medium leading-none w-auto inline-block ml-3">
-                        {module.nombre}
+                    <span
+                        className={cn(
+                            "text-sm font-medium leading-none w-auto inline-block ml-3",
+                            disabled && "text-muted-foreground"
+                        )}
+                        title={disabled ? "Ya aprobado; no se puede volver a aprobar" : ""}
+                    >
+                        <span className={disabled ? "line-through" : ""}>{module.nombre}</span>
+                        {disabled && <small className="ml-2 opacity-70">(ya aprobado)</small>}
                     </span>
                 </div>
-            )
+            );
         })}
     </div>
 ));

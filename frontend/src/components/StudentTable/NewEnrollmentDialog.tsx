@@ -11,6 +11,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogTrigger,
   DialogFooter
 } from "@/components/ui/dialog";
@@ -24,6 +25,7 @@ import { toast } from "sonner";
 
 import { PostStudent, PostRecord, PostEnrollment } from "@/types";
 import { useRowState } from "react-table";
+import { AirVent } from "lucide-react";
 
 
 // ===============================================================
@@ -105,14 +107,40 @@ async function getModulosByCycleId({ ciclo_id }: { ciclo_id: number }) {
     param: { cycle_id: String(ciclo_id) }
   });
 
-  if (!response) {
-    throw new Error("server error");
+  if (!response.ok) {
+    throw new Error("Error al obtener los módulos");
   }
 
   const data = await response.json();
   return data.modulos;
 }
 
+// -- Saber si la asignatura se puede aprobar o no
+async function checkModuloAprobable(id_estudiante: number, id_modulo: number) {
+  const response = await api.enrollments.puedeAprobar[':id_estudiante'][':id_modulo'].$get({
+    param: { id_estudiante: String(id_estudiante), id_modulo: String(id_modulo) }
+  });
+
+  if (!response.ok) {
+    throw new Error("Error al tratar de saber si el módulo se podía aprobar.")
+  }
+  const data = await response.json();
+  return data.result;
+}
+
+// -- Saber si un alumno puede matricularse a un ciclo en un año determinado o no
+// (por si ya lo está cursando ese año) [ el parámetro periodo es por ejemplo el string "2024-2025" ]
+async function checkCicloCursableEnPeriodo(id_estudiante: number, id_ciclo: number, periodo: string) {
+  const response = await api.records.puedeMatricularse[":id_estudiante"][":id_ciclo"][":periodo"].$get({
+    param: { id_estudiante: String(id_estudiante), id_ciclo: String(id_ciclo), periodo: String(periodo) }
+  });
+
+  if (!response.ok) {
+    throw new Error("Error al tratar de saber si el ciclo es cursable en el periodo determinado.")
+  }
+  const data = await response.json();
+  return data.result;
+}
 
 // ===============================================================
 // ============ GENERADOR DE OPCIONES DE AÑO ESCOLAR =============
@@ -160,7 +188,7 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
   const queryClient = useQueryClient();
 
   // Calcula si mostramos la lista de módulos
-  const showModules = selectedCiclo && selectedAnioEscolar && selectedTurno;
+  const showModules = Boolean(selectedCiclo && selectedAnioEscolar && selectedTurno);
 
   const mutationExpediente = useMutation({
     mutationFn: createRecord,
@@ -212,6 +240,34 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
     [ciclosData],
   );
 
+  // id del ciclo de 1º (el que usas para crear el expediente)
+  const cicloIDPrimero = cursoIds['1'];
+
+  // Opciones de año escolar, memorizadas
+  const schoolYearOptions = useMemo(() => generateSchoolYearOptions(), []);
+
+  // Pide si puede matricularse en cada periodo (true/false)
+  const canEnrollQueries = useQueries({
+    queries: schoolYearOptions.map((opt) => ({
+      queryKey: ['can-enroll-period', student_id, cicloIDPrimero, opt.value] as const,
+      queryFn: () =>
+        checkCicloCursableEnPeriodo(student_id, Number(cicloIDPrimero), opt.value),
+      enabled: Boolean(selectedCiclo && cicloIDPrimero), // solo cuando ya hay ciclo seleccionado
+      staleTime: 5 * 60 * 1000,
+    })),
+  });
+
+  // Set con años deshabilitados (NO puede cursar => disabled)
+  const disabledYearSet = useMemo(() => {
+    const s = new Set<string>();
+    canEnrollQueries.forEach((q, idx) => {
+      const period = schoolYearOptions[idx]?.value;
+      if (period && q.data === false) s.add(period);
+    });
+    return s;
+  }, [canEnrollQueries, schoolYearOptions]);
+
+
   // --- 5. Carga de módulos por cada curso ----------------------
   const modulosQueries = useQueries({
     queries: Object.entries(cursoIds).map(([curso, id]) => ({
@@ -252,6 +308,32 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
     [modulosSegundoCurso, modulesFilter],
   );
 
+  // IDs de todos los módulos visibles (1º y 2º)
+  const allModuleIds = useMemo(() => {
+    const ids1 = (modulosPrimerCurso ?? []).map((m: any) => m.id_modulo);
+    const ids2 = (modulosSegundoCurso ?? []).map((m: any) => m.id_modulo);
+    return Array.from(new Set([...ids1, ...ids2]));
+  }, [modulosPrimerCurso, modulosSegundoCurso]);
+
+  // Pide si se puede aprobar cada módulo (true/false)
+  const approveChecks = useQueries({
+    queries: allModuleIds.map((id) => ({
+      queryKey: ['can-approve', student_id, id] as const,   // <- QueryKey
+      queryFn: () => checkModuloAprobable(student_id, id),   // Promise<boolean>
+      enabled: showModules && allModuleIds.length > 0,       // <- boolean puro
+      staleTime: 5 * 60 * 1000,
+    })),
+  });
+
+  // Set con módulos deshabilitados (ya aprobados => no se pueden aprobar)
+  const disabledSet = useMemo(() => {
+    const s = new Set<number>();
+    approveChecks.forEach((q, idx) => {
+      const id = allModuleIds[idx];
+      if (q.data === false) s.add(id); // false => NO se puede aprobar => deshabilitar
+    });
+    return s;
+  }, [approveChecks, allModuleIds]);
 
   // =============================================================
   // ============== MANEJADORES DE EVENTOS =======================
@@ -259,17 +341,25 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
   const handleLeyChange = (ley: string) => {
     setSelectedLey(ley);
     setSelectedCiclo("");
+    setSelectedAnioEscolar("");
+    setSelectedTurno("");
     setSelectedModules({});
     setModulesFilter("");
-  }
+  };
 
   const handleCicloChange = (value: string) => {
     setSelectedCiclo(value);
+    setSelectedAnioEscolar("");
+    setSelectedTurno("");
     setSelectedModules({});
     setModulesFilter("");
   };
 
   const handleModuleToggle = (moduleId: number) => {
+    if (disabledSet.has(moduleId)) {
+      toast("Este módulo ya está aprobado; no se puede seleccionar.");
+      return;
+    }
     setSelectedModules(prev => {
       const newState = { ...prev };
       if (moduleId in newState) {
@@ -310,6 +400,7 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
     const matriculas: PostEnrollment[] = Object.entries(selectedModules).map(([id]) => ({
       id_modulo: Number(id),
       nota: 'NE',
+      id_estudiante: student_id,
       id_expediente: Number(recordId)
     }))
 
@@ -317,8 +408,12 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
       matriculas.map(matricula => mutationMatriculas.mutateAsync(matricula))
     );
     queryClient.invalidateQueries({ queryKey: ['full-student-data', student_id] });
+    // volver a calcular los años no cursables
+    queryClient.invalidateQueries({ queryKey: ['can-enroll-period', student_id] });
+    queryClient.refetchQueries({ queryKey: ['can-enroll-period', student_id], type: 'active' });
     onClose();
     setTimeout(() => { // reset 500 ms después
+      setSelectedLey("");
       setSelectedCiclo("");
       setSelectedAnioEscolar("");
       setModulesFilter("");
@@ -326,6 +421,9 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
       setSelectedModules({});
     }, 500);
   }
+
+  const canPickYear = Boolean(selectedLey && selectedCiclo && cicloIDPrimero);
+  const canPickCiclo = Boolean(selectedLey)
 
   // =============================================================
   // ======================= RENDER UI ===========================
@@ -337,10 +435,12 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
         if (!open) {
           onClose();
           setTimeout(() => { // reset 500 ms después
+            setSelectedLey("");
             setSelectedCiclo("");
             setSelectedAnioEscolar("");
             setModulesFilter("");
             setSelectedTurno("");
+            setVinoTraslado(false);
             setSelectedModules({});
           }, 500);
         }
@@ -354,9 +454,9 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
               <DialogTitle className="text-xl font-semibold m-0">
                 Añadir nuevo curso escolar
               </DialogTitle>
-              <div className="mr-10 text-gray-600 text-sm">
+              <DialogDescription className="mr-10 text-gray-600 text-sm">
                 {fullStudentData?.student.id_estudiante} | {fullStudentData?.student.id_legal} | {fullStudentData?.student.apellido_1} {fullStudentData?.student.apellido_2}, {fullStudentData?.student.nombre}
-              </div>
+              </DialogDescription>
             </div>
           </DialogHeader>
 
@@ -378,33 +478,49 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
           </div>
 
           {/* ---------- SELECT CICLO FORM. ----------- */}
-          <div>
+          <div className={!canPickCiclo ? "pointer-events-none opacity-60" : ""}>
             <SelectField
               label="Ciclo Formativo"
               name="ciclo_formativo"
               value={selectedCiclo ? `${selectedCiclo}` : ""}
               onValueChange={handleCicloChange}
-              placeholder="Seleccionar ciclo"
-              options={(ciclosByLeyData ?? []).map((ciclo) => ({
-                value: `${ciclo.codigo}`,
-                label: `${ciclo.nombre} (${ciclo.codigo})`,
-              }))}
+              placeholder={canPickCiclo ? "Seleccionar ciclo" : "Selecciona ciclo primero"}
+              options={
+                canPickCiclo
+                  ? (ciclosByLeyData ?? []).map((ciclo) => ({
+                    value: `${ciclo.codigo}`,
+                    label: `${ciclo.nombre} (${ciclo.codigo})`,
+                  }))
+                  : [] // sin opciones hasta que haya ley (o lo que controle canPickCiclo)
+              }
               width={1000}
             />
           </div>
 
           {/* ---------- SELECT AÑO ESCOLAR ----------- */}
-          <div>
+          <div className={!canPickYear ? "pointer-events-none opacity-60" : ""}>
             <SelectField
               label="Año escolar"
               name="anio_escolar"
-              value={selectedAnioEscolar ? `${selectedAnioEscolar}` : ""}
-              onValueChange={(value) => setSelectedAnioEscolar(value)}
-              placeholder="Año escolar"
-              options={generateSchoolYearOptions()}
+              value={selectedAnioEscolar}
+              onValueChange={setSelectedAnioEscolar}
+              placeholder={canPickYear ? "Año escolar" : "Selecciona ley y ciclo primero"}
+              options={
+                canPickYear
+                  ? schoolYearOptions.map(o => {
+                    const isDisabled = disabledYearSet.has(o.value);
+                    return {
+                      value: o.value,
+                      label: isDisabled ? `${o.label} (ya existe)` : o.label,
+                      disabled: isDisabled,
+                    };
+                  })
+                  : [] // sin opciones hasta que haya ley + ciclo
+              }
               width={1000}
             />
           </div>
+
 
           {/* ---------- SELECT TURNO ----------- */}
           <div>
@@ -458,6 +574,7 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
                   modules={filteredPrimer}
                   selectedModules={selectedModules}
                   onModuleToggle={handleModuleToggle}
+                  disabledSet={disabledSet}
                 />
 
                 <Separator className="mt-5 mb-5" />
@@ -472,6 +589,7 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
                       modules={filteredSegundo}
                       selectedModules={selectedModules}
                       onModuleToggle={handleModuleToggle}
+                      disabledSet={disabledSet}
                     />
                   </>
                 )}
@@ -495,25 +613,35 @@ export default NewEnrollmentDialog;
 // ===============================================================
 // ================ SUBCOMPONENTE <ModuleList /> =================
 // ===============================================================
-const ModuleList = React.memo(({ modules, selectedModules, onModuleToggle }: {
+const ModuleList = React.memo(({ modules, selectedModules, onModuleToggle, disabledSet }: {
   modules: any[],
   selectedModules: Record<number, [string, number | null]>,
   onModuleToggle: (moduleId: number) => void,
+  disabledSet: Set<number>,
 }) => (
   <div className="space-y-3 max-h-40 overflow-y-auto pr-2">
     {modules.map((module) => {
+      const disabled = disabledSet.has(module.id_modulo);
+      const checked = module.id_modulo in selectedModules;
+
       return (
-        <div key={module.id_modulo} className="flex">
+        <div key={module.id_modulo} className="flex items-center">
           <Checkbox
             id={`module-${module.id_modulo}`}
-            checked={module.id_modulo in selectedModules}
+            checked={checked}
+            disabled={disabled}
             onCheckedChange={() => onModuleToggle(module.id_modulo)}
           />
-          <span className="text-sm font-medium leading-none w-auto inline-block ml-3">
-            {module.nombre}
+          <span
+            className={`text-sm font-medium leading-none w-auto inline-block ml-3 ${disabled ? "text-muted-foreground" : ""
+              }`}
+            title={disabled ? "Ya aprobado; no se puede volver a aprobar" : ""}
+          >
+            <span className={disabled ? "line-through" : ""}>{module.nombre}</span>
+            {disabled && <small className="ml-2 opacity-70">(ya aprobado)</small>}
           </span>
         </div>
-      )
+      );
     })}
   </div>
 ));

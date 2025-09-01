@@ -41,3 +41,18 @@ export const updateFechaPagoTitulo = async (record_id: number, fecha_pago_titulo
   if (!results[0]) throw new Error("No existe ese expediente");
   return RecordSchema.parse(results[0]);
 }
+
+export const checkPuedeCursar = async (id_estudiante: number, id_ciclo: number, ano_inicio: number, ano_fin: number): Promise<boolean> => {
+  const result = await sql`
+    SELECT NOT EXISTS (
+    SELECT 1
+    FROM Expedientes
+    WHERE id_estudiante = ${id_estudiante}
+      AND id_ciclo      = ${id_ciclo}
+      AND ano_inicio    = ${ano_inicio}
+      AND ano_fin       = ${ano_fin}
+    ) AS can_enroll;
+  `;
+
+  return Boolean(result[0]?.can_enroll)
+}

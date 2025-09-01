@@ -5,7 +5,7 @@ import React, { useState, useMemo, useEffect } from "react" // CHANGED: +useEffe
 import { useTransition } from "react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetHeader, SheetDescription, SheetTitle } from "@/components/ui/sheet"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import SelectField from "../StudentTable/SelectField"
 import PdfCertificateGeneratorButton from "@/components/StudentPanel/PdfGeneratorButton"
@@ -79,7 +79,7 @@ type Nota = typeof NOTA_OPTIONS[number];
 async function patchNota(
   expediente_id: number,
   modulo_id: number,
-  nota: Nota
+  nota: Nota | null
 ) {
   const response = await api.enrollments.notas[':record_id'][':module_id'].$patch({
     param: { record_id: String(expediente_id), module_id: String(modulo_id) },
@@ -120,31 +120,50 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
   const [editedNotas, setEditedNotas] = useState<Record<string, string | number | null>>({});
 
   // -------------------- MUTATIONS ------------------------------
-  type PatchVars = {
-    expedienteId: number;
-    selectedFechaPagoTitulo: Date | null;
-    notasUpdates: { codigo_modulo: string; nota: string | number | null }[];
-  };
 
   const queryClient = useQueryClient();
 
+  type PatchVars = {
+    expedienteId: number;
+    selectedFechaPagoTitulo: Date | null;
+    notasUpdates: { module_id: number; nota: Nota | null }[];
+  };
+
   const mutation = useMutation<any, Error, PatchVars>({
-    // CHANGED: ahora guarda fecha + notas en una sola acción
     mutationFn: async ({ expedienteId, selectedFechaPagoTitulo, notasUpdates }) => {
-      await Promise.all([
-        patchFechaPagoTitulo(expedienteId, selectedFechaPagoTitulo ?? undefined),
-        patchNotas(expedienteId, notasUpdates),
-      ]);
+      const ops: Promise<any>[] = [];
+
+      // Solo si cambió la fecha
+      if (fechaChanged) {
+        ops.push(patchFechaPagoTitulo(expedienteId, selectedFechaPagoTitulo ?? undefined));
+      }
+
+      // Varias notas en paralelo
+      if (notasUpdates.length) {
+        ops.push(...notasUpdates.map(u => patchNota(expedienteId, u.module_id, u.nota)));
+      }
+
+      if (!ops.length) return true; // nada que hacer
+      await Promise.all(ops);
       return true;
     },
     onSuccess: () => {
       toast.success("Convocatoria modificada correctamente.");
-      setIsEditingNotas(false); // NEW: cerrar modo edición
+      setIsEditingNotas(false);
       queryClient.invalidateQueries({ queryKey: ['full-student-data', fullData?.student.id_estudiante] });
+      // volver a calcular los "can-approve" de este alumno
+      queryClient.invalidateQueries({ queryKey: ['can-approve', id] });
+      // Opcional: si quieres que se disparen inmediatamente incluso si no están “stale”
+      // (y aunque tengan staleTime grande):
+      queryClient.refetchQueries({ queryKey: ['can-approve', id], type: 'active' });
+      // volver a calcular los años no cursables
+      queryClient.invalidateQueries({ queryKey: ['can-enroll-period', id] });
+      queryClient.refetchQueries({ queryKey: ['can-enroll-period', id], type: 'active' });
     },
     onError: (err: any) =>
       toast.error(err.message ?? 'No ha sido posible modificar la convocatoria.')
   });
+
 
   // -------------------- QUERY PRINCIPAL ------------------------
   const { data: fullData } = useQuery({
@@ -256,19 +275,35 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
     setIsEditingNotas(false);
   }, [currentRecord]);
 
-  // NEW: detectar cambios en notas
+  // detectar cambios en notas
+  const isNota = (v: string): v is Nota =>
+    (NOTA_OPTIONS as readonly string[]).includes(v as any);
+
   const notasUpdates = useMemo(() => {
     if (!currentRecord) return [];
-    const out: { codigo_modulo: string; nota: string | number | null }[] = [];
+    const out: { module_id: number; nota: Nota | null }[] = [];
+
     (currentRecord.enrollments ?? []).forEach((m: any) => {
-      const nuevo = editedNotas[m.codigo_modulo];
-      const original = m.nota ?? "";
-      const A = String(nuevo ?? "").trim();
-      const B = String(original ?? "").trim();
-      if (A !== B) {
-        out.push({ codigo_modulo: m.codigo_modulo, nota: A === "" ? null : nuevo! });
+      const nuevoRaw = editedNotas[m.codigo_modulo];
+      const originalRaw = m.nota ?? "";
+
+      const nuevo = (nuevoRaw == null ? "" : String(nuevoRaw)).trim();
+      const original = String(originalRaw).trim();
+
+      if (nuevo !== original) {
+        // intenta resolver el id del módulo
+        const moduleId: number | undefined = m.modulo_id ?? m.id_modulo ?? m.id;
+        if (moduleId == null) return; // si no hay id, no intentamos parchear
+
+        if (nuevo === "") {
+          out.push({ module_id: moduleId, nota: null }); // limpiar nota
+        } else if (isNota(nuevo)) {
+          out.push({ module_id: moduleId, nota: nuevo }); // set Nota válida
+        }
+        // valores inválidos se ignoran silenciosamente
       }
     });
+
     return out;
   }, [currentRecord, editedNotas]);
 
@@ -326,12 +361,16 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
     >
       <SheetContent className="w-full sm:max-w-md md:max-w-lg lg:max-w-xl">
         {/* ---------- CABECERA DEL PANEL ----------- */}
-        <SheetHeader className="flex flex-row items-center justify-between pb-4">
+        <SheetHeader className="flex flex-row items-center justify-between pb-4 border-b-[1px]">
           <SheetTitle className="text-xl font-bold">Perfil del estudiante</SheetTitle>
+          {/* Si no quieres texto visible, usa sr-only */}
+          <SheetDescription className="sr-only">
+            Panel para consultar y editar notas, fecha de pago del título y descargar certificados.
+          </SheetDescription>
         </SheetHeader>
 
         <ScrollArea className="h-[calc(100vh-80px)] pr-4">
-          <div className="space-y-6">
+          <div className="space-y-6 pt-2">
             {/* =====================================================
                 ============== TARJETA INFORMACIÓN PERSONAL =========
                 ===================================================== */}
@@ -514,7 +553,7 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
                             mutation.mutate({
                               expedienteId: selectedExpedienteId,
                               selectedFechaPagoTitulo,
-                              notasUpdates,
+                              notasUpdates, // << aquí va el array
                             });
                           }}
                           disabled={selectedExpedienteId == null || mutation.isPending || !isDirty}
@@ -537,8 +576,6 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
 
 export default StudentProfilePanel;
 
-const CLEAR_VALUE = "__CLEAR__";
-
 // CELDA DE NOTAS
 const NotaCell = React.memo(function NotaCell({
   value,
@@ -556,7 +593,7 @@ const NotaCell = React.memo(function NotaCell({
         open={open}
         onOpenChange={setOpen}
         value={v}
-        onValueChange={(val) => onChange(val === CLEAR_VALUE ? "" : val)}
+        onValueChange={(val) => onChange(val)}
       >
         <SelectTrigger className="h-9 w-28 text-center">
           {/* Si hay valor, lo pinto yo; si no, placeholder */}
@@ -568,7 +605,6 @@ const NotaCell = React.memo(function NotaCell({
         {/* Solo monto las opciones cuando está abierto */}
         {open && (
           <SelectContent className="max-h-64">
-            <SelectItem value={CLEAR_VALUE}>Quitar nota</SelectItem>
             {NOTA_OPTIONS.map((opt) => (
               <SelectItem key={opt} value={opt}>
                 {opt}

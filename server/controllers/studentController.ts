@@ -175,6 +175,7 @@ export const getStudentFullInfo = async (studentId: number): Promise<FullStudent
     const enrollment: EnrollmentExtended = {
       id_matricula: rec.id_matricula!,
       id_modulo: rec.id_modulo,
+      id_estudiante: id_estudiante,
       nota: rec.nota ?? null,
       nombre_modulo: rec.module_nombre,
       codigo_modulo: rec.codigo_modulo

@@ -1,8 +1,11 @@
+-- ==============================
+-- 1) ESTUDIANTES
+-- ==============================
 CREATE TABLE Estudiantes (
     id_estudiante SERIAL PRIMARY KEY,
-    nombre VARCHAR(100) NOT NULL,  -- Increased from 50
-    apellido_1 VARCHAR(100) NOT NULL,  -- Increased from 50
-    apellido_2 VARCHAR(100),  -- Increased from 50
+    nombre VARCHAR(100) NOT NULL,
+    apellido_1 VARCHAR(100) NOT NULL,
+    apellido_2 VARCHAR(100),
     sexo VARCHAR(25) NOT NULL CHECK (sexo IN ('Masculino', 'Femenino', 'Indefinido')),
     num_tfno VARCHAR(20),
     id_legal VARCHAR(20) UNIQUE NOT NULL,
@@ -11,16 +14,22 @@ CREATE TABLE Estudiantes (
     observaciones VARCHAR(5000)
 );
 
+-- ==============================
+-- 2) CICLOS
+-- ==============================
 CREATE TABLE Ciclos (
     id_ciclo SERIAL PRIMARY KEY,
-    curso VARCHAR(5) NOT NULL,  -- e.g., "1º", "2º"
+    curso VARCHAR(5) NOT NULL,              -- e.g., "1º", "2º"
     nombre VARCHAR(100) NOT NULL,
-    codigo VARCHAR(20) NOT NULL,  -- e.g., "SAN202-LOE"
+    codigo VARCHAR(20) NOT NULL,            -- e.g., "SAN202-LOE"
     norma_1 TEXT NOT NULL,
     norma_2 TEXT NOT NULL,
-	ley VARCHAR(10) NOT NULL CHECK (ley IN ('LOGSE', 'LOE', 'LFP'))
+    ley VARCHAR(10) NOT NULL CHECK (ley IN ('LOGSE', 'LOE', 'LFP'))
 );
 
+-- ==============================
+-- 3) MODULOS
+-- ==============================
 CREATE TABLE Modulos (
     id_modulo SERIAL PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL,
@@ -30,11 +39,14 @@ CREATE TABLE Modulos (
     FOREIGN KEY (id_ciclo) REFERENCES Ciclos(id_ciclo) ON DELETE CASCADE
 );
 
+-- ==============================
+-- 4) EXPEDIENTES
+-- ==============================
 CREATE TABLE Expedientes (
     id_expediente SERIAL PRIMARY KEY,
     id_estudiante INT NOT NULL,
-    ano_inicio INT NOT NULL,  -- e.g., 2023
-    ano_fin INT NOT NULL,  -- e.g., 2024
+    ano_inicio INT NOT NULL,         -- e.g., 2023
+    ano_fin INT NOT NULL,            -- e.g., 2024
     id_ciclo INT NOT NULL,
     turno VARCHAR(20) NOT NULL CHECK (turno IN ('Diurno', 'Vespertino', 'Nocturno', 'A distancia')),
     convocatoria VARCHAR(50) NOT NULL CHECK (convocatoria IN ('Ordinaria', 'Extraordinaria')),
@@ -42,10 +54,16 @@ CREATE TABLE Expedientes (
     vino_traslado boolean NOT NULL DEFAULT false,
     FOREIGN KEY (id_estudiante) REFERENCES Estudiantes(id_estudiante) ON DELETE CASCADE,
     FOREIGN KEY (id_ciclo) REFERENCES Ciclos(id_ciclo) ON DELETE CASCADE,
-    UNIQUE (id_estudiante, id_ciclo, ano_inicio, ano_fin)  -- Prevents duplicates
+    UNIQUE (id_estudiante, id_ciclo, ano_inicio, ano_fin),
+
+    -- Esta UNIQUE permite luego una FK compuesta desde Matriculas que garantiza
+    -- que la matrícula y el expediente pertenecen al mismo estudiante.
+    UNIQUE (id_expediente, id_estudiante)
 );
 
--- tipo personalizado para las notas
+-- ==============================
+-- 5) TIPO DE NOTA
+-- ==============================
 CREATE TYPE nota_enum AS ENUM (
     '1','2','3','4','5','6','7','8','9','10',
     '10-MH',
@@ -53,17 +71,48 @@ CREATE TYPE nota_enum AS ENUM (
     'AM','RC','NE','APTO','NO APTO'
 );
 
+-- ==============================
+-- 6) MATRICULAS
+-- ==============================
 CREATE TABLE Matriculas (
     id_matricula SERIAL PRIMARY KEY,
     id_expediente INT NOT NULL,
     id_modulo INT NOT NULL,
+
+    -- Añadimos el estudiante aquí para poder asegurar reglas por alumno+módulo
+    id_estudiante INT NOT NULL,
+
     nota nota_enum,
+
+    -- FKs
     FOREIGN KEY (id_expediente) REFERENCES Expedientes(id_expediente) ON DELETE CASCADE,
-    FOREIGN KEY (id_modulo) REFERENCES Modulos(id_modulo) ON DELETE CASCADE,
-    UNIQUE (id_expediente, id_modulo)  -- Ensures one enrollment per module per expediente
+    FOREIGN KEY (id_modulo)     REFERENCES Modulos(id_modulo) ON DELETE CASCADE,
+    FOREIGN KEY (id_estudiante) REFERENCES Estudiantes(id_estudiante) ON DELETE CASCADE,
+
+    -- Garantiza que la matrícula pertenece al mismo alumno que el expediente
+    FOREIGN KEY (id_expediente, id_estudiante)
+        REFERENCES Expedientes(id_expediente, id_estudiante)
+        ON DELETE CASCADE,
+
+    -- Una matrícula por módulo dentro del mismo expediente
+    UNIQUE (id_expediente, id_modulo)
 );
 
+-- ==============================
+-- 7) DIRECTIVOS
+-- ==============================
 CREATE TABLE Directivos (
     cargo VARCHAR(25) PRIMARY KEY,
     nombre VARCHAR(200)
+);
+
+-- ==============================
+-- 8) ÍNDICE ÚNICO PARCIAL (regla de "solo una aprobada por alumno+módulo")
+--    Ajusta la lista si tu criterio de "aprobada" cambia.
+-- ==============================
+CREATE UNIQUE INDEX uq_pass_once_per_student_module
+  ON Matriculas (id_estudiante, id_modulo)
+  WHERE nota IN (
+    '5','6','7','8','9','10','10-MH',
+    'APTO','CV','CV-5','CV-6','CV-7','CV-8','CV-9','CV-10'
 );
