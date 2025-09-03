@@ -4,16 +4,19 @@ import React from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
-import { Directivo, FullStudentData, Cycle } from "@/types";
+import { Directivo, FullStudentData } from "@/types";
+
+import { toast } from "sonner";
 
 import { FileUser } from "lucide-react";
 
 import { Button } from "@/components/ui/button"
 
-import { CertificadoDocument } from "@/pdf/certificadoDocument";
+import { CertificadoObtencionDocument } from "@/pdf/certificadoObtencionTituloDocument";
+import { CertificadoTrasladoDocument } from "@/pdf/certificadoTrasladoDocument";
+
 import { pdf } from '@react-pdf/renderer';
 import { saveAs } from 'file-saver';
-import { number } from "zod";
 
 type NotaEnum =
     | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10'
@@ -22,19 +25,15 @@ type NotaEnum =
     | 'AM' | 'RC' | 'NE' | 'APTO' | 'NO APTO';
 
 type NotasMasAltasPorCicloReturn = {
-    id_ciclo: number;     // curso concreto (1º o 2º) dentro del ciclo
-    id_modulo: number;
-    modulo: string;
-    codigo_modulo: string;
-    mejor_nota: NotaEnum | null;
+  id_ciclo: number;     // curso concreto (1º o 2º) dentro del ciclo
+  id_modulo: number;
+  modulo: string;
+  codigo_modulo: string;
+  mejor_nota: NotaEnum | null;
+  mejor_ano_inicio: number | null;
+  mejor_ano_fin: number | null;
+  convocatoria: number | null;
 };
-
-interface certificate_data {
-    student_data: FullStudentData;
-    cycle_data: Cycle;
-    director_data: Directivo;
-    secretario_data: Directivo;
-}
 
 // Fetch ciclos formativos data from API
 async function getCicloByCodigo({ codigo }: { codigo: string }) {
@@ -106,39 +105,44 @@ const PdfCertificateGeneratorButton: React.FC<PdfCertificateGeneratorButtonProps
         staleTime: 5 * 60 * 1000,               // 5 min de frescura
     });
 
-    const firstCiclo = Array.isArray(cicloData) ? cicloData[0] : undefined;
+    // cicloData puede ser objeto o array; unifica:
+    const cicloList = React.useMemo(() => {
+        if (!cicloData) return [];
+        return Array.isArray(cicloData) ? cicloData : [cicloData];
+    }, [cicloData]);
+
+    // el ciclo “base” que usarás para la query (si tu endpoint espera un único id_ciclo):
+    const cicloForQuery = cicloList[0]; // si tu API ya hace el merge por 'código', con 1 basta
 
     const { data: mergedEnrollments } = useQuery({
-        queryKey: ["notas-altas", studentId, firstCiclo?.id_ciclo],
-        queryFn: () =>
-            getNotasAltasEstudiantePorCiclo(studentId, firstCiclo!.id_ciclo),
-        enabled: Boolean(studentId && firstCiclo?.id_ciclo),
+        queryKey: ["notas-altas", studentId, cicloForQuery?.id_ciclo],
+        queryFn: () => getNotasAltasEstudiantePorCiclo(studentId, cicloForQuery!.id_ciclo),
+        enabled: Boolean(studentId && cicloForQuery?.id_ciclo),
         staleTime: 5 * 60 * 1000,
     });
 
-    const certificateData: certificate_data = {
-        student_data: student_data,
-        cycle_data: firstCiclo!,
-        director_data: directorData!,
-        secretario_data: secretarioData!,
-        merged_enrollments: mergedEnrollments!
-    }
-
-    const canGenerate = Boolean(secretarioData && directorData && firstCiclo && mergedEnrollments);
-
+    // botón deshabilitado si faltan datos
     const handleGenerate = async () => {
-        if (!canGenerate) return;
-        try {
-            // 1. Render to a Blob in memory
-            const blob = await pdf(
-                <CertificadoDocument data={certificateData} />
-            ).toBlob();                              // web-only helper
+        if (!secretarioData || !directorData || !cicloForQuery || !mergedEnrollments || mergedEnrollments.length === 0) {
+            toast.error("Faltan datos para generar el certificado.");
+            return;
+        }
 
-            // 2. Trigger a download
-            saveAs(blob, 'certificado-prueba.pdf');
-            console.log('✅ PDF generado');
+        // 👇 NUNCA es null aquí; TS lo sabe por el guard de arriba
+        const certificateData = {
+            student_data,
+            cycle_data: cicloForQuery,
+            director_data: directorData,
+            secretario_data: secretarioData,
+            merged_enrollments: mergedEnrollments,
+        };
+
+        try {
+            const blob = await pdf(<CertificadoTrasladoDocument data={certificateData} />).toBlob();
+            saveAs(blob, "certificado-prueba.pdf");
         } catch (err) {
-            console.error('❌ Error generando PDF:', err);
+            console.error("❌ Error generando PDF:", err);
+            toast.error("No se pudo generar el PDF.");
         }
     };
 

@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetDescription, SheetTitle } from "
 import { ScrollArea } from "@/components/ui/scroll-area"
 import SelectField from "../StudentTable/SelectField"
 import PdfCertificateGeneratorButton from "@/components/StudentPanel/PdfGeneratorButton"
+import AddExtraordinariaButton from "@/components/StudentPanel/AddExtraordinariaButton";
 import TextareaForm from "./ObservacionesArea"
 
 import {
@@ -65,6 +66,13 @@ async function patchFechaPagoTitulo(expediente_id: number, fecha_pago_titulo: Da
 
   return response.json();
 }
+
+const PASS_NOTAS = new Set([
+  "5", "6", "7", "8", "9", "10", "10-MH",
+  "CV", "CV-5", "CV-6", "CV-7", "CV-8", "CV-9", "CV-10",
+  "APTO",
+  "RC" // YA QUE RENUNCIA CONVOCATORIA NO VA A EXTRAORDINARIA
+]);
 
 // PARA EL ENDPOINT DE LAS NOTAS
 
@@ -150,6 +158,7 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
     onSuccess: () => {
       toast.success("Convocatoria modificada correctamente.");
       setIsEditingNotas(false);
+
       queryClient.invalidateQueries({ queryKey: ['full-student-data', fullData?.student.id_estudiante] });
       // volver a calcular los "can-approve" de este alumno
       queryClient.invalidateQueries({ queryKey: ['can-approve', id] });
@@ -159,6 +168,18 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
       // volver a calcular los años no cursables
       queryClient.invalidateQueries({ queryKey: ['can-enroll-period', id] });
       queryClient.refetchQueries({ queryKey: ['can-enroll-period', id], type: 'active' });
+
+      // forzar refresco de "notas-altas"
+      const cicloId = currentRecord?.id_ciclo ?? baseRecordCore?.id_ciclo;
+      if (cicloId != null) {
+        // invalida solo las queries del alumno + ciclo afectado
+        queryClient.invalidateQueries({ queryKey: ['notas-altas', id, cicloId] });
+        queryClient.refetchQueries({ queryKey: ['notas-altas', id, cicloId], type: 'active' });
+      } else {
+        // si no tienes el ciclo a mano, invalida por prefijo (todas las de ese alumno)
+        queryClient.invalidateQueries({ queryKey: ['notas-altas', id] });
+        queryClient.refetchQueries({ queryKey: ['notas-altas', id], type: 'active' });
+      }
     },
     onError: (err: any) =>
       toast.error(err.message ?? 'No ha sido posible modificar la convocatoria.')
@@ -200,6 +221,81 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
         label: `${r.ano_inicio}-${r.ano_fin}`,
       }));
   }, [fullData, selectedCycle]);
+
+  // ================== LÓGICA DE LA CONVOCATORIA EXTRAORDINARIA ===================
+  // --- 2.bis) Encontrar el expediente ORDINARIA del ciclo+año seleccionados
+  const ordinariaRecord = useMemo(() => {
+    if (!fullData || !selectedCycle || !selectedYear) return null;
+    const [ini, fin] = selectedYear.split("-").map(Number);
+    return (
+      fullData.records
+        .filter(
+          (r) =>
+            r.ciclo_codigo === selectedCycle &&
+            r.ano_inicio === ini &&
+            r.ano_fin === fin &&
+            r.convocatoria === "Ordinaria"
+        )
+        .sort((a, b) => b.id_expediente - a.id_expediente)[0] ?? null
+    );
+  }, [fullData, selectedCycle, selectedYear]);
+
+  // COMPRUBEA QUE NINGÚN MÓDULO NO TENA NE o AM
+  const hasNEorAM = useMemo(() => {
+    if (!ordinariaRecord) return false;
+    return (ordinariaRecord.enrollments ?? []).some((m: any) => {
+      const nota = (m?.nota ?? "").toString().trim();
+      return nota === "NE" || nota === "AM";
+    });
+  }, [ordinariaRecord]);
+
+
+  // --- ¿Ya existe Extraordinaria para ese ciclo+año?
+  const extraordinariaExists = useMemo(() => {
+    if (!fullData || !selectedCycle || !selectedYear) return false;
+    const [ini, fin] = selectedYear.split("-").map(Number);
+    return fullData.records.some(
+      (r) =>
+        r.ciclo_codigo === selectedCycle &&
+        r.ano_inicio === ini &&
+        r.ano_fin === fin &&
+        r.convocatoria === "Extraordinaria"
+    );
+  }, [fullData, selectedCycle, selectedYear]);
+
+  // --- IDs de módulos suspendidos en la ORDINARIA
+  const failingModuleIds = useMemo(() => {
+    if (!ordinariaRecord) return [];
+    const out: number[] = [];
+    (ordinariaRecord.enrollments ?? []).forEach((m: any) => {
+      const raw = m?.nota ?? "";
+      const nota = raw === null || raw === undefined ? "" : String(raw).trim();
+      const aprobado = nota
+        ? PASS_NOTAS.has(nota)
+        : false;
+      // por si alguna nota numérica llegara como número en tu backend (defensivo)
+      // if (!aprobado && /^\d+$/.test(nota) && parseInt(nota, 10) >= 5) aprobado = true;
+
+      const moduleId: number | undefined = m.modulo_id ?? m.id_modulo ?? m.id;
+      if (moduleId != null && !aprobado) out.push(moduleId);
+    });
+    return out;
+  }, [ordinariaRecord]);
+
+  // --- Datos mínimos del record base para crear la Extraordinaria
+  const baseRecordCore = useMemo(() => {
+    if (!ordinariaRecord) return null;
+    // Asegúrate de que tu record trae id_ciclo
+    if (ordinariaRecord.id_ciclo == null) return null;
+    return {
+      ano_inicio: ordinariaRecord.ano_inicio,
+      ano_fin: ordinariaRecord.ano_fin,
+      turno: ordinariaRecord.turno,
+      id_ciclo: ordinariaRecord.id_ciclo,
+    };
+  }, [ordinariaRecord]);
+
+  // ====================================================================
 
   // -- 3. Convocatorias disponibles -----------------------------
   const convocatoriaOptions = useMemo(() => {
@@ -329,7 +425,7 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
 
   const handleYearChange = (value: string) => {
     setSelectedYear(value);
-    setSelectedConvocatoria(""); // reset convocatoria when year changes
+    setSelectedConvocatoria("Ordinaria");
   };
 
   const handleConvocatoriaChange = (value: string) => {
@@ -452,10 +548,31 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
                       placeholder="Convocatoria"
                       options={convocatoriaOptions}
                     />
+
+                    {/* -------- Botón Crear Extraordinaria (a la derecha) -------- */}
+                    <AddExtraordinariaButton
+                      className=""
+                      studentId={fullData?.student.id_estudiante ?? id}
+                      baseRecord={baseRecordCore}
+                      failingModuleIds={failingModuleIds}
+                      disabled={
+                        !selectedCycle ||
+                        !selectedYear ||
+                        !selectedConvocatoria ||
+                        !baseRecordCore ||
+                        extraordinariaExists ||
+                        hasNEorAM ||
+                        failingModuleIds.length === 0
+                      }
+                      onCreated={() => {
+                        // Selecciona Extraordinaria tras crear (opcional)
+                        handleConvocatoriaChange("Extraordinaria");
+                      }}
+                    />
                   </div>
 
                   {/* -------- Acciones / Botón PDF + Editar -------- */}
-                  <div className="flex items-center gap-2">
+                  < div className="flex items-center gap-2">
                     {(selectedCycle && selectedYear && selectedConvocatoria)
                       ? (
                         <PdfCertificateGeneratorButton
@@ -470,7 +587,7 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
                   {filteredRecords.map((anio_escolar) => (
                     <div key={anio_escolar.id_expediente} className="mt-6">
                       <div className="mb-4 flex w-full items-center">
-                        <p className="text-sm text-muted-foreground">
+                        <pre className="text-sm text-muted-foreground">
                           {anio_escolar.ano_inicio}-{anio_escolar.ano_fin} | {anio_escolar.turno}
                           {anio_escolar.vino_traslado && (
                             <>
@@ -478,7 +595,7 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
                               <Badge variant="outline">Trasladado</Badge>
                             </>
                           )}
-                        </p>
+                        </pre>
                         {/* alternar edición de notas */}
                         <Button
                           variant={"outline"}
@@ -570,7 +687,7 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
           </div>
         </ScrollArea>
       </SheetContent>
-    </Sheet>
+    </Sheet >
   )
 };
 

@@ -95,6 +95,9 @@ type NotasMasAltasPorCicloReturn = {
   modulo: string;
   codigo_modulo: string;
   mejor_nota: NotaEnum | null;
+  mejor_ano_inicio: number | null;
+  mejor_ano_fin: number | null;
+  convocatoria: number | null;
 };
 
 export const notasMasAltasEstudiantePorCicloCompleto = async (
@@ -102,39 +105,29 @@ export const notasMasAltasEstudiantePorCicloCompleto = async (
   any_id_ciclo_del_ciclo: number
 ): Promise<NotasMasAltasPorCicloReturn[]> => {
   const results = await sql`
-    -- $1 = id_estudiante
-    -- $2 = any_id_ciclo_del_ciclo (un id_ciclo perteneciente al ciclo objetivo)
-
-    -- 1) Hallamos el "codigo" del ciclo (agrupa 1º y 2º si existen)
     WITH target_codigo AS (
-      SELECT codigo
-      FROM Ciclos
-      WHERE id_ciclo = ${any_id_ciclo_del_ciclo}
+    SELECT codigo
+    FROM Ciclos
+    WHERE id_ciclo = ${any_id_ciclo_del_ciclo}
     ),
-
-    -- 2) Reunimos todos los id_ciclo que comparten ese codigo (todos los cursos)
     ciclos_objetivo AS (
       SELECT id_ciclo
       FROM Ciclos
       WHERE codigo IN (SELECT codigo FROM target_codigo)
     ),
-
-    -- 3) Expedientes del alumno en cualquiera de esos cursos
     exp AS (
-      SELECT id_expediente, ano_inicio, ano_fin
+      SELECT id_expediente, ano_inicio, ano_fin, convocatoria
       FROM Expedientes
       WHERE id_estudiante = ${id_estudiante}
         AND id_ciclo IN (SELECT id_ciclo FROM ciclos_objetivo)
     ),
-
-    -- 4) Todas las matrículas de esos expedientes con métricas de comparación
     m_all AS (
       SELECT
         m.*,
         e.ano_inicio,
         e.ano_fin,
+        e.convocatoria AS exp_convocatoria,
 
-        -- ¿Aprobada?
         CASE
           WHEN m.nota IN (
             '5','6','7','8','9','10','10-MH',
@@ -142,7 +135,6 @@ export const notasMasAltasEstudiantePorCicloCompleto = async (
           ) THEN 1 ELSE 0
         END AS pass_flag,
 
-        -- Valor base comparable
         CASE
           WHEN m.nota IS NULL THEN 0
           WHEN m.nota = '10-MH' THEN 10
@@ -152,19 +144,46 @@ export const notasMasAltasEstudiantePorCicloCompleto = async (
           ELSE 0
         END AS base_num,
 
-        -- Bonus para 10-MH
         CASE WHEN m.nota = '10-MH' THEN 1 ELSE 0 END AS mh_boost
       FROM Matriculas m
       JOIN exp e ON e.id_expediente = m.id_expediente
       WHERE m.id_estudiante = ${id_estudiante}
     ),
-
-    -- 5) Mejor intento por módulo a nivel global (entre años/convocatorias)
+    -- Orden cronológico de intentos por módulo (para numerar "convocatorias")
+    attempts AS (
+      SELECT
+        m_all.*,
+        ROW_NUMBER() OVER (
+          PARTITION BY id_modulo
+          ORDER BY
+            ano_inicio ASC,
+            ano_fin   ASC,
+            CASE WHEN exp_convocatoria = 'Ordinaria' THEN 0
+                WHEN exp_convocatoria = 'Extraordinaria' THEN 1
+                ELSE 2 END,
+            id_matricula ASC
+        ) AS intento_num
+      FROM m_all
+    ),
+    -- Nº de la primera convocatoria aprobada (si existe)
+    pass_conv AS (
+      SELECT id_modulo, MIN(intento_num) AS convocatoria
+      FROM attempts
+      WHERE pass_flag = 1
+      GROUP BY id_modulo
+    ),
+    -- Nº total de intentos hasta la fecha (si aún no ha aprobado)
+    attempt_totals AS (
+      SELECT id_modulo, MAX(intento_num) AS total_intentos
+      FROM attempts
+      GROUP BY id_modulo
+    ),
+    -- Mejor intento por tus reglas (para "mejor_nota" y años)
     best AS (
       SELECT DISTINCT ON (id_modulo)
-             id_modulo, id_matricula, id_expediente, nota,
-             pass_flag, base_num, mh_boost,
-             ano_inicio, ano_fin
+            id_modulo, id_matricula, id_expediente, nota,
+            pass_flag, base_num, mh_boost,
+            ano_inicio, ano_fin
       FROM m_all
       ORDER BY
         id_modulo,
@@ -176,21 +195,26 @@ export const notasMasAltasEstudiantePorCicloCompleto = async (
         id_matricula DESC
     )
 
-    -- 6) Listamos TODOS los módulos de TODOS los cursos del ciclo, con mejor_nota o NULL
+    -- SELECT final
     SELECT
       mo.id_ciclo,
       mo.curso,
       mo.id_modulo,
       mo.nombre        AS modulo,
       mo.codigo_modulo,
-      b.nota           AS mejor_nota
+      b.nota           AS mejor_nota,
+      b.ano_inicio     AS mejor_ano_inicio,
+      b.ano_fin        AS mejor_ano_fin,
+      COALESCE(pc.convocatoria, at.total_intentos) AS convocatoria
     FROM Modulos mo
     LEFT JOIN best b
       ON b.id_modulo = mo.id_modulo
+    LEFT JOIN pass_conv pc
+      ON pc.id_modulo = mo.id_modulo
+    LEFT JOIN attempt_totals at
+      ON at.id_modulo = mo.id_modulo
     WHERE mo.id_ciclo IN (SELECT id_ciclo FROM ciclos_objetivo)
-    ORDER BY
-      -- ordena por curso y luego por nombre del módulo
-      mo.curso, mo.nombre;
+    ORDER BY mo.curso, mo.nombre;
   `;
 
   return results.map((row) => ({
@@ -199,5 +223,8 @@ export const notasMasAltasEstudiantePorCicloCompleto = async (
     modulo: String(row.modulo),
     codigo_modulo: String(row.codigo_modulo),
     mejor_nota: (row.mejor_nota ?? null) as NotaEnum | null,
+    mejor_ano_inicio: row.mejor_ano_inicio !== null ? Number(row.mejor_ano_inicio) : null,
+    mejor_ano_fin: row.mejor_ano_fin !== null ? Number(row.mejor_ano_fin) : null,
+    convocatoria: row.convocatoria !== null ? Number(row.convocatoria) : null,
   }));
 };

@@ -165,6 +165,9 @@ const generateSchoolYearOptions = (): { value: string; label: string }[] => {
 // ===============================================================
 // ====================== TIPOS / PROPS ==========================
 // ===============================================================
+
+import type { CheckedState } from "@radix-ui/react-checkbox";
+
 interface NewEnrollmentButtonProps {
   student_id: number;
   isOpen: boolean;
@@ -371,6 +374,34 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
     });
   };
 
+  // --- Helpers para "Seleccionar todos" por curso ---
+  const getSelectableIds = (mods: any[]) =>
+    mods.filter(m => !disabledSet.has(m.id_modulo)).map(m => m.id_modulo);
+
+  const getCourseCheckedState = (mods: any[]): CheckedState => {
+    const ids = getSelectableIds(mods);
+    if (ids.length === 0) return false;
+    const selectedCount = ids.filter(id => id in selectedModules).length;
+    if (selectedCount === 0) return false;
+    if (selectedCount === ids.length) return true;
+    return "indeterminate";
+  };
+
+  // Toggle: si ya están todos → deselecciona; si no → selecciona todos
+  const handleToggleAllForCourse = (mods: any[]) => {
+    const selectable = getSelectableIds(mods);
+    setSelectedModules(prev => {
+      const next = { ...prev };
+      const allSelected = selectable.every(id => id in next);
+      if (allSelected) {
+        selectable.forEach(id => { delete next[id]; });
+      } else {
+        selectable.forEach(id => { next[id] = ["Matricula", 0]; });
+      }
+      return next;
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); // Evita el comportamiento por defecto del formulario
 
@@ -567,9 +598,30 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
                 />
 
                 {/* ---- Primer curso ---- */}
-                <h4 className="font-medium mb-2 top-0 bg-white/90 backdrop-blur">
-                  Primer curso
-                </h4>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-medium">Primer curso</h4>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="select-all-1"
+                      checked={getCourseCheckedState(filteredPrimer)}
+                      disabled={getSelectableIds(filteredPrimer).length === 0}
+                      onCheckedChange={() => handleToggleAllForCourse(filteredPrimer)}
+                    />
+                    <Label htmlFor="select-all-1" className="text-sm cursor-pointer">
+                      Seleccionar todos
+                      <span className="ml-2 opacity-70">
+                        (
+                        {
+                          getSelectableIds(filteredPrimer)
+                            .filter(id => id in selectedModules).length
+                        }
+                        /
+                        {getSelectableIds(filteredPrimer).length}
+                        )
+                      </span>
+                    </Label>
+                  </div>
+                </div>
                 <ModuleList
                   modules={filteredPrimer}
                   selectedModules={selectedModules}
@@ -582,9 +634,30 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
                 {/* ---- Segundo curso ---- */}
                 {filteredSegundo.length > 0 && (
                   <>
-                    <h4 className="font-medium mb-2 mt-2 top-0 bg-white/90 backdrop-blur">
-                      Segundo curso
-                    </h4>
+                    <div className="flex items-center justify-between mb-2 mt-2 sticky top-0 bg-white/90 backdrop-blur py-1">
+                      <h4 className="font-medium">Segundo curso</h4>
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="select-all-2"
+                          checked={getCourseCheckedState(filteredSegundo)}
+                          disabled={getSelectableIds(filteredSegundo).length === 0}
+                          onCheckedChange={() => handleToggleAllForCourse(filteredSegundo)}
+                        />
+                        <Label htmlFor="select-all-2" className="text-sm cursor-pointer">
+                          Seleccionar todos
+                          <span className="ml-2 opacity-70">
+                            (
+                            {
+                              getSelectableIds(filteredSegundo)
+                                .filter(id => id in selectedModules).length
+                            }
+                            /
+                            {getSelectableIds(filteredSegundo).length}
+                            )
+                          </span>
+                        </Label>
+                      </div>
+                    </div>
                     <ModuleList
                       modules={filteredSegundo}
                       selectedModules={selectedModules}

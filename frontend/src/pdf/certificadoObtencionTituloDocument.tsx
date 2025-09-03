@@ -11,17 +11,20 @@ import {
 import { Cycle, FullStudentData, Directivo } from '@/types';
 
 type NotaEnum =
-    | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10'
-    | '10-MH'
-    | 'CV' | 'CV-5' | 'CV-6' | 'CV-7' | 'CV-8' | 'CV-9' | 'CV-10'
-    | 'AM' | 'RC' | 'NE' | 'APTO' | 'NO APTO';
+  | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10'
+  | '10-MH'
+  | 'CV' | 'CV-5' | 'CV-6' | 'CV-7' | 'CV-8' | 'CV-9' | 'CV-10'
+  | 'AM' | 'RC' | 'NE' | 'APTO' | 'NO APTO';
 
 type NotasMasAltasPorCicloReturn = {
-    id_ciclo: number;     // curso concreto (1º o 2º) dentro del ciclo
-    id_modulo: number;
-    modulo: string;
-    codigo_modulo: string;
-    mejor_nota: NotaEnum | null;
+  id_ciclo: number;     // curso concreto (1º o 2º) dentro del ciclo
+  id_modulo: number;
+  modulo: string;
+  codigo_modulo: string;
+  mejor_nota: NotaEnum | null;
+  mejor_ano_inicio: number | null;
+  mejor_ano_fin: number | null;
+  convocatoria: number | null;
 };
 
 import logoGobiernoAragon from '@/pdf/pdf-imgs/logo-gobierno-aragon.png';
@@ -71,7 +74,7 @@ interface CertificateData {
   merged_enrollments: NotasMasAltasPorCicloReturn[];
 }
 
-export const CertificadoDocument = ({ data, }: { data: CertificateData }) => {
+export const CertificadoObtencionDocument = ({ data, }: { data: CertificateData }) => {
 
   const notasRaw = (data?.merged_enrollments ?? []).map((m) => m.mejor_nota);
 
@@ -110,7 +113,7 @@ export const CertificadoDocument = ({ data, }: { data: CertificateData }) => {
       ? notasNumericas.reduce((sum, n) => sum + n, 0) / notasNumericas.length
       : undefined;
 
-  const mediaRedondeada = media !== undefined ? Number(media.toFixed(2)) : undefined;
+  const mediaFormateada = media !== undefined ? media.toFixed(2) : '—';
 
   return (
     <Document>
@@ -186,7 +189,7 @@ export const CertificadoDocument = ({ data, }: { data: CertificateData }) => {
               </Text>
             </View>
             <View style={styles.tableColGrade}>
-              <Text style={styles.tableCell}>{mediaRedondeada}</Text>
+              <Text style={styles.tableCell}>{mediaFormateada}</Text>
             </View>
           </View>
         </View>
@@ -194,7 +197,7 @@ export const CertificadoDocument = ({ data, }: { data: CertificateData }) => {
 
         {/* Pie de texto */}
         <Text style={[styles.paragraph, { marginBottom: 20 }]}>
-          Cumple los requisitos vigentes para la obtención del Título de Técnico Superior en {data.cycle_data.nombre} (LOE)
+          Cumple los requisitos vigentes para la obtención del Título de Técnico Superior en {data.cycle_data.nombre}
         </Text>
 
         <Text style={styles.paragraph}>

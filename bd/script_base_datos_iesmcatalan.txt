@@ -54,7 +54,7 @@ CREATE TABLE Expedientes (
     vino_traslado boolean NOT NULL DEFAULT false,
     FOREIGN KEY (id_estudiante) REFERENCES Estudiantes(id_estudiante) ON DELETE CASCADE,
     FOREIGN KEY (id_ciclo) REFERENCES Ciclos(id_ciclo) ON DELETE CASCADE,
-    UNIQUE (id_estudiante, id_ciclo, ano_inicio, ano_fin),
+    UNIQUE (id_estudiante, id_ciclo, ano_inicio, ano_fin, convocatoria),
 
     -- Esta UNIQUE permite luego una FK compuesta desde Matriculas que garantiza
     -- que la matrícula y el expediente pertenecen al mismo estudiante.
