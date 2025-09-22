@@ -7,7 +7,8 @@ import {
   getRecordById,
   deleteRecord,
   updateFechaPagoTitulo,
-  checkPuedeCursar
+  checkPuedeCursar,
+  patchBajaEstudianteCiclo
 } from "../controllers/recordController";
 import { z } from "zod";
 
@@ -60,6 +61,23 @@ export const recordsRoute = new Hono()
       }
     }
   )
+  .patch(
+    "/darBaja/:id_estudiante/:id_ciclo",
+    zValidator("json", z.object({
+      dado_baja: z.boolean()
+    })),
+    async (c) => {
+      const id_estudiante = Number(c.req.param("id_estudiante"));
+      const id_ciclo = Number(c.req.param("id_ciclo"));
+      const { dado_baja } = c.req.valid("json");
+      try {
+        const updated = await patchBajaEstudianteCiclo(id_estudiante, id_ciclo, dado_baja);
+        return c.json({ expedientes: updated });
+      } catch (error) {
+        return c.json({ error: "No se pudo actualizar el campo dado_baja del expediente."}, 500);
+      }
+    }
+  )
   .get(
     "/puedeMatricularse/:id_estudiante/:id_ciclo/:periodo",
     async (c) => {
@@ -74,4 +92,5 @@ export const recordsRoute = new Hono()
       const result = await checkPuedeCursar(id_estudiante, id_ciclo, ano_inicio, ano_fin);
       return c.json({ result })
     }
-  );
+  )
+  ;

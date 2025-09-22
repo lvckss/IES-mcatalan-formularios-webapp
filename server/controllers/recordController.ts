@@ -8,8 +8,8 @@ export const getRecords = async (): Promise<Record[]> => {
 
 export const createRecord = async (record: PostRecord): Promise<Record> => {
   const results = await sql`
-    INSERT INTO Expedientes (id_estudiante, ano_inicio, ano_fin, id_ciclo, turno, convocatoria, fecha_pago_titulo, vino_traslado)
-    VALUES (${record.id_estudiante}, ${record.ano_inicio}, ${record.ano_fin}, ${record.id_ciclo}, ${record.turno}, ${record.convocatoria}, ${record.fecha_pago_titulo ?? null}, ${record.vino_traslado ?? false})
+    INSERT INTO Expedientes (id_estudiante, ano_inicio, ano_fin, id_ciclo, turno, convocatoria, fecha_pago_titulo, vino_traslado, dado_baja)
+    VALUES (${record.id_estudiante}, ${record.ano_inicio}, ${record.ano_fin}, ${record.id_ciclo}, ${record.turno}, ${record.convocatoria}, ${record.fecha_pago_titulo ?? null}, ${record.vino_traslado ?? false}, ${record.dado_baja ?? false})
     RETURNING *
   `;
   return RecordSchema.parse(results[0]);
@@ -40,6 +40,22 @@ export const updateFechaPagoTitulo = async (record_id: number, fecha_pago_titulo
 
   if (!results[0]) throw new Error("No existe ese expediente");
   return RecordSchema.parse(results[0]);
+}
+
+export const patchBajaEstudianteCiclo = async (id_estudiante: number, id_ciclo: number, dado_baja: boolean) : Promise<Record[]> => {
+  const results = await sql`
+    UPDATE Expedientes e
+    SET dado_baja = ${dado_baja}
+    FROM Ciclos c
+    WHERE e.id_ciclo = c.id_ciclo
+      AND e.id_estudiante = ${id_estudiante}
+      AND c.codigo = (SELECT codigo FROM Ciclos WHERE id_ciclo = ${id_ciclo})
+      AND e.dado_baja IS DISTINCT FROM ${dado_baja}
+    RETURNING *;
+  `;
+
+  if (!results[0]) throw new Error("No existe ese expediente");
+  return results.map(record => RecordSchema.parse(record));
 }
 
 export const checkPuedeCursar = async (id_estudiante: number, id_ciclo: number, ano_inicio: number, ano_fin: number): Promise<boolean> => {

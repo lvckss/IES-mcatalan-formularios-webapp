@@ -423,6 +423,7 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
       id_ciclo: Number(cicloIDPrimero),
       fecha_pago_titulo: null,
       vino_traslado: vinoTraslado,
+      dado_baja: false,
     };
 
     const recordResponse = await mutationExpediente.mutateAsync(recordData);
@@ -442,6 +443,11 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
     // volver a calcular los años no cursables
     queryClient.invalidateQueries({ queryKey: ['can-enroll-period', student_id] });
     queryClient.refetchQueries({ queryKey: ['can-enroll-period', student_id], type: 'active' });
+    queryClient.invalidateQueries({ queryKey: ['students-allFullInfo'] });
+    queryClient.refetchQueries({ queryKey: ['students-allFullInfo'], type: 'active' });
+    queryClient.invalidateQueries({ queryKey: ["students-by-filter"] });
+    queryClient.refetchQueries({ queryKey: ["students-by-filter"], type: "active" });
+    
     onClose();
     setTimeout(() => { // reset 500 ms después
       setSelectedLey("");
@@ -449,6 +455,7 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
       setSelectedAnioEscolar("");
       setModulesFilter("");
       setSelectedTurno("");
+      setVinoTraslado(false);
       setSelectedModules({});
     }, 500);
   }

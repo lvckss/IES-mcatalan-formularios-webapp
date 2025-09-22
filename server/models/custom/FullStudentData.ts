@@ -33,6 +33,7 @@ type StudentRecord = {
   student_fecha_nac: Date; // ISO date string
   student_num_tfno: string;
   student_observaciones: string;
+  student_requisito_academico: boolean;
   id_expediente: number;
   ano_inicio: number;
   ano_fin: number;
@@ -44,6 +45,7 @@ type StudentRecord = {
   id_matricula: number;
   fecha_pago_titulo: Date | undefined;
   vino_traslado: Boolean;
+  dado_baja: Boolean;
   id_modulo: number;
   module_nombre: string;
   codigo_modulo: string;
@@ -73,6 +75,7 @@ const StudentRecordSchema = z.object({
   }, z.date()), // ISO date string, consider using z.date() if converting
   student_num_tfno: z.string().max(20).optional().nullable().optional(),
   student_observaciones: z.string().max(5000),
+  student_requisito_academico: z.boolean().default(true),
   id_expediente: z.number(),
   ano_inicio: z.number(),
   ano_fin: z.number(),
@@ -84,6 +87,7 @@ const StudentRecordSchema = z.object({
     return arg;
   }, z.date().optional()).nullable(),
   vino_traslado: z.boolean().default(false),
+  dado_baja: z.boolean().default(false),
   record_id_ciclo: z.number(),
   turno: z.enum(['Diurno', 'Vespertino', 'Nocturno', 'A distancia']),
   convocatoria: z.enum(['Ordinaria', 'Extraordinaria']),

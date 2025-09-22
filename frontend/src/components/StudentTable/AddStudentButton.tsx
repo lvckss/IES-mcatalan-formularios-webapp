@@ -179,6 +179,7 @@ const AddStudentButton: React.FC = () => {
     const [errorLogicaID, setErrorLogicaID] = useState<string | null>(null);
     const [selectedYear, setSelectedYear] = useState<string>("");
     const [vinoTraslado, setVinoTraslado] = useState<boolean>(false);
+    const [requisitoAcademico, setRequisitoAcademico] = useState<boolean>(true);
     // Instantiate query client
     const queryClient = useQueryClient();
 
@@ -552,7 +553,8 @@ const AddStudentButton: React.FC = () => {
             tipo_id_legal: selectedIDType,
             fecha_nac: fechaNacimiento, // Formato YYYY-MM-DD
             num_tfno: num_tfno,
-            observaciones: ''
+            observaciones: '',
+            requisito_academico: requisitoAcademico
         };
 
         const matriculas: MatriculaPrevia[] = Object.entries(selectedModules).map(([id]) => ({
@@ -589,7 +591,8 @@ const AddStudentButton: React.FC = () => {
                 convocatoria: "Ordinaria" as "Ordinaria" | "Extraordinaria",
                 id_ciclo: Number(cicloIDPrimero),
                 fecha_pago_titulo: null,
-                vino_traslado: vinoTraslado
+                vino_traslado: vinoTraslado,
+                dado_baja: false,
             };
 
             const recordResponse = await mutationExpediente.mutateAsync(recordData);
@@ -609,6 +612,10 @@ const AddStudentButton: React.FC = () => {
             // Invalidate the students query to trigger a refetch and update the list
             queryClient.invalidateQueries({ queryKey: ['get-total-students'] });
             queryClient.invalidateQueries({ queryKey: ['full-student-data', studentId] });
+            queryClient.invalidateQueries({ queryKey: ['students-allFullInfo'] });
+            queryClient.refetchQueries({ queryKey: ['students-allFullInfo'], type: 'active' });
+            queryClient.invalidateQueries({ queryKey: ["students-by-filter"] });
+            queryClient.refetchQueries({ queryKey: ["students-by-filter"], type: "active" });
 
             // Cerrar diálogo y resetear formulario
             setOpen(false);
@@ -621,11 +628,14 @@ const AddStudentButton: React.FC = () => {
             setSelectedSexo("");
             setSelectedModules({});
             setModulesFilter("");
-            setSelectedIDType("");
+            setSelectedIDType("dni");
             setSelectedID("");
             setErrorLogicaID(null);
             setSelectedYear("");
             setSelectedTurno("");
+            setSelectedLey("");
+            setRequisitoAcademico(true);
+            setVinoTraslado(false);
             // Resetear otros campos si es necesario
             if (!studentCreated) {
                 toast("El estudiante ya existía; se usará el registro existente.");
@@ -662,7 +672,7 @@ const AddStudentButton: React.FC = () => {
                         ? "sm:max-w-[1000px]"
                         : "sm:max-w-[450px]",
                     /* 2. NEW ­– freeze the height */
-                    "min-h-[680px] max-h-[680px]",   // pick any value / use 75vh, etc.
+                    "min-h-[700px] max-h-[700px]",   // pick any value / use 75vh, etc.
                     /* 3. do NOT clip children, only show a vertical scrollbar if
                         something outside your module column spills */
                 )}
@@ -783,6 +793,14 @@ const AddStudentButton: React.FC = () => {
                                         id="vino_traslado"
                                         checked={vinoTraslado}
                                         onCheckedChange={(value) => setVinoTraslado(value === true)}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="ciclo_formativo" className="text-right font-medium">¿Requisito académico?</Label>
+                                    <Checkbox
+                                        id="requisito_academico"
+                                        checked={requisitoAcademico}
+                                        onCheckedChange={(value) => setRequisitoAcademico(value === true)}
                                     />
                                 </div>
                             </div>

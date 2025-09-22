@@ -11,7 +11,8 @@ CREATE TABLE Estudiantes (
     id_legal VARCHAR(20) UNIQUE NOT NULL,
     tipo_id_legal VARCHAR(50) NOT NULL,
     fecha_nac DATE NOT NULL,
-    observaciones VARCHAR(5000)
+    observaciones VARCHAR(5000),
+    requisito_academico BOOLEAN NOT NULL DEFAULT true
 );
 
 -- ==============================
@@ -52,6 +53,7 @@ CREATE TABLE Expedientes (
     convocatoria VARCHAR(50) NOT NULL CHECK (convocatoria IN ('Ordinaria', 'Extraordinaria')),
     fecha_pago_titulo DATE,
     vino_traslado boolean NOT NULL DEFAULT false,
+    dado_baja boolean NOT NULL DEFAULT false,
     FOREIGN KEY (id_estudiante) REFERENCES Estudiantes(id_estudiante) ON DELETE CASCADE,
     FOREIGN KEY (id_ciclo) REFERENCES Ciclos(id_ciclo) ON DELETE CASCADE,
     UNIQUE (id_estudiante, id_ciclo, ano_inicio, ano_fin, convocatoria),
@@ -116,3 +118,22 @@ CREATE UNIQUE INDEX uq_pass_once_per_student_module
     '5','6','7','8','9','10','10-MH',
     'APTO','CV','CV-5','CV-6','CV-7','CV-8','CV-9','CV-10'
 );
+
+-- 9) GRUPOS
+CREATE TABLE IF NOT EXISTS Grupos (
+  id_grupo    SERIAL PRIMARY KEY,
+  nombre      VARCHAR(120) NOT NULL UNIQUE,
+  descripcion VARCHAR(255) NOT NULL DEFAULT ''   -- Alineado con Zod: string obligatoria
+);
+
+-- 10) GRUPOS_MIEMBROS (relación N:M con Estudiantes)
+CREATE TABLE IF NOT EXISTS GruposMiembros (
+  id_grupo      INT NOT NULL,
+  id_estudiante INT NOT NULL,
+  PRIMARY KEY (id_grupo, id_estudiante),
+  FOREIGN KEY (id_grupo)      REFERENCES Grupos(id_grupo)           ON DELETE CASCADE,
+  FOREIGN KEY (id_estudiante) REFERENCES Estudiantes(id_estudiante) ON DELETE CASCADE
+);
+
+-- Índice útil para consultas por alumno -> grupos
+CREATE INDEX IF NOT EXISTS idx_gruposmiembros_estudiante ON GruposMiembros (id_estudiante);

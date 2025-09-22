@@ -3,5 +3,6 @@ export type { Enrollment, PostEnrollment } from "@server/models/Enrollment";
 export type { Module, PostModule } from "@server/models/Module";
 export type { Record, PostRecord } from "@server/models/Record";
 export type { Student, PostStudent } from "@server/models/Student";
-export type { RecordExtended, FullStudentData } from '@server/models/custom/FullStudentData'
-export type { Directivo } from '@server/models/Directivos'
+export type { RecordExtended, FullStudentData } from '@server/models/custom/FullStudentData';
+export type { Directivo } from '@server/models/Directivos';
+export type { Group, PostGroup } from '@server/models/Group';

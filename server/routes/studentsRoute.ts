@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import  { createStudentSchema } from "../models/Student";
+import { createStudentSchema } from "../models/Student";
 import {
   getStudents,
   createStudent,
@@ -9,7 +9,8 @@ import {
   getStudentFullInfo,
   getStudentByLegalId,
   updateStudentObservaciones,
-  getAllStudentsFromCycleYearCurso
+  getAllStudentsFromCycleYearCursoTurnoConvocatoria,
+  getAllStudentsFullInfo
 } from "../controllers/studentController";
 
 import { z } from "zod";
@@ -31,6 +32,12 @@ export const studentsRoute = new Hono()
       return c.json({ error: "Error interno del servidor." }, 500);
     }
   })
+  .get(
+    "/allFullInfo",
+    async (c) => {
+      const result = await getAllStudentsFullInfo();
+      return c.json({ allFullInfo: result });
+    })
   .get("/:id", async (c) => {
     const id = Number(c.req.param("id"));
     const result = await getStudentById(id);
@@ -46,7 +53,7 @@ export const studentsRoute = new Hono()
     const result = await deleteStudent(id);
     return c.json({ estudiante: result });
   })
-  .patch("/:id/observaciones", zValidator("json", z.object({observaciones: z.string().max(5000)}) ), async (c) => {
+  .patch("/:id/observaciones", zValidator("json", z.object({ observaciones: z.string().max(5000) })), async (c) => {
     const id = Number(c.req.param("id"));
     const { observaciones } = c.req.valid("json");
     try {
@@ -56,17 +63,19 @@ export const studentsRoute = new Hono()
       return c.json({ error: "No se pudo actualizar observaciones." }, 500);
     }
   })
-  .get("/:cycle_code/:ano_inicio/:ano_fin/:curso", async (c) => {
-    const cycle_code = c.req.param("cycle_code");
+  .get("/filtro/:cycle_code/:ano_inicio/:ano_fin/:curso/:turno/:convocatoria", async (c) => {
+    const cycle_code = String(c.req.param("cycle_code"));
     const ano_inicio = Number(c.req.param("ano_inicio"));
     const ano_fin = Number(c.req.param("ano_fin"));
     const curso = c.req.param("curso");
+    const turno = c.req.param("turno");
+    const convocatoria = c.req.param("convocatoria")
 
-    const result = await getAllStudentsFromCycleYearCurso(cycle_code, ano_inicio, ano_fin, curso)
+    const result = await getAllStudentsFromCycleYearCursoTurnoConvocatoria(cycle_code, ano_inicio, ano_fin, curso, turno, convocatoria);
     return c.json({ estudiantes: result })
   })
   .get("/fullInfo/:id", async (c) => {
     const id = Number(c.req.param("id"));
     const result = await getStudentFullInfo(id);
-    return c.json({fullInfo: result})
+    return c.json({ fullInfo: result })
   });

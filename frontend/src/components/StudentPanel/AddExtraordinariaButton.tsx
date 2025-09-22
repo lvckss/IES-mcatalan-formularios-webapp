@@ -69,6 +69,7 @@ const AddExtraordinariaButton: React.FC<AddExtraordinariaButtonProps> = ({
                 convocatoria: "Extraordinaria",
                 id_ciclo: baseRecord.id_ciclo,
                 vino_traslado: false,
+                dado_baja: false,
                 fecha_pago_titulo: null,
             };
 
@@ -101,6 +102,8 @@ const AddExtraordinariaButton: React.FC<AddExtraordinariaButtonProps> = ({
             qc.invalidateQueries({ queryKey: ["full-student-data", studentId] });
             qc.invalidateQueries({ queryKey: ["can-approve", studentId] });
             qc.invalidateQueries({ queryKey: ["can-enroll-period", studentId] });
+            qc.invalidateQueries({ queryKey: ['students-allFullInfo']});
+            qc.refetchQueries({ queryKey: ['students-allFullInfo'], type: 'active' });
             onCreated?.(newId);
         },
         onError: (err: any) => {

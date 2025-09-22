@@ -8,7 +8,9 @@ import {
   deleteEnrollment, 
   patchEnrollmentNota,
   checkSePuedeAprobar,
-  notasMasAltasEstudiantePorCicloCompleto
+  notasMasAltasEstudiantePorCicloCompleto,
+  notasMasAltasEstudiantePorCicloCompletoSoloAprobadas,
+  enrollmentsByRecord
 } from "../controllers/enrollmentController";
 import { z } from "zod";
 
@@ -69,6 +71,24 @@ export const enrollmentsRoute = new Hono()
         const id_ciclo = Number(c.req.param("id_ciclo"));
         const result = await notasMasAltasEstudiantePorCicloCompleto(id_estudiante, id_ciclo);
         return c.json({ result })
+      }
+    )
+    .get(
+      "/notasAltasAprobadas/:id_estudiante/:id_ciclo",
+      async (c) => {
+        const id_estudiante = Number(c.req.param("id_estudiante"));
+        const id_ciclo = Number(c.req.param("id_ciclo"));
+        const result = await notasMasAltasEstudiantePorCicloCompletoSoloAprobadas(id_estudiante, id_ciclo);
+        return c.json({ result })
+      }
+    )
+    .get(
+      "/matriculasPorExpediente/:id_expediente/:id_estudiante",
+      async (c) => {
+        const id_expediente = Number(c.req.param("id_expediente"));
+        const id_estudiante = Number(c.req.param("id_estudiante"));
+        const result = await enrollmentsByRecord(id_expediente, id_estudiante);
+        return c.json({ expedientes: result })
       }
     )
   ;

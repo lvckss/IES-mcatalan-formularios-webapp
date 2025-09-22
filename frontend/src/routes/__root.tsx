@@ -13,7 +13,7 @@ export const Route = createRootRoute({
             {/* Grid de 2 columnas en md+, una sola columna en móvil */}
             <div className="grid min-h-screen w-full overflow-x-clip grid-cols-1 md:grid-cols-[16rem_minmax(0,1fr)]">
                 {/* SIDEBAR */}
-                <aside className="hidden md:block">
+                <aside className="hidden md:block border-r border-r-gray-300">
                     <a href="#" className="flex items-center gap-2 p-4">
                         <Package2Icon className="h-6 w-6" />
                         <span className="font-semibold">Gestor de Certificados</span>
@@ -29,8 +29,6 @@ export const Route = createRootRoute({
                             <FileIcon className="h-4 w-4" />
                             Introducir por acta
                         </Link>
-
-                        {/* …resto… */}
 
                         {/* CLIP al logo transformado */}
                         <div className="relative p-4 mt-auto">

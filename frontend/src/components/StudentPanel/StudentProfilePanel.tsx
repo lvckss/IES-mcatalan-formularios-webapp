@@ -67,6 +67,19 @@ async function patchFechaPagoTitulo(expediente_id: number, fecha_pago_titulo: Da
   return response.json();
 }
 
+async function patchDarBajaEstudianteCiclo(id_estudiante: number, id_ciclo: number, dado_baja: boolean) {
+  const response = await api.records.darBaja[":id_estudiante"][":id_ciclo"].$patch({
+    param: { id_estudiante: String(id_estudiante), id_ciclo: String(id_ciclo) },
+    json: { dado_baja }
+  });
+
+  if (!response.ok) {
+    throw new Error("No se pudo actualizar el campo dado_baja del expediente");
+  }
+
+  return response.json();
+}
+
 const PASS_NOTAS = new Set([
   "5", "6", "7", "8", "9", "10", "10-MH",
   "CV", "CV-5", "CV-6", "CV-7", "CV-8", "CV-9", "CV-10",
@@ -81,6 +94,8 @@ const NOTA_OPTIONS = [
   "CV", "CV-5", "CV-6", "CV-7", "CV-8", "CV-9", "CV-10",
   "AM", "RC", "NE", "APTO", "NO APTO"
 ] as const;
+
+const NOTA_OPTIONS_NO_CV = NOTA_OPTIONS.filter(o => !o.startsWith("CV")) as Nota[];
 
 type Nota = typeof NOTA_OPTIONS[number];
 
@@ -126,6 +141,8 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
   // NEW: edición de notas
   const [isEditingNotas, setIsEditingNotas] = useState(false);
   const [editedNotas, setEditedNotas] = useState<Record<string, string | number | null>>({});
+  const [justCreatedExtra, setJustCreatedExtra] = useState(false);
+  const [confirmingBaja, setConfirmingBaja] = useState(false);
 
   // -------------------- MUTATIONS ------------------------------
 
@@ -168,6 +185,8 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
       // volver a calcular los años no cursables
       queryClient.invalidateQueries({ queryKey: ['can-enroll-period', id] });
       queryClient.refetchQueries({ queryKey: ['can-enroll-period', id], type: 'active' });
+      queryClient.invalidateQueries({ queryKey: ["students-by-filter"] });
+      queryClient.refetchQueries({ queryKey: ["students-by-filter"], type: "active" });
 
       // forzar refresco de "notas-altas"
       const cicloId = currentRecord?.id_ciclo ?? baseRecordCore?.id_ciclo;
@@ -185,6 +204,36 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
       toast.error(err.message ?? 'No ha sido posible modificar la convocatoria.')
   });
 
+  // --- mutación para dar de baja/alta en ciclo
+  const bajaMutation = useMutation({
+    mutationFn: async (desired: boolean) => {
+      const studentId = fullData?.student.id_estudiante ?? id;
+      if (!studentId || !cicloIdForAction) throw new Error("Selecciona ciclo válido.");
+      return patchDarBajaEstudianteCiclo(studentId, cicloIdForAction, desired);
+    },
+    onSuccess: (_res, desired) => {
+      toast.success(desired ? "Estudiante dado de baja en el ciclo." : "Estudiante dado de alta en el ciclo.");
+      setConfirmingBaja(false);
+      // refrescos típicos
+      const sid = fullData?.student.id_estudiante ?? id;
+      queryClient.invalidateQueries({ queryKey: ["full-student-data", sid] });
+      queryClient.refetchQueries({ queryKey: ["full-student-data", sid], type: "active" });
+
+      const cicloId = currentRecord?.id_ciclo ?? baseRecordCore?.id_ciclo ?? cicloIdForAction ?? undefined;
+      if (cicloId != null) {
+        queryClient.invalidateQueries({ queryKey: ["notas-altas", id, cicloId] });
+        queryClient.refetchQueries({ queryKey: ["notas-altas", id, cicloId], type: "active" });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["notas-altas", id] });
+        queryClient.refetchQueries({ queryKey: ["notas-altas", id], type: "active" });
+      }
+      queryClient.invalidateQueries({ queryKey: ["can-approve", id] });
+      queryClient.refetchQueries({ queryKey: ["can-approve", id], type: "active" });
+      queryClient.invalidateQueries({ queryKey: ["can-enroll-period", id] });
+      queryClient.refetchQueries({ queryKey: ["can-enroll-period", id], type: "active" });
+    },
+    onError: (err: any) => toast.error(err?.message ?? "No se pudo cambiar el estado del ciclo.")
+  });
 
   // -------------------- QUERY PRINCIPAL ------------------------
   const { data: fullData } = useQuery({
@@ -353,6 +402,16 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
     [filteredRecords, selectedExpedienteId]
   );
 
+  // --- escoger cualquier id_ciclo del ciclo seleccionado (1º/2º da igual)
+  const cicloIdForAction = useMemo(() => {
+    if (currentRecord?.id_ciclo) return currentRecord.id_ciclo;
+    if (baseRecordCore?.id_ciclo) return baseRecordCore.id_ciclo;
+    return fullData?.records.find(r => r.ciclo_codigo === selectedCycle)?.id_ciclo ?? null;
+  }, [currentRecord, baseRecordCore, fullData, selectedCycle]);
+
+  // Si se cambia de ciclo/curso, resetea el flag local
+  useEffect(() => { setJustCreatedExtra(false); }, [selectedCycle, selectedYear]);
+
   // NEW: cuando cambia la convocatoria seleccionada, precarga fecha y notas
   useEffect(() => {
     if (!currentRecord) {
@@ -370,6 +429,12 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
     setEditedNotas(map);
     setIsEditingNotas(false);
   }, [currentRecord]);
+
+  useEffect(() => {
+    if (!confirmingBaja) return;
+    const t = setTimeout(() => setConfirmingBaja(false), 6000); // auto-cancel en 6s
+    return () => clearTimeout(t);
+  }, [confirmingBaja]);
 
   // detectar cambios en notas
   const isNota = (v: string): v is Nota =>
@@ -411,6 +476,19 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
     const tb = b instanceof Date ? b.getTime() : null;
     return ta !== tb;
   }, [currentRecord, selectedFechaPagoTitulo]);
+
+  // Ocultar botón si ya existe o si acabamos de crearla (optimista)
+  const hideAddExtraBtn = useMemo(
+    () => extraordinariaExists || justCreatedExtra,
+    [extraordinariaExists, justCreatedExtra]
+  );
+
+  // --- ¿está de baja en el ciclo seleccionado?
+  const isBajaCycle = useMemo(() => {
+    if (!selectedCycle) return false;
+    const recs = (fullData?.records ?? []).filter(r => r.ciclo_codigo === selectedCycle);
+    return recs.some(r => r.dado_baja === true);
+  }, [fullData, selectedCycle]);
 
   const isDirty = (notasUpdates.length > 0) || fechaChanged;
 
@@ -550,137 +628,200 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
                     />
 
                     {/* -------- Botón Crear Extraordinaria (a la derecha) -------- */}
-                    <AddExtraordinariaButton
-                      className=""
-                      studentId={fullData?.student.id_estudiante ?? id}
-                      baseRecord={baseRecordCore}
-                      failingModuleIds={failingModuleIds}
-                      disabled={
-                        !selectedCycle ||
-                        !selectedYear ||
-                        !selectedConvocatoria ||
-                        !baseRecordCore ||
-                        extraordinariaExists ||
-                        hasNEorAM ||
-                        failingModuleIds.length === 0
-                      }
-                      onCreated={() => {
-                        // Selecciona Extraordinaria tras crear (opcional)
-                        handleConvocatoriaChange("Extraordinaria");
-                      }}
-                    />
+                    {!hideAddExtraBtn && (
+                      <AddExtraordinariaButton
+                        className=""
+                        studentId={fullData?.student.id_estudiante ?? id}
+                        baseRecord={baseRecordCore}
+                        failingModuleIds={failingModuleIds}
+                        disabled={
+                          !selectedCycle ||
+                          !selectedYear ||
+                          !selectedConvocatoria ||
+                          !baseRecordCore ||
+                          hasNEorAM ||
+                          isBajaCycle ||
+                          failingModuleIds.length === 0
+                        } // OJO: quitamos "extraordinariaExists" del disabled porque ya no se renderiza
+                        onCreated={() => {
+                          setJustCreatedExtra(true);               // oculta inmediatamente
+                          handleConvocatoriaChange("Extraordinaria");
+                          // opcional: fuerza refresco por si tu botón no invalida por sí mismo
+                          queryClient.invalidateQueries({ queryKey: ['full-student-data', fullData?.student.id_estudiante] });
+                          queryClient.refetchQueries({ queryKey: ['full-student-data', fullData?.student.id_estudiante], type: 'active' });
+                        }}
+                      />
+                    )}
                   </div>
 
                   {/* -------- Acciones / Botón PDF + Editar -------- */}
-                  < div className="flex items-center gap-2">
-                    {(selectedCycle && selectedYear && selectedConvocatoria)
-                      ? (
-                        <PdfCertificateGeneratorButton
-                          student_data={fullData!}
-                          cycle_code={selectedCycle}
-                        />
-                      ) : null
-                    }
-                  </div>
+                  <BlurredSection
+                    active={Boolean(selectedCycle && selectedYear && selectedConvocatoria && isBajaCycle)}
+                    onAlta={() => bajaMutation.mutate(false)}
+                    disabled={bajaMutation.isPending}
+                  >
+                    < div className="flex items-center gap-2">
+                      {(selectedCycle && selectedYear && selectedConvocatoria)
+                        ? (
+                          <PdfCertificateGeneratorButton
+                            student_data={fullData!}
+                            cycle_code={selectedCycle}
+                          />
+                        ) : null
+                      }
+                    </div>
 
-                  {/* -------- Tabla de módulos ---------- */}
-                  {filteredRecords.map((anio_escolar) => (
-                    <div key={anio_escolar.id_expediente} className="mt-6">
-                      <div className="mb-4 flex w-full items-center">
-                        <pre className="text-sm text-muted-foreground">
-                          {anio_escolar.ano_inicio}-{anio_escolar.ano_fin} | {anio_escolar.turno}
-                          {anio_escolar.vino_traslado && (
-                            <>
-                              {' | '}
-                              <Badge variant="outline">Trasladado</Badge>
-                            </>
-                          )}
-                        </pre>
-                        {/* alternar edición de notas */}
-                        <Button
-                          variant={"outline"}
-                          onClick={() =>
-                            startTransition(() => setIsEditingNotas((v) => !v))
-                          }
-                          disabled={!selectedExpedienteId}
-                          className="ml-auto"
-                        >
-                          {isEditingNotas ? <X className="h-2 w-2" /> : <Pencil className="h-2 w-2" />}
-                        </Button>
-                      </div>
-
-                      <div className="rounded-md border">
-                        <table className="w-full table-fixed">
-                          <colgroup>
-                            <col className="w-[25%]" />
-                            <col className="w-[50%]" />
-                            <col className="w-[25%]" />
-                          </colgroup>
-                          <thead>
-                            <tr className="border-b bg-muted/50">
-                              <th className="p-3 text-left text-sm font-medium">Código</th>
-                              <th className="p-3 text-left text-sm font-medium">Nombre</th>
-                              <th className="p-3 text-left text-sm font-medium">Calificación</th>
-                            </tr>
-                          </thead>
-
-                          <tbody>
-                            {(anio_escolar.enrollments ?? []).map((modulo: any) => (
-                              <tr key={modulo.codigo_modulo} className="border-b last:border-0">
-                                <td className="py-4 px-3 text-sm">{modulo.codigo_modulo}</td>
-                                <td className="py-4 px-3 text-sm">{modulo.nombre_modulo}</td>
-                                <td className="py-4 px-2 text-center text-sm">
-                                  {isEditingNotas ? (
-                                    <NotaCell
-                                      value={editedNotas[modulo.codigo_modulo]}
-                                      onChange={(val) =>
-                                        setEditedNotas((prev) => ({
-                                          ...prev,
-                                          [modulo.codigo_modulo]: val, // "" -> placeholder; tu lógica ya lo convierte a null al guardar
-                                        }))
-                                      }
-                                    />
-                                  ) : (
-                                    <span className="leading-none">{modulo.nota ?? "-"}</span>
-                                  )}
-                                </td>
-
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-
-                      {/* -------- Fecha + Guardar ---------- */}
-                      <div className="mt-2 flex items-center gap-2">
-                        <DatePicker
-                          label="Fecha de pago del título"
-                          name="pago_titulo"
-                          value={selectedFechaPagoTitulo} // precargada al cambiar convocatoria
-                          onChange={handleFechaPagoTitulo}
-                        />
-                        <Button
-                          variant="outline"
-                          type="button"
-                          onClick={() => {
-                            if (selectedExpedienteId == null) {
-                              toast("Selecciona ciclo, año y convocatoria antes de guardar.");
-                              return;
+                    {/* -------- Tabla de módulos ---------- */}
+                    {filteredRecords.map((anio_escolar) => (
+                      <div key={anio_escolar.id_expediente} className="mt-6">
+                        <div className="mb-4 flex w-full items-center">
+                          <pre className="text-sm text-muted-foreground">
+                            {anio_escolar.ano_inicio}-{anio_escolar.ano_fin} | {anio_escolar.turno}
+                            {anio_escolar.vino_traslado && (
+                              <>
+                                {' | '}
+                                <Badge variant="outline">Trasladado</Badge>
+                              </>
+                            )}
+                          </pre>
+                          {/* alternar edición de notas */}
+                          <Button
+                            variant={"outline"}
+                            onClick={() =>
+                              startTransition(() => setIsEditingNotas((v) => !v))
                             }
-                            mutation.mutate({
-                              expedienteId: selectedExpedienteId,
-                              selectedFechaPagoTitulo,
-                              notasUpdates, // << aquí va el array
-                            });
-                          }}
-                          disabled={selectedExpedienteId == null || mutation.isPending || !isDirty}
-                          className="min-w-[80px]"
-                        >
-                          {mutation.isPending ? "..." : "Guardar"}
-                        </Button>
+                            disabled={!selectedExpedienteId}
+                            className="ml-auto"
+                          >
+                            {isEditingNotas ? <X className="h-2 w-2" /> : <Pencil className="h-2 w-2" />}
+                          </Button>
+                        </div>
+
+                        <div className="rounded-md border">
+                          <table className="w-full table-fixed">
+                            <colgroup>
+                              <col className="w-[25%]" />
+                              <col className="w-[50%]" />
+                              <col className="w-[25%]" />
+                            </colgroup>
+                            <thead>
+                              <tr className="border-b bg-muted/50">
+                                <th className="p-3 text-left text-sm font-medium">Código</th>
+                                <th className="p-3 text-left text-sm font-medium">Nombre</th>
+                                <th className="p-3 text-left text-sm font-medium">Calificación</th>
+                              </tr>
+                            </thead>
+
+                            <tbody>
+                              {(anio_escolar.enrollments ?? []).map((modulo: any) => {
+                                const notaOptions = anio_escolar.vino_traslado
+                                  ? NOTA_OPTIONS
+                                  : NOTA_OPTIONS_NO_CV;
+
+                                return (
+                                  <tr key={modulo.codigo_modulo} className="border-b last:border-0">
+                                    <td className="py-4 px-3 text-sm">{modulo.codigo_modulo}</td>
+                                    <td className="py-4 px-3 text-sm">{modulo.nombre_modulo}</td>
+                                    <td className="py-4 px-2 text-center text-sm">
+                                      {isEditingNotas ? (
+                                        <NotaCell
+                                          value={editedNotas[modulo.codigo_modulo]}
+                                          options={notaOptions} // ⬅️ aquí
+                                          onChange={(val) =>
+                                            setEditedNotas((prev) => ({
+                                              ...prev,
+                                              [modulo.codigo_modulo]: val,
+                                            }))
+                                          }
+                                        />
+                                      ) : (
+                                        <span className="leading-none">{modulo.nota ?? "-"}</span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* -------- Fecha + Guardar ---------- */}
+                        <div className="mt-2 flex items-center gap-2">
+                          <DatePicker
+                            label="Fecha de pago del título"
+                            name="pago_titulo"
+                            value={selectedFechaPagoTitulo} // precargada al cambiar convocatoria
+                            onChange={handleFechaPagoTitulo}
+                          />
+                          <Button
+                            variant="outline"
+                            type="button"
+                            onClick={() => {
+                              if (selectedExpedienteId == null) {
+                                toast("Selecciona ciclo, año y convocatoria antes de guardar.");
+                                return;
+                              }
+                              mutation.mutate({
+                                expedienteId: selectedExpedienteId,
+                                selectedFechaPagoTitulo,
+                                notasUpdates, // << aquí va el array
+                              });
+                            }}
+                            disabled={selectedExpedienteId == null || mutation.isPending || !isDirty}
+                            className="min-w-[80px]"
+                          >
+                            {mutation.isPending ? "..." : "Guardar"}
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </BlurredSection>
+                  {selectedCycle && selectedYear && selectedConvocatoria && (
+                    <div className="mt-8 pt-4 border-t">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 justify-between">
+                        <div className="text-sm text-muted-foreground">
+                          Estado en <span className="font-medium">{selectedCycle}</span>:
+                          {" "}
+                          <span className={isBajaCycle ? "text-destructive font-medium" : "text-emerald-600 font-medium"}>
+                            {isBajaCycle ? "De baja" : "Activo"}
+                          </span>
+                        </div>
+
+                        {/* Si está de baja, aquí no mostramos acción (la acción está en el overlay central) */}
+                        {!isBajaCycle ? (
+                          <div className="flex items-center gap-2">
+                            {!confirmingBaja ? (
+                              <Button
+                                variant="destructive"
+                                onClick={() => setConfirmingBaja(true)}
+                                disabled={!cicloIdForAction || bajaMutation.isPending}
+                              >
+                                {bajaMutation.isPending ? "…" : "Dar de baja"}
+                              </Button>
+                            ) : (
+                              <>
+                                <Button
+                                  variant="destructive"
+                                  onClick={() => bajaMutation.mutate(true)}
+                                  disabled={bajaMutation.isPending}
+                                >
+                                  {bajaMutation.isPending ? "…" : "Confirmar baja"}
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => setConfirmingBaja(false)}
+                                  disabled={bajaMutation.isPending}
+                                >
+                                  Cancelar
+                                </Button>
+                                <span className="text-xs text-muted-foreground ml-1">Se cancela en 6 s</span>
+                              </>
+                            )}
+                          </div>
+                        ) : null}
                       </div>
                     </div>
-                  ))}
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -697,32 +838,25 @@ export default StudentProfilePanel;
 const NotaCell = React.memo(function NotaCell({
   value,
   onChange,
+  options, // ⬅️ nuevas opciones dinámicas
 }: {
   value: string | number | null | undefined;
-  onChange: (val: string) => void; // recibe "" para limpiar
+  onChange: (val: string) => void;
+  options: readonly Nota[];
 }) {
   const [open, setOpen] = useState(false);
   const v = value == null || value === "" ? "" : String(value);
 
   return (
     <div className="h-4 flex items-center justify-center">
-      <Select
-        open={open}
-        onOpenChange={setOpen}
-        value={v}
-        onValueChange={(val) => onChange(val)}
-      >
+      <Select open={open} onOpenChange={setOpen} value={v} onValueChange={(val) => onChange(val)}>
         <SelectTrigger className="h-9 w-28 text-center">
-          {/* Si hay valor, lo pinto yo; si no, placeholder */}
-          <SelectValue placeholder="-">
-            {v ? v : undefined}
-          </SelectValue>
+          <SelectValue placeholder="-">{v ? v : undefined}</SelectValue>
         </SelectTrigger>
 
-        {/* Solo monto las opciones cuando está abierto */}
         {open && (
           <SelectContent className="max-h-64">
-            {NOTA_OPTIONS.map((opt) => (
+            {options.map((opt) => (
               <SelectItem key={opt} value={opt}>
                 {opt}
               </SelectItem>
@@ -733,3 +867,36 @@ const NotaCell = React.memo(function NotaCell({
     </div>
   );
 });
+
+function BlurredSection({
+  active,
+  onAlta,
+  disabled,
+  children,
+}: {
+  active: boolean;
+  onAlta: () => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="relative">
+      <div className={active ? "pointer-events-none select-none blur-[2px] opacity-70 transition" : "transition"}>
+        {children}
+      </div>
+
+      {active && (
+        <div className="absolute inset-0 z-10 grid place-items-center">
+          <div className="rounded-xl border bg-background/85 backdrop-blur px-4 py-3 shadow flex flex-col items-center text-center gap-2">
+            <p className="text-sm text-muted-foreground">
+              Estudiante <span className="font-medium">dado de baja</span> en este ciclo.
+            </p>
+            <Button variant="default" onClick={onAlta} disabled={disabled}>
+              {"Dar de alta"}
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

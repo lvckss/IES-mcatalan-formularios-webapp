@@ -10,6 +10,7 @@ import { studentsRoute } from './routes/studentsRoute';
 import { directivosRoute } from './routes/directivosRoute';
 
 import { api } from '../frontend/src/lib/api';
+import { groupsRoute } from './routes/groupsRoute';
 
 const app = new Hono();
 
@@ -25,7 +26,8 @@ const apiRoutes = app.basePath("/api")
     .route("/cycles", cyclesRoute)
     .route("/records", recordsRoute)
     .route("/enrollments", enrollmentsRoute)
-    .route("/directivos", directivosRoute);
+    .route("/directivos", directivosRoute)
+    .route("/groups", groupsRoute);
 
 
 // ----------------------------------------------------------------------------------------------------

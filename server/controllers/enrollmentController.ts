@@ -228,3 +228,142 @@ export const notasMasAltasEstudiantePorCicloCompleto = async (
     convocatoria: row.convocatoria !== null ? Number(row.convocatoria) : null,
   }));
 };
+
+export const notasMasAltasEstudiantePorCicloCompletoSoloAprobadas = async (
+  id_estudiante: number,
+  any_id_ciclo_del_ciclo: number
+): Promise<NotasMasAltasPorCicloReturn[]> => {
+  const results = await sql`
+    WITH target_codigo AS (
+      SELECT codigo
+      FROM Ciclos
+      WHERE id_ciclo = ${any_id_ciclo_del_ciclo}
+    ),
+    ciclos_objetivo AS (
+      SELECT id_ciclo
+      FROM Ciclos
+      WHERE codigo IN (SELECT codigo FROM target_codigo)
+    ),
+    exp AS (
+      SELECT id_expediente, ano_inicio, ano_fin, convocatoria
+      FROM Expedientes
+      WHERE id_estudiante = ${id_estudiante}
+        AND id_ciclo IN (SELECT id_ciclo FROM ciclos_objetivo)
+    ),
+    m_all AS (
+      SELECT
+        m.*,
+        e.ano_inicio,
+        e.ano_fin,
+        e.convocatoria AS exp_convocatoria,
+
+        CASE
+          WHEN m.nota IN (
+            '5','6','7','8','9','10','10-MH',
+            'APTO','CV','CV-5','CV-6','CV-7','CV-8','CV-9','CV-10'
+          ) THEN 1 ELSE 0
+        END AS pass_flag,
+
+        CASE
+          WHEN m.nota IS NULL THEN 0
+          WHEN m.nota = '10-MH' THEN 10
+          WHEN m.nota::text ~ '^[0-9]+$' THEN (m.nota::text)::int
+          WHEN m.nota::text LIKE 'CV-%' THEN split_part(m.nota::text,'-',2)::int
+          WHEN m.nota IN ('CV','APTO') THEN 5
+          ELSE 0
+        END AS base_num,
+
+        CASE WHEN m.nota = '10-MH' THEN 1 ELSE 0 END AS mh_boost
+      FROM Matriculas m
+      JOIN exp e ON e.id_expediente = m.id_expediente
+      WHERE m.id_estudiante = ${id_estudiante}
+    ),
+    attempts AS (
+      SELECT
+        m_all.*,
+        ROW_NUMBER() OVER (
+          PARTITION BY id_modulo
+          ORDER BY
+            ano_inicio ASC,
+            ano_fin   ASC,
+            CASE WHEN exp_convocatoria = 'Ordinaria' THEN 0
+                 WHEN exp_convocatoria = 'Extraordinaria' THEN 1
+                 ELSE 2 END,
+            id_matricula ASC
+        ) AS intento_num
+      FROM m_all
+    ),
+    pass_conv AS (
+      SELECT id_modulo, MIN(intento_num) AS convocatoria
+      FROM attempts
+      WHERE pass_flag = 1
+      GROUP BY id_modulo
+    ),
+    attempt_totals AS (
+      SELECT id_modulo, MAX(intento_num) AS total_intentos
+      FROM attempts
+      GROUP BY id_modulo
+    ),
+    -- Solo el mejor intento APROBADO por módulo; si no hay aprobado, no habrá fila
+    best_pass AS (
+      SELECT DISTINCT ON (id_modulo)
+        id_modulo, id_matricula, id_expediente, nota,
+        base_num, mh_boost,
+        ano_inicio, ano_fin
+      FROM m_all
+      WHERE pass_flag = 1
+      ORDER BY
+        id_modulo,
+        base_num  DESC,
+        mh_boost  DESC,
+        ano_fin   DESC,
+        ano_inicio DESC,
+        id_matricula DESC
+    )
+
+    SELECT
+      mo.id_ciclo,
+      mo.curso,
+      mo.id_modulo,
+      mo.nombre        AS modulo,
+      mo.codigo_modulo,
+      b.nota           AS mejor_nota,
+      b.ano_inicio     AS mejor_ano_inicio,
+      b.ano_fin        AS mejor_ano_fin,
+      COALESCE(pc.convocatoria, at.total_intentos) AS convocatoria
+    FROM Modulos mo
+    LEFT JOIN best_pass b
+      ON b.id_modulo = mo.id_modulo
+    LEFT JOIN pass_conv pc
+      ON pc.id_modulo = mo.id_modulo
+    LEFT JOIN attempt_totals at
+      ON at.id_modulo = mo.id_modulo
+    WHERE mo.id_ciclo IN (SELECT id_ciclo FROM ciclos_objetivo)
+    ORDER BY mo.curso, mo.nombre;
+  `;
+
+  return results.map((row) => ({
+    id_ciclo: Number(row.id_ciclo),
+    id_modulo: Number(row.id_modulo),
+    modulo: String(row.modulo),
+    codigo_modulo: String(row.codigo_modulo),
+    mejor_nota: (row.mejor_nota ?? null) as NotaEnum | null,
+    mejor_ano_inicio: row.mejor_ano_inicio !== null ? Number(row.mejor_ano_inicio) : null,
+    mejor_ano_fin: row.mejor_ano_fin !== null ? Number(row.mejor_ano_fin) : null,
+    convocatoria: row.convocatoria !== null ? Number(row.convocatoria) : null,
+  }));
+};
+
+export const enrollmentsByRecord = async (
+  id_expediente: number,
+  id_estudiante: number
+): Promise<Enrollment[]> => {
+  const results = await sql`
+    SELECT *
+    FROM matriculas
+    WHERE id_expediente = ${id_expediente}
+      AND id_estudiante = ${id_estudiante};
+  `;
+
+  return results.map(enrollment => EnrollmentSchema.parse(enrollment));
+};
