@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import { logger } from 'hono/logger';
 
 import { cyclesRoute } from './routes/cyclesRoute';
+import { lawsRoute } from './routes/lawRoutes';
 import { enrollmentsRoute } from './routes/enrollmentsRoute';
 import { modulesRoute } from './routes/modulesRoute';
 import { recordsRoute } from './routes/recordsRoute';
@@ -24,6 +25,7 @@ const apiRoutes = app.basePath("/api")
     .route("/students", studentsRoute)
     .route("/modules", modulesRoute)
     .route("/cycles", cyclesRoute)
+    .route("/laws", lawsRoute)
     .route("/records", recordsRoute)
     .route("/enrollments", enrollmentsRoute)
     .route("/directivos", directivosRoute)

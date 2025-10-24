@@ -23,7 +23,7 @@ import DatePicker from "@/components/StudentTable/DatePicker";
 import { api } from "@/lib/api";
 import { useQuery, useQueries, useMutation, useQueryClient } from "@tanstack/react-query";
 import SelectField from "@/components/StudentTable/SelectField";
-import { PostStudent, PostRecord, PostEnrollment } from "@/types";
+import { PostStudent, PostRecord, PostEnrollment, Law } from "@/types";
 
 import PhoneFormField from "./phone-input/phone-form-field";
 
@@ -45,6 +45,18 @@ export interface MatriculaPrevia {
 
 // ===================== API ===========================
 
+// Fetch Leyes data from API
+async function getAllLeyes(): Promise<Law[]> {
+    const response = await api.laws.$get();
+
+    if (!response) {
+        throw new Error("Error fetching laws")
+    }
+
+    const data = await response.json();
+    return data.leyes as Law[];
+}
+
 // Fetch ciclos formativos data from API
 async function getCiclosByCodigo({ codigo }: { codigo: string }) {
     const response = await api.cycles.code[':codigo'].$get({
@@ -52,7 +64,7 @@ async function getCiclosByCodigo({ codigo }: { codigo: string }) {
     });
 
     if (!response) {
-        throw new Error("server error");
+        throw new Error("Error fetching cycles");
     }
 
     const data = await response.json();      // { ciclo: … }
@@ -60,9 +72,9 @@ async function getCiclosByCodigo({ codigo }: { codigo: string }) {
 }
 
 // Fetch ciclos sin diferenciar curso POR LEY (LOE, LOGSE o LFP)
-async function getCiclosByLey(ley: string) {
+async function getCiclosByLey(ley: number) {
     const response = await api.cycles.law[':ley'].$get({
-        param: { ley }
+        param: { ley: String(ley) }
     })
 
     if (!response) {
@@ -169,7 +181,7 @@ const AddStudentButton: React.FC = () => {
     const [selectedSexo, setSelectedSexo] = useState<string>("");
     const [num_tfno, setNum_tfno] = useState<string | null>(null);
     const [fechaNacimiento, setFechaNacimiento] = useState<Date | undefined>(undefined);
-    const [selectedLey, setSelectedLey] = useState<string>("");
+    const [selectedLey, setSelectedLey] = useState<number | string>("");
     const [selectedCiclo, setSelectedCiclo] = useState<string>("");
     const [selectedModules, setSelectedModules] = useState<Record<number, [string, number | null]>>({});
     const [modulesFilter, setModulesFilter] = useState<string>("");
@@ -184,12 +196,22 @@ const AddStudentButton: React.FC = () => {
     const queryClient = useQueryClient();
 
     const {
+        error: leyesError,
+        data: leyesData = [],
+        isLoading: leyesLoading,
+    } = useQuery<Law[]>({
+        queryKey: ['leyes'],
+        queryFn: getAllLeyes,
+        staleTime: 5 * 60 * 1000,
+    })
+
+    const {
         isPending: ciclosLoading,
         error: ciclosError,
         data: ciclosData = []
     } = useQuery({
         queryKey: ['ciclos-by-ley', selectedLey],
-        queryFn: () => getCiclosByLey(selectedLey),
+        queryFn: () => getCiclosByLey(Number(selectedLey)),
         enabled: !!selectedLey,
         staleTime: 5 * 60 * 1000, // Cacheamos los ciclos cada 5 minutos para evitar overloadear la API
     });
@@ -384,11 +406,11 @@ const AddStudentButton: React.FC = () => {
         setFechaNacimiento(date);
     };
 
-    const handleLeyChange = (ley: string) => {
-        setSelectedLey(ley);
-        setSelectedCiclo('');
-        setSelectedModules({});
-        setModulesFilter("");
+    const handleLeyChange = (value: string) => {
+        setSelectedLey(value)
+        setSelectedCiclo("")
+        setSelectedModules({})
+        setModulesFilter("")
     }
 
     // Add this function to handle ciclo selection
@@ -491,23 +513,6 @@ const AddStudentButton: React.FC = () => {
             setErrorLogicaID("Tipo de ID no reconocido.");
         }
     };
-
-    const generateSchoolYearOptions = (): { value: string; label: string }[] => {
-        const currentYear = new Date().getFullYear(); // Año actual (2025 en este caso)
-        const startYear = 2014; // Año de inicio
-        const options: { value: string; label: string }[] = [];
-
-        for (let year = currentYear; year >= startYear; year--) {
-            const schoolYear = `${year}-${year + 1}`;
-            options.push({
-                value: schoolYear, // Ejemplo: "2024-2025"
-                label: schoolYear, // Ejemplo: "2024-2025"
-            });
-        }
-
-        return options;
-    };
-
 
     const handleSubmit = async (e: React.FormEvent) => {
         // ------- FUNCIONES DEL HANDLE SUBMIT PARA LA LÓGICA DE ESTUDIANTE YA EXISTENTE --------
@@ -757,14 +762,15 @@ const AddStudentButton: React.FC = () => {
                                     <SelectField
                                         label="Ley Educativa"
                                         name="ley_educativa"
-                                        value={selectedLey}
+                                        value={String(selectedLey)}
                                         onValueChange={handleLeyChange}
                                         placeholder="Seleccionar ley"
-                                        options={[
-                                            { label: "LOGSE", value: "LOGSE" },
-                                            { label: "LOE", value: "LOE" },
-                                            { label: "LFP", value: "LFP" },
-                                        ]}
+                                        options={
+                                            leyesData.map((ley) => ({
+                                                value: `${ley.id_ley}`,
+                                                label: `${ley.nombre_ley}`
+                                            }))
+                                        }
                                         width={310}
                                     />
                                 </div>

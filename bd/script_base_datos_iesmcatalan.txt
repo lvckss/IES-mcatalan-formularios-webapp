@@ -16,7 +16,15 @@ CREATE TABLE Estudiantes (
 );
 
 -- ==============================
--- 2) CICLOS
+-- 2) LEYES
+-- ==============================
+CREATE TABLE Leyes (
+    id_ley SERIAL PRIMARY KEY,
+    nombre_ley VARCHAR(100) NOT NULL  
+);
+
+-- ==============================
+-- 3) CICLOS
 -- ==============================
 CREATE TABLE Ciclos (
     id_ciclo SERIAL PRIMARY KEY,
@@ -25,11 +33,12 @@ CREATE TABLE Ciclos (
     codigo VARCHAR(20) NOT NULL,            -- e.g., "SAN202-LOE"
     norma_1 TEXT NOT NULL,
     norma_2 TEXT NOT NULL,
-    ley VARCHAR(10) NOT NULL CHECK (ley IN ('LOGSE', 'LOE', 'LFP'))
+    ley INT NOT NULL,
+    FOREIGN KEY (ley) REFERENCES Leyes(id_ley) ON DELETE CASCADE
 );
 
 -- ==============================
--- 3) MODULOS
+-- 4) MODULOS
 -- ==============================
 CREATE TABLE Modulos (
     id_modulo SERIAL PRIMARY KEY,
@@ -41,7 +50,7 @@ CREATE TABLE Modulos (
 );
 
 -- ==============================
--- 4) EXPEDIENTES
+-- 5) EXPEDIENTES
 -- ==============================
 CREATE TABLE Expedientes (
     id_expediente SERIAL PRIMARY KEY,
@@ -64,7 +73,7 @@ CREATE TABLE Expedientes (
 );
 
 -- ==============================
--- 5) TIPO DE NOTA
+-- 6) TIPO DE NOTA
 -- ==============================
 CREATE TYPE nota_enum AS ENUM (
     '1','2','3','4','5','6','7','8','9','10',
@@ -74,7 +83,7 @@ CREATE TYPE nota_enum AS ENUM (
 );
 
 -- ==============================
--- 6) MATRICULAS
+-- 7) MATRICULAS
 -- ==============================
 CREATE TABLE Matriculas (
     id_matricula SERIAL PRIMARY KEY,
@@ -101,7 +110,7 @@ CREATE TABLE Matriculas (
 );
 
 -- ==============================
--- 7) DIRECTIVOS
+-- 8) DIRECTIVOS
 -- ==============================
 CREATE TABLE Directivos (
     cargo VARCHAR(25) PRIMARY KEY,
@@ -109,7 +118,7 @@ CREATE TABLE Directivos (
 );
 
 -- ==============================
--- 8) ÍNDICE ÚNICO PARCIAL (regla de "solo una aprobada por alumno+módulo")
+-- 9) ÍNDICE ÚNICO PARCIAL (regla de "solo una aprobada por alumno+módulo")
 --    Ajusta la lista si tu criterio de "aprobada" cambia.
 -- ==============================
 CREATE UNIQUE INDEX uq_pass_once_per_student_module
@@ -119,14 +128,14 @@ CREATE UNIQUE INDEX uq_pass_once_per_student_module
     'APTO','CV','CV-5','CV-6','CV-7','CV-8','CV-9','CV-10'
 );
 
--- 9) GRUPOS
+-- 10) GRUPOS
 CREATE TABLE IF NOT EXISTS Grupos (
   id_grupo    SERIAL PRIMARY KEY,
   nombre      VARCHAR(120) NOT NULL UNIQUE,
   descripcion VARCHAR(255) NOT NULL DEFAULT ''   -- Alineado con Zod: string obligatoria
 );
 
--- 10) GRUPOS_MIEMBROS (relación N:M con Estudiantes)
+-- 11) GRUPOS_MIEMBROS (relación N:M con Estudiantes)
 CREATE TABLE IF NOT EXISTS GruposMiembros (
   id_grupo      INT NOT NULL,
   id_estudiante INT NOT NULL,

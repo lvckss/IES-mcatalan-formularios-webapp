@@ -3,9 +3,12 @@ import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 
 import { Toaster } from '@/components/ui/sonner';
 import { ThemeProvider } from "@/components/theme-provider";
+import SidebarAvatar from '@/components/sidebar-avatar';
 
 import { UsersIcon, FileIcon, AwardIcon, LayoutDashboardIcon, Package2Icon } from '@/components/icons/index';
 import logo from '@/assets/ies-mcatalan-logo.png';
+import pp from '@/assets/pp.png'
+
 
 export const Route = createRootRoute({
     component: () => (
@@ -20,18 +23,26 @@ export const Route = createRootRoute({
                     </a>
 
                     {/* El nav puede seguir en flex */}
-                    <nav className="flex flex-col gap-1 h-[calc(100vh-64px)] overflow-hidden">
-                        <Link to="/estudiantes" className="[&.active]:font-bold [&.active]:text-black flex items-center gap-2 rounded-md px-3 py-2 text-muted-foreground hover:bg-muted hover:text-foreground">
-                            <UsersIcon className="h-4 w-4" />
-                            Estudiantes
-                        </Link>
-                        <Link to="/introducir-acta" className="flex items-center gap-2 rounded-md px-3 py-2 text-muted-foreground hover:bg-muted hover:text-foreground [&.active]:font-bold [&.active]:text-black">
-                            <FileIcon className="h-4 w-4" />
-                            Introducir por acta
-                        </Link>
+                    <nav className="flex h-[calc(100vh-64px)] flex-col overflow-hidden">
+                        {/* Zona superior: enlaces */}
+                        <div className="flex-1 flex flex-col gap-1">
+                            <Link to="/estudiantes" className="[&.active]:font-bold [&.active]:text-black flex items-center gap-2 rounded-md px-3 py-2 text-muted-foreground hover:bg-muted hover:text-foreground">
+                                <UsersIcon className="h-4 w-4" />
+                                Estudiantes
+                            </Link>
+                            <Link to="/introducir-acta" className="flex items-center gap-2 rounded-md px-3 py-2 text-muted-foreground hover:bg-muted hover:text-foreground [&.active]:font-bold [&.active]:text-black">
+                                <FileIcon className="h-4 w-4" />
+                                Introducir por acta
+                            </Link>
+                        </div>
 
-                        {/* CLIP al logo transformado */}
-                        <div className="relative p-4 mt-auto">
+                        {/* Avatar pegado arriba del logo */}
+                        <div className="mt-auto relative z-10 top-40">
+                            <SidebarAvatar />
+                        </div>
+
+                        {/* Logo al fondo */}
+                        <div className="relative p-4">
                             <div className="relative w-full h-60">
                                 <img
                                     src={logo}

@@ -10,6 +10,8 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import SelectField from "../StudentTable/SelectField"
 import PdfCertificateGeneratorButton from "@/components/StudentPanel/PdfGeneratorButton"
 import AddExtraordinariaButton from "@/components/StudentPanel/AddExtraordinariaButton";
+import { DeleteRecordCascadeButton } from "./deleteRecordCascade";
+import { DeleteModuleCascadeButton } from "./deleteModuleCascade";
 import TextareaForm from "./ObservacionesArea"
 
 import {
@@ -20,10 +22,12 @@ import {
   SelectItem,
 } from "@/components/ui/select"
 
-
+import { Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge"
 import DatePicker from "@/components/StudentTable/DatePicker";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
 import { Pencil, X } from "lucide-react"; // NEW (opcional para iconos)
 
 import { api } from "@/lib/api"
@@ -80,6 +84,33 @@ async function patchDarBajaEstudianteCiclo(id_estudiante: number, id_ciclo: numb
   return response.json();
 }
 
+export async function deleteRecordCascade(expedienteId: number) {
+  const res = await api.records.deleteComplete[":id_record"].$delete({
+    param: { id_record: String(expedienteId) }
+  });
+
+  if (!res.ok) throw new Error("No se pudo borrar el expediente.");
+
+  return res.json() as Promise<{
+    deleted: Array<import("@/types").Record>;
+    count: number;
+  }>;
+}
+
+const patchStudentPersonal = async (studentId: number, body: any) => {
+  const res = await api.students[":id"].$patch({
+    param: { id: String(studentId) },
+    json: body,
+  });
+  if (!res.ok) {
+    if (res.status === 409) throw new Error("El identificador legal ya existe.");
+    else throw new Error("No se pudo actualizar el estudiante. (puede ser que el ID legal ya exista en la bd)");
+  }
+  return res.json();
+};
+
+// ========================================================================
+
 const PASS_NOTAS = new Set([
   "5", "6", "7", "8", "9", "10", "10-MH",
   "CV", "CV-5", "CV-6", "CV-7", "CV-8", "CV-9", "CV-10",
@@ -98,6 +129,54 @@ const NOTA_OPTIONS = [
 const NOTA_OPTIONS_NO_CV = NOTA_OPTIONS.filter(o => !o.startsWith("CV")) as Nota[];
 
 type Nota = typeof NOTA_OPTIONS[number];
+
+// ===== ID helpers (DNI/NIE) =====
+const DNI_LETTERS = "TRWAGMYFPDXBNJZSQVHLCKE" as const;
+
+function calculateDNILetter(digits8: string): string {
+  // digits8: exactamente 8 dígitos
+  const n = Number(digits8);
+  if (!/^\d{8}$/.test(digits8) || !Number.isFinite(n)) return "";
+  return DNI_LETTERS[n % 23];
+}
+
+function validateDNI(value: string): string | null {
+  const v = value.toUpperCase().replace(/\s+/g, "");
+  const dniRegex = /^[0-9]{8}[A-Z]$/;
+  if (!dniRegex.test(v)) return "El DNI debe tener 8 dígitos y una letra mayúscula.";
+  const digits = v.slice(0, 8);
+  const letter = v[8];
+  const expected = calculateDNILetter(digits);
+  return letter === expected ? null : "DNI incorrecto (letra de control no coincide).";
+}
+
+function validateNIE(value: string): string | null {
+  const v = value.toUpperCase().replace(/\s+/g, "");
+  const nieRegex = /^[XYZ][0-9]{7}[A-Z]$/;
+  if (!nieRegex.test(v)) return "El NIE debe empezar por X, Y o Z, seguido de 7 dígitos y una letra mayúscula.";
+  const map: Record<string, string> = { X: "0", Y: "1", Z: "2" };
+  const prefix = map[v[0]];
+  const digits8 = prefix + v.slice(1, 8); // 8 dígitos
+  const letter = v[8];
+  const expected = calculateDNILetter(digits8);
+  return letter === expected ? null : "NIE incorrecto (lógica numérica/letra de control).";
+}
+
+function validatePassport(_value: string): string | null {
+  // España no tiene un formato único público para pasaporte -> no validamos formato estricto
+  return null;
+}
+
+function validateLegalId(kind: "dni" | "nie" | "pasaporte" | "", value: string): string | null {
+  if (!kind) return "Seleccione un tipo de ID.";
+  if (!value) return "Introduzca un identificador.";
+  switch (kind) {
+    case "dni": return validateDNI(value);
+    case "nie": return validateNIE(value);
+    case "pasaporte": return validatePassport(value);
+    default: return "Tipo de ID no reconocido.";
+  }
+}
 
 async function patchNota(
   expediente_id: number,
@@ -143,6 +222,21 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
   const [editedNotas, setEditedNotas] = useState<Record<string, string | number | null>>({});
   const [justCreatedExtra, setJustCreatedExtra] = useState(false);
   const [confirmingBaja, setConfirmingBaja] = useState(false);
+
+  const [isEditingPersonal, setIsEditingPersonal] = useState(false);
+  const [formPersonal, setFormPersonal] = useState({
+    nombre: "",
+    apellido_1: "",
+    apellido_2: "",
+    sexo: "Indefinido" as "Masculino" | "Femenino" | "Indefinido",
+    tipo_id_legal: "" as "dni" | "nie" | "pasaporte" | "",
+    id_legal: "",
+    fecha_nac: null as Date | null,
+    num_tfno: "",
+  });
+
+  // NEW: error de ID legal + valor normalizado
+  const [idError, setIdError] = useState<string | null>(null);
 
   // -------------------- MUTATIONS ------------------------------
 
@@ -235,6 +329,80 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
     onError: (err: any) => toast.error(err?.message ?? "No se pudo cambiar el estado del ciclo.")
   });
 
+  type PersonalChanges =
+    Omit<Partial<FullStudentData["student"]>, "fecha_nac"> & {
+      fecha_nac?: Date | null;
+    };
+
+  // what you send to the API
+  type ApiPersonalChanges =
+    Omit<Partial<FullStudentData["student"]>, "fecha_nac"> & { fecha_nac?: Date | null };
+
+  // what you apply in cache (no nulls for fecha_nac)
+  type CachePersonalPatch =
+    Omit<Partial<FullStudentData["student"]>, "fecha_nac"> & { fecha_nac?: Date };
+
+  const computePersonalChanges = (s: FullStudentData["student"], f = formPersonal): PersonalChanges => {
+    const changes: PersonalChanges = {};
+    const cmp = (a: any, b: any) => (a ?? null) === (b ?? null);
+
+    if (!cmp(f.nombre, s.nombre)) changes.nombre = f.nombre;
+    if (!cmp(f.apellido_1, s.apellido_1)) changes.apellido_1 = f.apellido_1;
+    if (!cmp(f.apellido_2 || null, s.apellido_2 || null)) changes.apellido_2 = f.apellido_2 || null;
+    if (!cmp(f.sexo, s.sexo)) changes.sexo = f.sexo;
+
+    const tipoNormalized = (f.tipo_id_legal || "") as any;
+    const tipoCurrent = String(s.tipo_id_legal || "").toLowerCase();
+    if (!cmp(tipoNormalized, tipoCurrent)) changes.tipo_id_legal = tipoNormalized;
+
+    if (!cmp(f.id_legal, s.id_legal)) changes.id_legal = f.id_legal;
+
+    const fNew = formPersonal.fecha_nac ? new Date(formPersonal.fecha_nac) : null;
+    const fOld = fullData!.student.fecha_nac ? new Date(fullData!.student.fecha_nac) : null;
+    if ((fNew?.getTime() ?? null) !== (fOld?.getTime() ?? null)) {
+      changes.fecha_nac = fNew; // Date | null (API shape)
+    }
+
+    return changes;
+  };
+
+  // ------- mutación para cambiar los datos personales -------
+  const personalMutation = useMutation({
+    mutationFn: async (changes: ApiPersonalChanges) => {
+      if (!fullData?.student || Object.keys(changes).length === 0) return true;
+      return patchStudentPersonal(fullData.student.id_estudiante, changes); // API accepts null
+    },
+    onMutate: async (changes) => {
+      await queryClient.cancelQueries({ queryKey: ["full-student-data", id] });
+      const prev = queryClient.getQueryData<FullStudentData>(["full-student-data", id]);
+
+      if (prev) {
+        // derive the cache patch without nulls
+        const cachePatch: CachePersonalPatch = { ...changes } as any;
+        if ("fecha_nac" in changes && changes.fecha_nac === null) {
+          delete (cachePatch as any).fecha_nac; // don’t apply null into a non-null field
+        }
+        const next: FullStudentData = {
+          ...prev,
+          student: { ...prev.student, ...cachePatch },
+        };
+        queryClient.setQueryData(["full-student-data", id], next);
+      }
+      return { prev };
+    },
+    onError: (err, _changes, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(["full-student-data", id], ctx.prev);
+      toast.error(err?.message ?? "No se pudo actualizar el estudiante.");
+    },
+    onSuccess: () => {
+      toast.success("Datos personales actualizados.");
+      setIsEditingPersonal(false);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["full-student-data", id], refetchType: "inactive" });
+    },
+  });
+
   // -------------------- QUERY PRINCIPAL ------------------------
   const { data: fullData } = useQuery({
     queryKey: ['full-student-data', id],
@@ -290,11 +458,11 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
   }, [fullData, selectedCycle, selectedYear]);
 
   // COMPRUBEA QUE NINGÚN MÓDULO NO TENA NE o AM
-  const hasNEorAM = useMemo(() => {
+  const hasAM = useMemo(() => {
     if (!ordinariaRecord) return false;
     return (ordinariaRecord.enrollments ?? []).some((m: any) => {
       const nota = (m?.nota ?? "").toString().trim();
-      return nota === "NE" || nota === "AM";
+      return nota === "AM";
     });
   }, [ordinariaRecord]);
 
@@ -468,6 +636,25 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
     return out;
   }, [currentRecord, editedNotas]);
 
+  useEffect(() => {
+    if (!fullData?.student) return;
+    if (!isEditingPersonal) return;
+    const s = fullData.student;
+    setFormPersonal({
+      nombre: s.nombre ?? "",
+      apellido_1: s.apellido_1 ?? "",
+      apellido_2: s.apellido_2 ?? "",
+      sexo: (s.sexo as any) ?? "Indefinido",
+      // normaliza a minúscula si tu backend lo guarda en mayúsculas
+      tipo_id_legal: (String(s.tipo_id_legal || "").toLowerCase() as any) || "",
+      id_legal: s.id_legal ?? "",
+      fecha_nac: s.fecha_nac ? new Date(s.fecha_nac) : null,
+      num_tfno: s.num_tfno ?? "",
+    });
+    const currentKind = (String(s.tipo_id_legal || "").toLowerCase() as "dni" | "nie" | "pasaporte" | "");
+    setIdError(validateLegalId(currentKind, s.id_legal || ""));
+  }, [fullData, isEditingPersonal]);
+
   // NEW: detectar cambio de fecha
   const fechaChanged = useMemo(() => {
     const a = currentRecord?.fecha_pago_titulo ?? null;
@@ -514,6 +701,96 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
     setSelectedFechaPagoTitulo(fecha ?? null);
   };
 
+  // Year helpers
+  const yearStr = (r: RecordExtended) => `${r.ano_inicio}-${r.ano_fin}`;
+  const parseYearStr = (s: string) => s.split("-").map(Number) as [number, number];
+
+  const getOrdinariaYearsAsc = React.useCallback((cycleCode: string) => {
+    if (!fullData) return [] as string[];
+    const seen = new Set<string>();
+    const ord = fullData.records
+      .filter(r => r.ciclo_codigo === cycleCode && r.convocatoria === "Ordinaria")
+      .sort((a, b) => (a.ano_inicio - b.ano_inicio) || (a.ano_fin - b.ano_fin));
+
+    const years = [] as string[];
+    for (const r of ord) {
+      const y = yearStr(r);
+      if (!seen.has(y)) { seen.add(y); years.push(y); }
+    }
+    return years;
+  }, [fullData]);
+
+  const findPreviousOrdinariaYear = React.useCallback((cycleCode: string, currentYear: string) => {
+    const years = getOrdinariaYearsAsc(cycleCode);
+    const idx = years.indexOf(currentYear);
+    if (idx > 0) return years[idx - 1];             // immediate previous
+    if (years.length) return years[years.length - 1]; // fallback: latest remaining
+    return null;
+  }, [getOrdinariaYearsAsc]);
+
+  const handleAfterDelete = React.useCallback((deleted: RecordExtended | null) => {
+    if (!deleted) return;
+
+    const cycleCode = deleted.ciclo_codigo;
+    const deletedYear = `${deleted.ano_inicio}-${deleted.ano_fin}`;
+
+    if (deleted.convocatoria === "Extraordinaria") {
+      // Go to Ordinaria of the *same year* if exists; otherwise previous Ordinaria year.
+      const ordExistsSameYear = !!fullData?.records.find(r =>
+        r.ciclo_codigo === cycleCode &&
+        r.convocatoria === "Ordinaria" &&
+        r.ano_inicio === deleted.ano_inicio &&
+        r.ano_fin === deleted.ano_fin
+      );
+
+      setSelectedCycle(cycleCode);
+
+      if (ordExistsSameYear) {
+        setSelectedYear(deletedYear);
+        setSelectedConvocatoria("Ordinaria");
+      } else {
+        const prev = findPreviousOrdinariaYear(cycleCode, deletedYear);
+        if (prev) {
+          setSelectedYear(prev);
+          setSelectedConvocatoria("Ordinaria");
+        } else {
+          // nothing left: clear
+          setSelectedYear("");
+          setSelectedConvocatoria("");
+        }
+      }
+      setJustCreatedExtra(false); // ensure the Extra btn can reappear if needed
+      return;
+    }
+
+    // Deleted was "Ordinaria" → go to previous Ordinaria year
+    setSelectedCycle(cycleCode);
+    const prev = findPreviousOrdinariaYear(cycleCode, deletedYear);
+    if (prev) {
+      setSelectedYear(prev);
+      setSelectedConvocatoria("Ordinaria");
+    } else {
+      // If there is no other Ordinaria in this cycle, fallback to clear
+      setSelectedYear("");
+      setSelectedConvocatoria("");
+    }
+  }, [fullData, findPreviousOrdinariaYear]);
+
+  const setField = <K extends keyof typeof formPersonal>(k: K, v: (typeof formPersonal)[K]) =>
+    setFormPersonal(prev => ({ ...prev, [k]: v }));
+
+  const TIPO_ID_OPTIONS = [
+    { value: "dni", label: "DNI" },
+    { value: "nie", label: "NIE" },
+    { value: "pasaporte", label: "Pasaporte" },
+  ] as const;
+
+  const SEXO_OPTIONS = [
+    { value: "Masculino", label: "Masculino" },
+    { value: "Femenino", label: "Femenino" },
+    { value: "Indefinido", label: "Indefinido" },
+  ] as const;
+
   // =============================================================
   // ======================= RENDER UI ===========================
   // =============================================================
@@ -527,13 +804,20 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
             setSelectedCycle("");
             setSelectedYear("");
             setSelectedConvocatoria("");
-            setIsEditingNotas(false); // NEW
-            setEditedNotas({});       // NEW
+            setIsEditingNotas(false);
+            setEditedNotas({});
           }, 500);
         }
       }}
     >
-      <SheetContent className="w-full sm:max-w-md md:max-w-lg lg:max-w-xl">
+      <SheetContent
+        forceMount
+        // stops “outside” closing (including portalled tooltips/popovers)
+        onInteractOutside={(e) => e.preventDefault()}
+        // optional: stop ESC from closing if that also bites you
+        // onEscapeKeyDown={(e) => e.preventDefault()}
+        className="w-full sm:max-w-md md:max-w-lg lg:max-w-xl"
+      >
         {/* ---------- CABECERA DEL PANEL ----------- */}
         <SheetHeader className="flex flex-row items-center justify-between pb-4 border-b-[1px]">
           <SheetTitle className="text-xl font-bold">Perfil del estudiante</SheetTitle>
@@ -549,40 +833,196 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
                 ============== TARJETA INFORMACIÓN PERSONAL =========
                 ===================================================== */}
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Información personal</CardTitle>
+
+                {!isEditingPersonal ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsEditingPersonal(true)}
+                    className="gap-1"
+                  >
+                    <Pencil className="h-3 w-3" />
+                    Editar
+                  </Button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsEditingPersonal(false)}
+                      disabled={personalMutation.isPending}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => {
+                        // NEW: validación dura antes de mutar
+                        const kind = formPersonal.tipo_id_legal || "";
+                        const err = validateLegalId(kind as any, formPersonal.id_legal);
+                        setIdError(err);
+                        if (err) {
+                          toast.error(err);
+                          return;
+                        }
+
+                        const s = fullData!.student;
+                        const changes = computePersonalChanges(s);
+                        if (Object.keys(changes).length === 0) {
+                          toast("No hay cambios.");
+                          return;
+                        }
+                        personalMutation.mutate(changes);
+                      }}
+                      disabled={personalMutation.isPending || !!idError}
+                    >
+                      Guardar
+                    </Button>
+                  </div>
+                )}
               </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="text-sm font-medium text-muted-foreground">Nombre:</div>
-                  <div>{fullData?.student.nombre}</div>
 
-                  <div className="text-sm font-medium text-muted-foreground">Apellido 1:</div>
-                  <div>{fullData?.student.apellido_1}</div>
+              <CardContent className="space-y-3">
+                {!isEditingPersonal ? (
+                  // --- MODO LECTURA ---
+                  <>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="text-sm font-medium text-muted-foreground">Nombre:</div>
+                      <div>{fullData?.student.nombre}</div>
 
-                  <div className="text-sm font-medium text-muted-foreground">Apellido 2:</div>
-                  <div>{fullData?.student.apellido_2}</div>
+                      <div className="text-sm font-medium text-muted-foreground">Apellido 1:</div>
+                      <div>{fullData?.student.apellido_1}</div>
 
-                  <div className="text-sm font-medium text-muted-foreground">Sexo:</div>
-                  <div>{fullData?.student.sexo}</div>
+                      <div className="text-sm font-medium text-muted-foreground">Apellido 2:</div>
+                      <div>{fullData?.student.apellido_2 || "-"}</div>
 
-                  <div className="text-sm font-medium text-muted-foreground">ID Legal:</div>
-                  <div>{fullData?.student.id_legal}</div>
+                      <div className="text-sm font-medium text-muted-foreground">Sexo:</div>
+                      <div>{fullData?.student.sexo}</div>
 
-                  <div className="text-sm font-medium text-muted-foreground">Fecha de nacimiento:</div>
-                  <div>{
-                    fullData?.student.fecha_nac
-                      .toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
-                    || ''
-                  }</div>
+                      <div className="text-sm font-medium text-muted-foreground">Tipo de ID legal:</div>
+                      <div>{String(fullData?.student.tipo_id_legal || "").toUpperCase()}</div>
 
-                  <div className="text-sm font-medium text-muted-foreground">Número de expediente:</div>
-                  <div>{fullData?.student.id_estudiante}</div>
+                      <div className="text-sm font-medium text-muted-foreground">ID legal:</div>
+                      <div>{fullData?.student.id_legal}</div>
 
-                  <div className="text-sm font-medium text-muted-foreground">Número de teléfono:</div>
-                  <div>{fullData?.student.num_tfno}</div>
-                </div>
-                <TextareaForm observaciones={fullData?.student.observaciones ?? ""} id_estudiante={id} />
+                      <div className="text-sm font-medium text-muted-foreground">Fecha de nacimiento:</div>
+                      <div>{
+                        fullData?.student.fecha_nac
+                          ? new Date(fullData.student.fecha_nac).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric" })
+                          : ""
+                      }</div>
+
+                      <div className="text-sm font-medium text-muted-foreground">Número de expediente:</div>
+                      <div>{fullData?.student.id_estudiante}</div>
+
+                      <div className="text-sm font-medium text-muted-foreground">Número de teléfono:</div>
+                      <div>{fullData?.student.num_tfno || "-"}</div>
+                    </div>
+
+                    <TextareaForm observaciones={fullData?.student.observaciones ?? ""} id_estudiante={id} />
+                  </>
+                ) : (
+                  // --- MODO EDICIÓN ---
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3 items-center">
+                      <label className="text-sm text-muted-foreground">Nombre</label>
+                      <Input
+                        value={formPersonal.nombre}
+                        onChange={(e) => setField("nombre", e.target.value)}
+                      />
+
+                      <label className="text-sm text-muted-foreground">Apellido 1</label>
+                      <Input
+                        value={formPersonal.apellido_1}
+                        onChange={(e) => setField("apellido_1", e.target.value)}
+                      />
+
+                      <label className="text-sm text-muted-foreground">Apellido 2</label>
+                      <Input
+                        value={formPersonal.apellido_2}
+                        onChange={(e) => setField("apellido_2", e.target.value)}
+                      />
+
+                      <label className="text-sm text-muted-foreground">Sexo</label>
+                      <Select
+                        value={formPersonal.sexo}
+                        onValueChange={(v) => setField("sexo", v as any)}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Selecciona sexo" /></SelectTrigger>
+                        <SelectContent>
+                          {SEXO_OPTIONS.map(o => (
+                            <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      <label className="text-sm text-muted-foreground">Tipo de ID legal</label>
+                      <Select
+                        value={formPersonal.tipo_id_legal}
+                        onValueChange={(v) => {
+                          const kind = v as "dni" | "nie" | "pasaporte";
+                          setField("tipo_id_legal", kind);
+                          // NEW: re-validar con el valor actual del ID
+                          setIdError(validateLegalId(kind, formPersonal.id_legal));
+                        }}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Selecciona tipo" /></SelectTrigger>
+                        <SelectContent>
+                          {TIPO_ID_OPTIONS.map(o => (
+                            <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      <label className="text-sm text-muted-foreground">ID legal</label>
+                      <div className="space-y-1">
+                        <Input
+                          value={formPersonal.id_legal}
+                          onChange={(e) => {
+                            // NEW: normaliza a mayúsculas y sin espacios interiores
+                            const raw = e.target.value.toUpperCase();
+                            const normalized = raw.replace(/\s+/g, "");
+                            setField("id_legal", normalized);
+
+                            // valida con el tipo actual
+                            const kind = formPersonal.tipo_id_legal || "";
+                            setIdError(validateLegalId(kind as any, normalized));
+                          }}
+                          autoComplete="off"
+                          spellCheck={false}
+                          aria-invalid={!!idError}
+                          className={idError ? "border-destructive focus-visible:ring-destructive" : undefined}
+                          placeholder={
+                            formPersonal.tipo_id_legal === "dni" ? "00000000X" :
+                              formPersonal.tipo_id_legal === "nie" ? "X0000000X" :
+                                "Introduce tu documento"
+                          }
+                        />
+                        {idError && <p className="text-xs text-destructive">{idError}</p>}
+                      </div>
+
+                      <label className="text-sm text-muted-foreground">Fecha de nacimiento</label>
+                      <DatePicker
+                        label=""
+                        name="fecha_nac"
+                        value={formPersonal.fecha_nac}
+                        onChange={(d) => setField("fecha_nac", d ?? null)}
+                      />
+
+                      <label className="text-sm text-muted-foreground">Teléfono</label>
+                      <Input
+                        value={formPersonal.num_tfno}
+                        onChange={(e) => setField("num_tfno", e.target.value)}
+                      />
+                    </div>
+
+                    {/* observaciones: lo mantengo en su propio TextareaForm (ya gestiona PATCH aparte) */}
+                    <TextareaForm observaciones={fullData?.student.observaciones ?? ""} id_estudiante={id} />
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -639,7 +1079,7 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
                           !selectedYear ||
                           !selectedConvocatoria ||
                           !baseRecordCore ||
-                          hasNEorAM ||
+                          hasAM ||
                           isBajaCycle ||
                           failingModuleIds.length === 0
                         } // OJO: quitamos "extraordinariaExists" del disabled porque ya no se renderiza
@@ -672,109 +1112,138 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
                     </div>
 
                     {/* -------- Tabla de módulos ---------- */}
-                    {filteredRecords.map((anio_escolar) => (
-                      <div key={anio_escolar.id_expediente} className="mt-6">
-                        <div className="mb-4 flex w-full items-center">
-                          <pre className="text-sm text-muted-foreground">
-                            {anio_escolar.ano_inicio}-{anio_escolar.ano_fin} | {anio_escolar.turno}
-                            {anio_escolar.vino_traslado && (
-                              <>
-                                {' | '}
-                                <Badge variant="outline">Trasladado</Badge>
-                              </>
-                            )}
-                          </pre>
-                          {/* alternar edición de notas */}
-                          <Button
-                            variant={"outline"}
-                            onClick={() =>
-                              startTransition(() => setIsEditingNotas((v) => !v))
-                            }
-                            disabled={!selectedExpedienteId}
-                            className="ml-auto"
-                          >
-                            {isEditingNotas ? <X className="h-2 w-2" /> : <Pencil className="h-2 w-2" />}
-                          </Button>
-                        </div>
+                    {filteredRecords.map((anio_escolar) => {
 
-                        <div className="rounded-md border">
-                          <table className="w-full table-fixed">
-                            <colgroup>
-                              <col className="w-[25%]" />
-                              <col className="w-[50%]" />
-                              <col className="w-[25%]" />
-                            </colgroup>
-                            <thead>
-                              <tr className="border-b bg-muted/50">
-                                <th className="p-3 text-left text-sm font-medium">Código</th>
-                                <th className="p-3 text-left text-sm font-medium">Nombre</th>
-                                <th className="p-3 text-left text-sm font-medium">Calificación</th>
-                              </tr>
-                            </thead>
-
-                            <tbody>
-                              {(anio_escolar.enrollments ?? []).map((modulo: any) => {
-                                const notaOptions = anio_escolar.vino_traslado
-                                  ? NOTA_OPTIONS
-                                  : NOTA_OPTIONS_NO_CV;
-
-                                return (
-                                  <tr key={modulo.codigo_modulo} className="border-b last:border-0">
-                                    <td className="py-4 px-3 text-sm">{modulo.codigo_modulo}</td>
-                                    <td className="py-4 px-3 text-sm">{modulo.nombre_modulo}</td>
-                                    <td className="py-4 px-2 text-center text-sm">
-                                      {isEditingNotas ? (
-                                        <NotaCell
-                                          value={editedNotas[modulo.codigo_modulo]}
-                                          options={notaOptions} // ⬅️ aquí
-                                          onChange={(val) =>
-                                            setEditedNotas((prev) => ({
-                                              ...prev,
-                                              [modulo.codigo_modulo]: val,
-                                            }))
-                                          }
-                                        />
-                                      ) : (
-                                        <span className="leading-none">{modulo.nota ?? "-"}</span>
-                                      )}
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-
-                        {/* -------- Fecha + Guardar ---------- */}
-                        <div className="mt-2 flex items-center gap-2">
-                          <DatePicker
-                            label="Fecha de pago del título"
-                            name="pago_titulo"
-                            value={selectedFechaPagoTitulo} // precargada al cambiar convocatoria
-                            onChange={handleFechaPagoTitulo}
-                          />
-                          <Button
-                            variant="outline"
-                            type="button"
-                            onClick={() => {
-                              if (selectedExpedienteId == null) {
-                                toast("Selecciona ciclo, año y convocatoria antes de guardar.");
-                                return;
+                      return (
+                        <div key={anio_escolar.id_expediente} className="mt-6">
+                          <div className="mb-4 flex w-full items-center">
+                            <pre className="text-sm text-muted-foreground">
+                              {anio_escolar.ano_inicio}-{anio_escolar.ano_fin} | {anio_escolar.turno}
+                              {anio_escolar.vino_traslado && (
+                                <>
+                                  {' | '}
+                                  <Badge variant="outline">Trasladado</Badge>
+                                </>
+                              )}
+                            </pre>
+                            {/* alternar edición de notas */}
+                            <Button
+                              variant={"outline"}
+                              onClick={() =>
+                                startTransition(() => setIsEditingNotas((v) => !v))
                               }
-                              mutation.mutate({
-                                expedienteId: selectedExpedienteId,
-                                selectedFechaPagoTitulo,
-                                notasUpdates, // << aquí va el array
-                              });
-                            }}
-                            disabled={selectedExpedienteId == null || mutation.isPending || !isDirty}
-                            className="min-w-[80px]"
-                          >
-                            {mutation.isPending ? "..." : "Guardar"}
-                          </Button>
+                              disabled={!selectedExpedienteId}
+                              className="ml-auto mr-2"
+                            >
+                              {isEditingNotas ? <X className="h-2 w-2" /> : <Pencil className="h-2 w-2" />}
+                            </Button>
+                            <DeleteRecordCascadeButton
+                              expedienteId={selectedExpedienteId!}
+                              studentId={fullData!.student.id_estudiante}
+                              cicloId={currentRecord?.id_ciclo ?? null}
+                              onDeleted={() => handleAfterDelete(currentRecord)}
+                            />
+                          </div>
+
+                          <div className="rounded-md border">
+                            <table className="w-full table-fixed">
+                              <colgroup>
+                                <col className="w-[25%]" />
+                                <col className="w-[40%]" />
+                                <col className="w-[35%]" />
+                              </colgroup>
+                              <thead>
+                                <tr className="border-b bg-muted/50">
+                                  <th className="p-3 text-left text-sm font-medium">Código</th>
+                                  <th className="p-3 text-left text-sm font-medium">Nombre</th>
+                                  <th className="p-3 text-left text-sm font-medium">Calificación</th>
+                                </tr>
+                              </thead>
+
+                              <tbody>
+                                {(anio_escolar.enrollments ?? []).map((modulo: any) => {
+                                  const notaOptions = anio_escolar.vino_traslado
+                                    ? NOTA_OPTIONS
+                                    : NOTA_OPTIONS_NO_CV;
+
+                                  return (
+                                    <tr key={modulo.codigo_modulo} className="border-b last:border-0">
+                                      <td className="py-4 px-3 text-sm">{modulo.codigo_modulo}</td>
+                                      <td className="py-4 px-3 text-sm">{modulo.nombre_modulo}</td>
+                                      <td className="py-4 px-2 text-center text-sm">
+                                        {isEditingNotas ? (
+                                          <div className="flex items-center justify-center gap-2">
+                                            <NotaCell
+                                              value={editedNotas[modulo.codigo_modulo]}
+                                              options={notaOptions}
+                                              onChange={(val) =>
+                                                setEditedNotas((prev) => ({
+                                                  ...prev,
+                                                  [modulo.codigo_modulo]: val,
+                                                }))
+                                              }
+                                            />
+
+                                            {/* === Botón borrar módulo en cascada (si tenemos id_matricula) === */}
+                                            {(() => {
+                                              const enrollmentId: number | undefined =
+                                                modulo.id_matricula ?? modulo.matricula_id ?? modulo.id_matricula_pk ?? undefined;
+
+                                              return typeof enrollmentId === "number" ? (
+                                                <DeleteModuleCascadeButton
+                                                  enrollmentId={enrollmentId}
+                                                  studentId={fullData!.student.id_estudiante}
+                                                  onDeleted={() => {
+                                                    // refresca datos visibles tras la eliminación
+                                                    queryClient.invalidateQueries({ queryKey: ["full-student-data", fullData!.student.id_estudiante] });
+                                                    queryClient.refetchQueries({ queryKey: ["full-student-data", fullData!.student.id_estudiante], type: "active" });
+                                                  }}
+                                                />
+                                              ) : null;
+                                            })()}
+                                          </div>
+                                        ) : (
+                                          <span className="leading-none">{modulo.nota ?? "-"}</span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          {/* -------- Fecha + Guardar ---------- */}
+                          < div className="mt-2 flex items-center gap-2" >
+                            <DatePicker
+                              label="Fecha de pago del título"
+                              name="pago_titulo"
+                              value={selectedFechaPagoTitulo} // precargada al cambiar convocatoria
+                              onChange={handleFechaPagoTitulo}
+                            />
+                            <Button
+                              variant="outline"
+                              type="button"
+                              onClick={() => {
+                                if (selectedExpedienteId == null) {
+                                  toast("Selecciona ciclo, año y convocatoria antes de guardar.");
+                                  return;
+                                }
+                                mutation.mutate({
+                                  expedienteId: selectedExpedienteId,
+                                  selectedFechaPagoTitulo,
+                                  notasUpdates, // << aquí va el array
+                                });
+                              }}
+                              disabled={selectedExpedienteId == null || mutation.isPending || !isDirty}
+                              className="min-w-[80px]"
+                            >
+                              {mutation.isPending ? "..." : "Guardar"}
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </BlurredSection>
                   {selectedCycle && selectedYear && selectedConvocatoria && (
                     <div className="mt-8 pt-4 border-t">
@@ -826,8 +1295,8 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
               </CardContent>
             </Card>
           </div>
-        </ScrollArea>
-      </SheetContent>
+        </ScrollArea >
+      </SheetContent >
     </Sheet >
   )
 };

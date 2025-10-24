@@ -26,7 +26,7 @@ export const cyclesRoute = new Hono()
     return c.json({ ciclo: result });
   })
   .get("/law/:ley", async (c) => {
-    const law = String(c.req.param("ley"));
+    const law = Number(c.req.param("ley"));
     const result = await getCycleByLaw(law);
     return c.json({ ciclo: result });
   })

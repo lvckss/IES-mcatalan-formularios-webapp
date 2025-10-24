@@ -56,6 +56,58 @@ export const updateStudentObservaciones = async (id: number, observaciones: stri
   return StudentSchema.parse(results[0]);
 };
 
+const u2n = <T>(v: T | undefined): T | null => (v === undefined ? null : v);
+
+export const updateStudent = async (
+  id: number,
+  changes: Partial<PostStudent>
+): Promise<Student> => {
+  // Load current row so we never send undefined
+  const current = await getStudentById(id);
+  if (!current) throw new Error("NOT_FOUND");
+
+  // Normalize everything to concrete values (string | null, boolean, Date)
+  const merged = {
+    nombre: changes.nombre ?? current.nombre,
+    apellido_1: changes.apellido_1 ?? current.apellido_1,
+    apellido_2: u2n(changes.apellido_2 ?? current.apellido_2 ?? null),
+    sexo: changes.sexo ?? current.sexo,
+    num_tfno: u2n(changes.num_tfno ?? current.num_tfno ?? null),
+    id_legal: changes.id_legal ?? current.id_legal,
+    tipo_id_legal: changes.tipo_id_legal ?? current.tipo_id_legal,
+    // Ensure a Date instance (your Zod preprocess already handles string→Date)
+    fecha_nac: changes.fecha_nac ?? current.fecha_nac,
+    observaciones: u2n(changes.observaciones ?? current.observaciones ?? null),
+    requisito_academico:
+      changes.requisito_academico ?? current.requisito_academico,
+  };
+
+  try {
+    const rows = await sql`
+      UPDATE Estudiantes
+      SET
+        nombre = ${merged.nombre},
+        apellido_1 = ${merged.apellido_1},
+        apellido_2 = ${merged.apellido_2},
+        sexo = ${merged.sexo},
+        num_tfno = ${merged.num_tfno},
+        id_legal = ${merged.id_legal},
+        tipo_id_legal = ${merged.tipo_id_legal},
+        fecha_nac = ${merged.fecha_nac},
+        observaciones = ${merged.observaciones},
+        requisito_academico = ${merged.requisito_academico}
+      WHERE id_estudiante = ${id}
+      RETURNING *
+    `;
+    if (!rows[0]) throw new Error("NOT_FOUND");
+    return StudentSchema.parse(rows[0]);
+  } catch (error: any) {
+    // 23505 = unique_violation
+    if (error?.code === '23505') throw new Error('UNIQUE_VIOLATION');
+    throw error;
+  }
+};
+
 // Tipo de retorno sugerido
 type StudentWithExpediente = Student & {
   expediente_id: number;

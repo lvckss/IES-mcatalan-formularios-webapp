@@ -274,28 +274,12 @@ export const CertificadoTrasladoDocument = ({ data, }: { data: CertificateData }
                 </View>
               </View>
             ))}
-
-          {/* Fila de nota final */}
-          <View style={styles.tableRow}>
-            <View style={[styles.tableColName, { width: '80%' }]}>
-              <Text
-                style={[
-                  styles.tableCell,
-                  { textAlign: 'center', fontWeight: 'bold' },
-                ]}>
-                NOTA FINAL DEL CICLO FORMATIVO
-              </Text>
-            </View>
-            <View style={styles.tableColGrade}>
-              <Text style={styles.tableCell}>{mediaFormateada}</Text>
-            </View>
-          </View>
         </View>
 
 
         {/* Pie de texto */}
         <Text style={[styles.paragraph, { marginBottom: 20 }]}>
-          Cumple los requisitos vigentes para la obtención del Título de Técnico Superior en {data.cycle_data.nombre}
+          No cumple los requisitos vigentes para la obtención del Título de Técnico Superior en {data.cycle_data.nombre}
         </Text>
 
         <Text style={styles.paragraph}>

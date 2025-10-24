@@ -8,7 +8,8 @@ import {
   deleteRecord,
   updateFechaPagoTitulo,
   checkPuedeCursar,
-  patchBajaEstudianteCiclo
+  patchBajaEstudianteCiclo,
+  deleteRecordComplete
 } from "../controllers/recordController";
 import { z } from "zod";
 
@@ -91,6 +92,20 @@ export const recordsRoute = new Hono()
 
       const result = await checkPuedeCursar(id_estudiante, id_ciclo, ano_inicio, ano_fin);
       return c.json({ result })
+    }
+  )
+  .delete(
+    "/deleteComplete/:id_record",
+    async (c) => {
+      const id = Number(c.req.param("id_record"));
+      if (!Number.isInteger(id)) return c.json({ error: "invalid id" }, 400);
+
+      const deleted = await deleteRecordComplete(id);
+
+      return c.json({
+        deleted,
+        count: deleted.length,
+      });
     }
   )
   ;

@@ -35,9 +35,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 import { Save, RefreshCw } from "lucide-react";
 
-import { PostRecord, PostEnrollment, Enrollment, Student } from '@/types';
+import { PostRecord, PostEnrollment, Enrollment, Student, Law } from '@/types';
 
 // ==================== API HELPERS ====================
+
+// Fetch Leyes data from API
+async function getAllLeyes(): Promise<Law[]> {
+  const response = await api.laws.$get();
+
+  if (!response) {
+    throw new Error("Error fetching laws")
+  }
+
+  const data = await response.json();
+  return data.leyes as Law[];
+}
+
 // FETCH CICLOS SIN DIFERENCIAR CURSO POR LEY (LOGSE, LOE, LFP)
 async function getCiclosByLey(ley: string) {
   const response = await api.cycles.law[':ley'].$get({
@@ -311,6 +324,18 @@ const IntroduceActa: React.FC = () => {
   const [selectedConvocatoria, setSelectedConvocatoria] = useState<"Ordinaria" | "Extraordinaria">("Ordinaria");
 
   const queryClient = useQueryClient();
+
+
+  // ---------- REACT-QUERY: OBTENER LEYES -----------
+  const {
+    error: leyesError,
+    data: leyesData = [],
+    isLoading: leyesLoading,
+  } = useQuery<Law[]>({
+    queryKey: ['leyes'],
+    queryFn: getAllLeyes,
+    staleTime: 5 * 60 * 1000,
+  })
 
   // ---------- REACT-QUERY: OBTENER CICLOS ----------
   const {
@@ -997,11 +1022,12 @@ const IntroduceActa: React.FC = () => {
               value={selectedLey}
               onValueChange={setSelectedLey}
               placeholder="Seleccionar ley"
-              options={[
-                { label: "LOGSE", value: "LOGSE" },
-                { label: "LOE", value: "LOE" },
-                { label: "LFP", value: "LFP" },
-              ]}
+              options={
+                leyesData.map((ley) => ({
+                  value: `${ley.id_ley}`,
+                  label: `${ley.nombre_ley}`
+                }))
+              }
               width={260}
             />
           </div>

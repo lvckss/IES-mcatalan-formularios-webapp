@@ -1,6 +1,3 @@
--- Inserts for Ciclos table
--- Make sure you've already created the table using:
---
 --   CREATE TABLE Ciclos (
 --       id_ciclo SERIAL NOT NULL,
 --       curso VARCHAR(5) NOT NULL,
@@ -21,7 +18,7 @@ VALUES
                 'AFD301_LOGSE',
                 'Real Decreto 2048/1995 22/12/1995',
                 'Real Decreto 1262/1997 24/07/1997',
-                'LOGSE'
+                1
         );
 
 --2
@@ -34,7 +31,7 @@ VALUES
                 'AFD301_LOGSE',
                 'Real Decreto 2048/1995 22/12/1995',
                 'Real Decreto 1262/1997 24/07/1997',
-                'LOGSE'
+                1
         );
 
 -- 3
@@ -47,7 +44,7 @@ VALUES
                 'AFD201_LOGSE',
                 'Real Decreto 2049/1995 14/02/1996',
                 'Real Decreto 1263/1997 12/09/1997',
-                'LOGSE'
+                1
         );
 
 -- 4
@@ -60,7 +57,7 @@ VALUES
                 'SAN201_LOGSE',
                 'Real Decreto 546/1995 05/06/1995',
                 'Real Decreto 558/1995 06/06/1995',
-                'LOGSE'
+                1
         );
 
 -- 5
@@ -73,7 +70,7 @@ VALUES
                 'SAN201_LOGSE',
                 'Real Decreto 546/1995 05/06/1995',
                 'Real Decreto 558/1995 06/06/1995',
-                'LOGSE'
+                1
         );
 
 -- 6
@@ -86,7 +83,7 @@ VALUES
                 'SAN302_LOGSE',
                 'Real Decreto 536/1995 02/06/1995',
                 'Real Decreto 548/1995 02/06/1995',
-                'LOGSE'
+                1
         );
 
 -- 7
@@ -99,7 +96,7 @@ VALUES
                 'SAN302_LOGSE',
                 'Real Decreto 536/1995 02/06/1995',
                 'Real Decreto 548/1995 02/06/1995',
-                'LOGSE'
+                1
         );
 
 -- 8
@@ -112,7 +109,7 @@ VALUES
                 'SAN301_LOE',
                 'Real Decreto 767/2014 04/10/2014',
                 'ORDEN de 5 de mayo de 2015 (BOA: 01/06/2015)',
-                'LOE'
+                2
         );
 
 -- 9
@@ -125,7 +122,7 @@ VALUES
                 'SAN301_LOE',
                 'Real Decreto 767/2014 04/10/2014',
                 'ORDEN de 5 de mayo de 2015 (BOA: 01/06/2015)',
-                'LOE'
+                2
         );
 
 -- 10
@@ -138,7 +135,7 @@ VALUES
                 'IFC302_LOE',
                 'Real Decreto 405/2023 29/05/2023',
                 'ORDEN de 25 de abril de 2011',
-                'LOE'
+                2
         );
 
 -- 11
@@ -151,7 +148,7 @@ VALUES
                 'IFC302_LOE',
                 'Real Decreto 405/2023 29/05/2023',
                 'ORDEN de 25 de abril de 2011',
-                'LOE'
+                2
         );
 
 -- 12
@@ -164,7 +161,7 @@ VALUES
                 'AFD301_LOE',
                 'Real Decreto 653/2017 23/06/2017',
                 'ORDEN de 31 de julio de 2018 (BOA: 21/08/2018)',
-                'LOE'
+                2
         );
 
 -- 13
@@ -177,7 +174,7 @@ VALUES
                 'AFD301_LOE',
                 'Real Decreto 653/2017 23/06/2017',
                 'ORDEN de 31 de julio de 2018 (BOA: 21/08/2018)',
-                'LOE'
+                2
         );
 
 -- 14
@@ -190,7 +187,7 @@ VALUES
                 'SAN202_LOE',
                 'Real Decreto 1689/2007 17/01/2008',
                 'ORDEN de 26 de mayo de 2009 (BOA: 16/06/2009)',
-                'LOE'
+                2
         );
 
 -- 15
@@ -203,7 +200,7 @@ VALUES
                 'SAN202_LOE',
                 'Real Decreto 1689/2007 17/01/2008',
                 'ORDEN de 26 de mayo de 2009 (BOA: 16/06/2009)',
-                'LOE'
+                2
         );
 
 -- 16
@@ -216,7 +213,7 @@ VALUES
                 'AFD201_LOE',
                 'Real Decreto 402/2020 27/02/2020',
                 'ORDEN de 5 de agosto de 2021 (BOA: 19/08/2021)',
-                'LOE'
+                2
         );
 
 -- 17
@@ -229,7 +226,7 @@ VALUES
                 'AFD201_LOE',
                 'Real Decreto 402/2020 27/02/2020',
                 'ORDEN de 5 de agosto de 2021 (BOA: 19/08/2021)',
-                'LOE'
+                2
         );
 
 -- 18
@@ -242,7 +239,7 @@ VALUES
                 'SAN305_LOE',
                 'Real Decreto 770/2014 04/10/2014',
                 'ORDEN de 5 de mayo de 2015 (BOA: 05/06/2015)',
-                'LOE'
+                2
         );
 
 -- 19
@@ -255,7 +252,7 @@ VALUES
                 'SAN305_LOE',
                 'Real Decreto 770/2014 04/10/2014',
                 'ORDEN de 5 de mayo de 2015 (BOA: 05/06/2015)',
-                'LOE'
+                2
         );
 
 -- 20
@@ -268,7 +265,7 @@ VALUES
                 'SAN305_LFP',
                 'Real Decreto 500/2024 21/05/2024',
                 'ORDEN de 25 de julio de 2024 (BOA: 31/07/2024)',
-                'LFP'
+                3
         );
 
 -- 21
@@ -281,5 +278,5 @@ VALUES
                 'SAN305_LFP',
                 'Real Decreto 500/2024 21/05/2024',
                 'ORDEN de 25 de julio de 2024 (BOA: 31/07/2024)',
-                'LFP'
+                3
         );

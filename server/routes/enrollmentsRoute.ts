@@ -1,11 +1,12 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { type Enrollment, EnrollmentSchema, createEnrollmentSchema } from "../models/Enrollment";
-import { 
+import {
   getEnrollments,
-  createEnrollment, 
+  createEnrollment,
   getEnrollmentById,
-  deleteEnrollment, 
+  deleteEnrollment,
+  deleteEnrollmentCascade,
   patchEnrollmentNota,
   checkSePuedeAprobar,
   notasMasAltasEstudiantePorCicloCompleto,
@@ -34,14 +35,26 @@ export const enrollmentsRoute = new Hono()
     const result = await deleteEnrollment(id);
     return c.json({ matricula: result });
   })
+  .delete("/:id/cascade", async (c) => {
+    const id = Number(c.req.param("id"));
+    try {
+      const result = await deleteEnrollmentCascade(id);
+      return c.json({ matriculas_eliminadas: result, count: result.length });
+    } catch (e: any) {
+      if (e?.status) {
+        return c.json({ error: e.message }, e.status);
+      }
+      throw e;
+    }
+  })
   .patch(
     "/notas/:record_id/:module_id",
     zValidator("json", z.object({
       nota: z.enum([
-        '1','2','3','4','5','6','7','8','9','10',
+        '1', '2', '3', '4', '5', '6', '7', '8', '9', '10',
         '10-MH',
-        'CV','CV-5','CV-6','CV-7','CV-8','CV-9','CV-10',
-        'AM','RC','NE','APTO','NO APTO'
+        'CV', 'CV-5', 'CV-6', 'CV-7', 'CV-8', 'CV-9', 'CV-10',
+        'AM', 'RC', 'NE', 'APTO', 'NO APTO'
       ]).nullable()
     })),
     async (c) => {
@@ -55,40 +68,40 @@ export const enrollmentsRoute = new Hono()
         return c.json({ error: "No se pudo actualizar la matrícula." }, 500);
       }
     })
-    .get(
-      "/puedeAprobar/:id_estudiante/:id_modulo",
-      async (c) => {
-        const id_estudiante = Number(c.req.param("id_estudiante"));
-        const id_modulo = Number(c.req.param("id_modulo"));
-        const result = await checkSePuedeAprobar(id_estudiante, id_modulo);
-        return c.json({ result })
-      }
-    )
-    .get(
-      "/notasAltas/:id_estudiante/:id_ciclo",
-      async (c) => {
-        const id_estudiante = Number(c.req.param("id_estudiante"));
-        const id_ciclo = Number(c.req.param("id_ciclo"));
-        const result = await notasMasAltasEstudiantePorCicloCompleto(id_estudiante, id_ciclo);
-        return c.json({ result })
-      }
-    )
-    .get(
-      "/notasAltasAprobadas/:id_estudiante/:id_ciclo",
-      async (c) => {
-        const id_estudiante = Number(c.req.param("id_estudiante"));
-        const id_ciclo = Number(c.req.param("id_ciclo"));
-        const result = await notasMasAltasEstudiantePorCicloCompletoSoloAprobadas(id_estudiante, id_ciclo);
-        return c.json({ result })
-      }
-    )
-    .get(
-      "/matriculasPorExpediente/:id_expediente/:id_estudiante",
-      async (c) => {
-        const id_expediente = Number(c.req.param("id_expediente"));
-        const id_estudiante = Number(c.req.param("id_estudiante"));
-        const result = await enrollmentsByRecord(id_expediente, id_estudiante);
-        return c.json({ expedientes: result })
-      }
-    )
+  .get(
+    "/puedeAprobar/:id_estudiante/:id_modulo",
+    async (c) => {
+      const id_estudiante = Number(c.req.param("id_estudiante"));
+      const id_modulo = Number(c.req.param("id_modulo"));
+      const result = await checkSePuedeAprobar(id_estudiante, id_modulo);
+      return c.json({ result })
+    }
+  )
+  .get(
+    "/notasAltas/:id_estudiante/:id_ciclo",
+    async (c) => {
+      const id_estudiante = Number(c.req.param("id_estudiante"));
+      const id_ciclo = Number(c.req.param("id_ciclo"));
+      const result = await notasMasAltasEstudiantePorCicloCompleto(id_estudiante, id_ciclo);
+      return c.json({ result })
+    }
+  )
+  .get(
+    "/notasAltasAprobadas/:id_estudiante/:id_ciclo",
+    async (c) => {
+      const id_estudiante = Number(c.req.param("id_estudiante"));
+      const id_ciclo = Number(c.req.param("id_ciclo"));
+      const result = await notasMasAltasEstudiantePorCicloCompletoSoloAprobadas(id_estudiante, id_ciclo);
+      return c.json({ result })
+    }
+  )
+  .get(
+    "/matriculasPorExpediente/:id_expediente/:id_estudiante",
+    async (c) => {
+      const id_expediente = Number(c.req.param("id_expediente"));
+      const id_estudiante = Number(c.req.param("id_estudiante"));
+      const result = await enrollmentsByRecord(id_expediente, id_estudiante);
+      return c.json({ expedientes: result })
+    }
+  )
   ;

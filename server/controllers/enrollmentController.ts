@@ -81,6 +81,62 @@ export const checkSePuedeAprobar = async (id_estudiante: number, id_modulo: numb
   return Boolean(result[0]?.can_approve)
 }
 
+/*
+Borra la matrícula objetivo (id_matricula = $1) y todas las matrículas
+del MISMO alumno y MISMO módulo en AÑOS POSTERIORES.
+Además, si la matrícula objetivo es de convocatoria 'Ordinaria',
+borra también la del mismo año en 'Extraordinaria' (si existiera).
+*/
+
+export const deleteEnrollmentCascade = async (id_matricula: number): Promise<Enrollment[]> => {
+  try {
+    const results = await sql`
+      DELETE FROM Matriculas m
+      USING Matriculas t,           -- matrícula objetivo
+            Expedientes te,         -- expediente de la matrícula objetivo
+            Expedientes me          -- expediente de cada matrícula candidata a borrar
+      WHERE t.id_matricula = ${id_matricula}
+        AND te.id_expediente = t.id_expediente
+        AND me.id_expediente = m.id_expediente
+
+        -- mismo alumno y mismo módulo
+        AND m.id_estudiante = t.id_estudiante
+        AND m.id_modulo     = t.id_modulo
+
+        AND (
+              -- a) años posteriores
+              me.ano_inicio > te.ano_inicio
+           OR (me.ano_inicio = te.ano_inicio AND me.ano_fin > te.ano_fin)
+
+              -- b) el propio año/expediente objetivo (borra la matrícula ancla)
+           OR  me.id_expediente = te.id_expediente
+
+              -- c) mismo año "extra" si el objetivo es Ordinaria
+           OR (me.ano_inicio = te.ano_inicio
+               AND me.ano_fin = te.ano_fin
+               AND te.convocatoria = 'Ordinaria'
+               AND me.convocatoria = 'Extraordinaria')
+        )
+      RETURNING
+        m.id_matricula,
+        m.id_expediente,
+        m.id_modulo,
+        m.id_estudiante,
+        (m.nota)::text AS nota;
+    `;
+
+    if (!results[0]) {
+      const err: any = new Error("No existe la matrícula");
+      err.status = 404;
+      throw err;
+    }
+
+    return results.map((row: any) => EnrollmentSchema.parse(row));
+  } catch (e) {
+    throw e;
+  }
+};
+
 // QUERY GRANDE [SEPARACIÓN] -----------------------------------------------------------------
 
 type NotaEnum =

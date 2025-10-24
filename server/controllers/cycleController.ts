@@ -1,4 +1,4 @@
-import sql from '../db/db'
+import sql from '../db/db';
 import { type PostCycle, type Cycle, ByNameCycleSchema, CycleSchema } from "../models/Cycle";
 
 export const getCycles = async (): Promise<Cycle[]> => {
@@ -37,7 +37,7 @@ export const getCycleByCode = async (code: string): Promise<Cycle[]> => {
   return results.map((result: any) => CycleSchema.parse(result));
 };
 
-export const getCycleByLaw = async (law: string): Promise<ReturnType<typeof ByNameCycleSchema.parse>[]> => {
+export const getCycleByLaw = async (law: number): Promise<ReturnType<typeof ByNameCycleSchema.parse>[]> => {
   const results = await sql`
     SELECT DISTINCT codigo, nombre, norma_1, norma_2, ley 
     FROM Ciclos WHERE ley = ${law}

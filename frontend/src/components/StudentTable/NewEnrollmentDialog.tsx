@@ -23,7 +23,7 @@ import { Label } from "@/components/ui/label";
 import SelectField from "@/components/StudentTable/SelectField";
 import { toast } from "sonner";
 
-import { PostStudent, PostRecord, PostEnrollment } from "@/types";
+import { PostStudent, PostRecord, PostEnrollment, Law } from "@/types";
 import { useRowState } from "react-table";
 import { AirVent } from "lucide-react";
 
@@ -31,6 +31,18 @@ import { AirVent } from "lucide-react";
 // ===============================================================
 // ========== FUNCIONES AUXILIARES / LLAMADAS A LA API ===========
 // ===============================================================
+
+// Fetch Leyes data from API
+async function getAllLeyes(): Promise<Law[]> {
+  const response = await api.laws.$get();
+
+  if (!response) {
+    throw new Error("Error fetching laws")
+  }
+
+  const data = await response.json();
+  return data.leyes as Law[];
+}
 
 // -- Obtiene la información completa de un estudiante -----------
 async function getFullStudentData(id: number): Promise<FullStudentData> {
@@ -291,6 +303,17 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
     return out;
   }, [modulosQueries, cursoIds]);
 
+  // --- 7. Obtención de las leyes
+  const {
+    error: leyesError,
+    data: leyesData = [],
+    isLoading: leyesLoading,
+  } = useQuery<Law[]>({
+    queryKey: ['leyes'],
+    queryFn: getAllLeyes,
+    staleTime: 5 * 60 * 1000,
+  })
+
   // ------------------ FILTROS DE MÓDULOS -----------------------
   const modulosPrimerCurso = modulosByCurso['1'] ?? [];
   const modulosSegundoCurso = modulosByCurso['2'] ?? [];
@@ -447,7 +470,7 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
     queryClient.refetchQueries({ queryKey: ['students-allFullInfo'], type: 'active' });
     queryClient.invalidateQueries({ queryKey: ["students-by-filter"] });
     queryClient.refetchQueries({ queryKey: ["students-by-filter"], type: "active" });
-    
+
     onClose();
     setTimeout(() => { // reset 500 ms después
       setSelectedLey("");
@@ -506,11 +529,12 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
               value={selectedLey}
               onValueChange={handleLeyChange}
               placeholder="Seleccionar ley"
-              options={[
-                { label: "LOGSE", value: "LOGSE" },
-                { label: "LOE", value: "LOE" },
-                { label: "LFP", value: "LFP" },
-              ]}
+              options={
+                leyesData.map((ley) => ({
+                  value: `${ley.id_ley}`,
+                  label: `${ley.nombre_ley}`
+                }))
+              }
               width={1000}
             />
           </div>

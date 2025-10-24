@@ -1,3 +1,4 @@
+export type { Law, PostLaw } from "@server/models/Law"
 export type { Cycle, PostCycle } from "@server/models/Cycle";
 export type { Enrollment, PostEnrollment } from "@server/models/Enrollment";
 export type { Module, PostModule } from "@server/models/Module";

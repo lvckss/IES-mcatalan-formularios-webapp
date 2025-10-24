@@ -42,7 +42,7 @@ export const updateFechaPagoTitulo = async (record_id: number, fecha_pago_titulo
   return RecordSchema.parse(results[0]);
 }
 
-export const patchBajaEstudianteCiclo = async (id_estudiante: number, id_ciclo: number, dado_baja: boolean) : Promise<Record[]> => {
+export const patchBajaEstudianteCiclo = async (id_estudiante: number, id_ciclo: number, dado_baja: boolean): Promise<Record[]> => {
   const results = await sql`
     UPDATE Expedientes e
     SET dado_baja = ${dado_baja}
@@ -71,4 +71,33 @@ export const checkPuedeCursar = async (id_estudiante: number, id_ciclo: number, 
   `;
 
   return Boolean(result[0]?.can_enroll)
+}
+
+export const deleteRecordComplete = async (id: number): Promise<Record[]> => {
+  const results = await sql`
+    DELETE FROM Expedientes e
+    USING Expedientes t
+    WHERE t.id_expediente = ${id}
+      AND e.id_estudiante = t.id_estudiante
+      AND e.id_ciclo      = t.id_ciclo
+      AND (
+            -- any later academic year (strictly greater)
+            e.ano_inicio > t.ano_inicio
+        OR (e.ano_inicio = t.ano_inicio AND e.ano_fin > t.ano_fin)
+
+            -- the target year itself: always delete the target;
+            -- and if target is Ordinaria, also delete same-year Extraordinaria
+        OR (e.ano_inicio = t.ano_inicio AND e.ano_fin = t.ano_fin AND (
+              e.id_expediente = t.id_expediente
+            OR (t.convocatoria = 'Ordinaria' AND e.convocatoria = 'Extraordinaria')
+        ))
+      )
+    RETURNING e.*
+  `;
+
+  if (!results || results.length === 0) {
+    return [];
+  }
+
+  return results.map((result: any) => RecordSchema.parse(result));
 }

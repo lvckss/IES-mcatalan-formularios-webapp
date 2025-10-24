@@ -102,8 +102,6 @@ const AddExtraordinariaButton: React.FC<AddExtraordinariaButtonProps> = ({
             qc.invalidateQueries({ queryKey: ["full-student-data", studentId] });
             qc.invalidateQueries({ queryKey: ["can-approve", studentId] });
             qc.invalidateQueries({ queryKey: ["can-enroll-period", studentId] });
-            qc.invalidateQueries({ queryKey: ['students-allFullInfo']});
-            qc.refetchQueries({ queryKey: ['students-allFullInfo'], type: 'active' });
             onCreated?.(newId);
         },
         onError: (err: any) => {
