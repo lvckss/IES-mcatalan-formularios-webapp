@@ -16,6 +16,8 @@ import {
 
 import { z } from "zod";
 
+import type { AppBindings } from "../app";
+
 // --- Helpers de validación ---
 const dateFromISO = z.preprocess((v) => {
   if (v instanceof Date) return v;
@@ -36,7 +38,16 @@ const idParamSchema = z.object({
   id: z.coerce.number().int().positive(),
 });
 
-export const studentsRoute = new Hono()
+export const studentsRoute = new Hono<AppBindings>()
+  .use("*", async (c, next) => {
+    const user = c.get("user");
+    if (!user) {
+      // devolvemos Response aquí
+      return c.json({ error: "No autorizado" }, 401);
+    }
+    // y solo seguimos si hay sesión
+    await next();
+  })
   .get("/", async (c) => {
     const result = await getStudents();
     return c.json({ estudiantes: result });

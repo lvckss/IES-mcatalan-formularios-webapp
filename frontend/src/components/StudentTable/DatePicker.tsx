@@ -25,6 +25,7 @@ const DatePicker: React.FC<DatePickerProps> = ({ label, name, value, onChange })
   const [isPopoverOpen, setIsPopoverOpen] = React.useState(false)
   const [manualInput, setManualInput] = React.useState<string>("")
   const [inputError, setInputError] = React.useState<string>("")
+  const inputRef = React.useRef<HTMLInputElement>(null)
 
   React.useEffect(() => {
     const d = value ?? undefined
@@ -39,20 +40,7 @@ const DatePicker: React.FC<DatePickerProps> = ({ label, name, value, onChange })
   }, [value])
 
   const years = Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i)
-  const months = [
-    "Enero",
-    "Febrero",
-    "Marzo",
-    "Abril",
-    "Mayo",
-    "Junio",
-    "Julio",
-    "Agosto",
-    "Septiembre",
-    "Octubre",
-    "Noviembre",
-    "Diciembre",
-  ]
+  const months = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
 
   const handleYearChange = (value: string) => {
     const newYear = Number.parseInt(value)
@@ -80,113 +68,137 @@ const DatePicker: React.FC<DatePickerProps> = ({ label, name, value, onChange })
     }
   }
 
-  const handleManualInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value;
-    const input = raw.replace(/[^\d/]/g, "").slice(0, 10); // dígitos y '/', máx 10
-    setManualInput(input);
+  // Máscara: inserta '/' tras dd y tras mm. Acepta pegado sin separadores.
+  const maskDateInput = (raw: string) => {
+    const digits = raw.replace(/\D/g, "").slice(0, 8)
+    const d = digits.slice(0, 2)
+    const m = digits.slice(2, 4)
+    const y = digits.slice(4, 8)
 
-    const partialPattern = /^\d{0,2}(\/\d{0,2}(\/\d{0,4})?)?$/;
+    let out = ""
+    if (d) out += d
+    if (digits.length >= 2) out += "/"
+    if (m) out += m
+    if (digits.length >= 4) out += "/"
+    if (y) out += y
+    return out
+  }
+
+  // 🧭 Coloca el cursor de forma fiable tras render
+  const setCaret = (pos: number) => {
+    requestAnimationFrame(() => {
+      const el = inputRef.current
+      if (!el) return
+      el.setSelectionRange(pos, pos)
+    })
+  }
+
+  // Permitir Backspace sobre '/' reduciendo el bloque previo (día/mes)
+  const handleManualKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== "Backspace") return
+    const el = e.currentTarget
+    const start = el.selectionStart ?? 0
+    const end = el.selectionEnd ?? 0
+    if (start !== end) return // si hay selección, comportamiento normal
+
+    // dd/| -> posición 3
+    if (manualInput[2] === "/" && start === 3) {
+      e.preventDefault()
+      const digits = manualInput.replace(/\D/g, "")
+      if (digits.length >= 2) {
+        const newDigits = digits.slice(0, 1) + digits.slice(2) // elimina 2º dígito del día
+        const masked = maskDateInput(newDigits)
+        // Reutilizamos la validadora central:
+        handleManualInputChange({ target: { value: masked } } as React.ChangeEvent<HTMLInputElement>)
+        setCaret(1) // tras el primer dígito del día
+      }
+      return
+    }
+
+    // dd/mm/| -> posición 6
+    if (manualInput[5] === "/" && start === 6) {
+      e.preventDefault()
+      const digits = manualInput.replace(/\D/g, "")
+      if (digits.length >= 4) {
+        const newDigits = digits.slice(0, 3) + digits.slice(4) // elimina 2º dígito del mes
+        const masked = maskDateInput(newDigits)
+        handleManualInputChange({ target: { value: masked } } as React.ChangeEvent<HTMLInputElement>)
+        setCaret(4) // dd/m|
+      }
+      return
+    }
+  }
+
+  const handleManualInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value
+    const input = maskDateInput(raw) // <- usamos la máscara siempre
+    setManualInput(input)
+
+    const partialPattern = /^\d{0,2}(\/\d{0,2}(\/\d{0,4})?)?$/
     if (!partialPattern.test(input)) {
-      setInputError("Formato inválido");
-      return;
+      setInputError("Formato inválido")
+      return
     }
 
     if (input.length === 0) {
-      setInputError("");
-      onChange?.(undefined);
-      setDate(undefined);
-      return;
+      setInputError("")
+      onChange?.(undefined)
+      setDate(undefined)
+      return
     }
 
-    const slashCount = (input.match(/\//g) || []).length;
-    const [d = "", m = "", y = ""] = input.split("/");
+    const slashCount = (input.match(/\//g) || []).length
+    const [d = "", m = "", y = ""] = input.split("/")
 
-    // 🔹 Solo día (sin /)
     if (slashCount === 0) {
-      if (d.length === 1) {
-        // 0 no es un día válido; otro dígito -> día incompleto
-        setInputError(d === "0" ? "Día inválido" : "Día incompleto");
-        return;
-      }
+      if (d.length === 1) { setInputError(d === "0" ? "Día inválido" : "Día incompleto"); return }
       if (d.length === 2) {
-        const day = Number(d);
-        if (day < 1 || day > 31) {
-          setInputError("Día inválido");
-        } else {
-          setInputError("Fecha incompleta (falta mes y año)");
-        }
-        return;
+        const day = Number(d)
+        setInputError(day < 1 || day > 31 ? "Día inválido" : "Fecha incompleta (falta mes y año)")
+        return
       }
     }
 
-    // 🔹 Un slash: validación progresiva de mes
     if (slashCount === 1) {
-      if (d.length < 2) {
-        setInputError("Día incompleto");
-        return;
-      }
-      const day = Number(d);
-      if (day < 1 || day > 31) {
-        setInputError("Día inválido");
-        return;
-      }
-      if (m.length === 0) {
-        setInputError("Fecha incompleta (falta mes)");
-        return;
-      }
-      if (m.length === 1) {
-        setInputError("Mes incompleto");
-        return;
-      }
-      const monthNum = Number(m);
-      if (monthNum < 1 || monthNum > 12) {
-        setInputError("Mes inválido");
-        return;
-      }
-      setInputError("Fecha incompleta (falta año)");
-      return;
+      if (d.length < 2) { setInputError("Día incompleto"); return }
+      const day = Number(d)
+      if (day < 1 || day > 31) { setInputError("Día inválido"); return }
+      if (m.length === 0) { setInputError("Fecha incompleta (falta mes)"); return }
+      if (m.length === 1) { setInputError("Mes incompleto"); return }
+      const monthNum = Number(m)
+      if (monthNum < 1 || monthNum > 12) { setInputError("Mes inválido"); return }
+      setInputError("Fecha incompleta (falta año)")
+      return
     }
 
-    // 🔹 Dos slashes pero sin 10 caracteres -> año incompleto
     if (slashCount === 2 && input.length !== 10) {
-      if (d.length !== 2) { setInputError("Día incompleto"); return; }
-      if (m.length !== 2) { setInputError("Mes incompleto"); return; }
-      const day = Number(d), monthNum = Number(m);
-      if (day < 1 || day > 31) { setInputError("Día inválido"); return; }
-      if (monthNum < 1 || monthNum > 12) { setInputError("Mes inválido"); return; }
-      setInputError("Año incompleto");
-      return;
+      if (d.length !== 2) { setInputError("Día incompleto"); return }
+      if (m.length !== 2) { setInputError("Mes incompleto"); return }
+      const day = Number(d), monthNum = Number(m)
+      if (day < 1 || day > 31) { setInputError("Día inválido"); return }
+      if (monthNum < 1 || monthNum > 12) { setInputError("Mes inválido"); return }
+      setInputError("Año incompleto")
+      return
     }
 
-    // 🔹 Completa: dd/mm/aaaa
     if (input.length === 10) {
-      const fullDateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
-      if (!fullDateRegex.test(input)) {
-        setInputError("Formato debe ser dd/mm/aaaa");
-        return;
-      }
-      const parsedDate = parse(input, "dd/MM/yyyy", new Date());
-      if (!isValid(parsedDate) || format(parsedDate, "dd/MM/yyyy") !== input) {
-        setInputError("Fecha inválida");
-        return;
-      }
-      const minDate = startOfYear(new Date(1900, 0, 1));
-      const maxDate = endOfYear(new Date());
-      if (parsedDate < minDate || parsedDate > maxDate) {
-        setInputError("Fecha fuera de rango");
-        return;
-      }
-      setInputError("");
-      setDate(parsedDate);
-      setMonth(parsedDate.getMonth());
-      setYear(parsedDate.getFullYear());
-      onChange?.(parsedDate);
-      return;
+      const fullDateRegex = /^\d{2}\/\d{2}\/\d{4}$/
+      if (!fullDateRegex.test(input)) { setInputError("Formato debe ser dd/mm/aaaa"); return }
+      const parsedDate = parse(input, "dd/MM/yyyy", new Date())
+      if (!isValid(parsedDate) || format(parsedDate, "dd/MM/yyyy") !== input) { setInputError("Fecha inválida"); return }
+      const minDate = startOfYear(new Date(1900, 0, 1))
+      const maxDate = endOfYear(new Date())
+      if (parsedDate < minDate || parsedDate > maxDate) { setInputError("Fecha fuera de rango"); return }
+      setInputError("")
+      setDate(parsedDate)
+      setMonth(parsedDate.getMonth())
+      setYear(parsedDate.getFullYear())
+      onChange?.(parsedDate)
+      return
     }
 
-    // Cualquier otro parcial válido (p.ej. "2/"): ya se captura arriba
-    setInputError("");
-  };
+    setInputError("")
+  }
 
   return (
     <div className="grid grid-cols-4 items-center gap-4 w-auto p-0 z-50">
@@ -196,10 +208,12 @@ const DatePicker: React.FC<DatePickerProps> = ({ label, name, value, onChange })
       <div className="col-span-3 flex gap-2">
         <div className="flex-1">
           <Input
+            ref={inputRef}
             type="text"
             placeholder="dd/mm/aaaa"
             value={manualInput}
             onChange={handleManualInputChange}
+            onKeyDown={handleManualKeyDown}
             inputMode="numeric"
             aria-invalid={!!inputError}
             aria-describedby={inputError ? `${name}-error` : undefined}

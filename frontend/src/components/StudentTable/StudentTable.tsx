@@ -37,7 +37,7 @@ import { RotateCcw } from "lucide-react";
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Download } from "lucide-react";
 
 import { Label } from "@/components/ui/label";
 
@@ -50,6 +50,8 @@ import { FullStudentData } from '@/types';
 import { api } from '@/lib/api';
 
 import { useState } from 'react';
+
+import * as XLSX from "xlsx";
 
 async function deleteStudent({ id }: { id: number }) {
   const response = await api.students[':id'].$delete({ param: { id: id.toString() } });
@@ -399,12 +401,20 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
 
   // Lista de ciclos disponibles (únicos), ordenados por nombre
   const todosLosCiclos = React.useMemo(() => {
-    const unique = new Map<number, { id: number; nombre: string; codigo: string }>();
+    const unique = new Map<string, { codigo: string; nombre: string }>();
+
     (allFullInfo ?? []).forEach(({ records }) => {
       records.forEach(r => {
-        unique.set(r.id_ciclo, { id: r.id_ciclo, nombre: r.ciclo_nombre, codigo: r.ciclo_codigo });
+        if (!r.ciclo_codigo) return;
+        if (!unique.has(r.ciclo_codigo)) {
+          unique.set(r.ciclo_codigo, {
+            codigo: r.ciclo_codigo,
+            nombre: r.ciclo_nombre,
+          });
+        }
       });
     });
+
     return Array.from(unique.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
   }, [allFullInfo]);
 
@@ -413,27 +423,28 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
     (allFullInfo ?? []).forEach(({ records }) => {
       records.forEach(r => {
         const period = `${r.ano_inicio}-${r.ano_fin}`;
+
         const okYear = (schoolYear === "__all__") || (period === schoolYear);
-        const okCycle = (schoolCycle === "__all__") || (r.id_ciclo === Number(schoolCycle));
+        const okCycle = (schoolCycle === "__all__") || (r.ciclo_codigo === schoolCycle);
         const okTransf = !trasladoEnabled || (r.vino_traslado === trasladoValue);
+
         if (okYear && okCycle && okTransf && r.turno) s.add(r.turno);
       });
     });
     return Array.from(s).sort((a, b) => a.localeCompare(b));
   }, [allFullInfo, schoolYear, schoolCycle, trasladoEnabled, trasladoValue]);
 
-
   // Opciones de curso disponibles para el ciclo seleccionado
   const cursosDelCicloSeleccionado = React.useMemo(() => {
     if (schoolCycle === "__all__") return [] as number[];
-    const id = Number(schoolCycle);
+    const cicloCodigo = schoolCycle;
     const set = new Set<number>();
 
     (allFullInfo ?? []).forEach(({ records }) => {
       records.forEach(r => {
         const period = `${r.ano_inicio}-${r.ano_fin}`;
         const okYear = (schoolYear === "__all__") || (period === schoolYear);
-        const okCycle = r.id_ciclo === id;
+        const okCycle = r.ciclo_codigo === cicloCodigo;
         const okTransf = !trasladoEnabled || (r.vino_traslado === trasladoValue);
         const okShift = (turno === "__all__") || (r.turno === turno);
 
@@ -462,36 +473,30 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
 
   // 5) Pre-filter students by selected period (keeps your column filters working)
   const dataFiltrada = React.useMemo(() => {
-    // ¿Algún filtro que obligue a mirar Expedientes?
     const needsExpedientes =
       schoolYear !== "__all__" ||
       schoolCycle !== "__all__" ||
       schoolCourse !== "__all__" ||
       turno !== "__all__" ||
-      trasladoEnabled; // 👈 solo cuenta si está activo
+      trasladoEnabled;
 
-    // Si hay grupo seleccionado pero aún se cargan sus miembros → espera
     if (groupIdNum !== null && groupMembersLoading) return [];
 
-    // 0) Pre-filtrado por requisito académico (campo en Estudiantes)
     let base = students;
     if (requisitoEnabled) {
       base = base.filter((s) => {
-        const val = (s as any).requisito_academico; // o s.requisito_academico si lo tienes tipado
+        const val = (s as any).requisito_academico;
         return Boolean(val) === requisitoValue;
       });
     }
 
-    // 1) Filtrado por grupo (si lo hay)
     if (groupIdNum !== null) {
       base = base.filter((s) => selectedGroupMemberSet.has(s.id_estudiante));
     }
 
-    // 2) Si no hay filtros de expedientes, terminamos
     if (!needsExpedientes) return base;
 
-    // 3) Con filtros de expedientes activos
-    const cycleId = schoolCycle !== "__all__" ? Number(schoolCycle) : null;
+    const cycleCode = schoolCycle !== "__all__" ? schoolCycle : null;
     const courseN = schoolCourse !== "__all__" ? Number(schoolCourse) : null;
 
     return base.filter((s) => {
@@ -500,8 +505,8 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
 
       return info.records.some((r) => {
         if (schoolYear !== "__all__" && `${r.ano_inicio}-${r.ano_fin}` !== schoolYear) return false;
-        if (cycleId !== null && r.id_ciclo !== cycleId) return false;
-        if (trasladoEnabled && r.vino_traslado !== trasladoValue) return false; // 👈 tri-state aplicado
+        if (cycleCode !== null && r.ciclo_codigo !== cycleCode) return false;
+        if (trasladoEnabled && r.vino_traslado !== trasladoValue) return false;
         if (turno !== "__all__" && r.turno !== turno) return false;
 
         if (courseN !== null) {
@@ -513,17 +518,13 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
       });
     });
   }, [
-    // base
     students,
     fullInfoById,
-    // grupo
     groupIdNum,
     groupMembersLoading,
     selectedGroupMemberSet,
-    // requisito académico
     requisitoEnabled,
     requisitoValue,
-    // expedientes
     schoolYear,
     schoolCycle,
     schoolCourse,
@@ -531,6 +532,49 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
     trasladoEnabled,
     trasladoValue,
   ]);
+
+  const exportToExcel = React.useCallback(() => {
+    if (!dataFiltrada || dataFiltrada.length === 0) {
+      toast("No hay alumnos que exportar con los filtros actuales.");
+      return;
+    }
+
+    const rows = dataFiltrada.map((s) => ({
+      ID: s.id_estudiante,
+      Nombre: s.nombre,
+      "Apellido 1": s.apellido_1,
+      "Apellido 2": s.apellido_2 ?? "",
+      Sexo: s.sexo,
+      "Teléfono": s.num_tfno ?? "",
+      "ID legal": s.id_legal,
+      "Tipo ID legal": s.tipo_id_legal,
+      "Fecha nacimiento":
+        s.fecha_nac instanceof Date
+          ? s.fecha_nac.toLocaleDateString("es-ES", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          })
+          : new Date(s.fecha_nac as any).toLocaleDateString("es-ES", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          }),
+      Observaciones: s.observaciones ?? "",
+      "Requisito académico": s.requisito_academico ? "Sí" : "No",
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Estudiantes");
+
+    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    XLSX.writeFile(workbook, `estudiantes_${today}.xlsx`);
+
+    toast("Exportación completada", {
+      description: `Se han exportado ${rows.length} alumnos.`,
+    });
+  }, [dataFiltrada]);
 
   // inicialización de la tabla
   const table = useReactTable({
@@ -608,7 +652,7 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
                 <SelectContent>
                   <SelectItem value="__all__">...</SelectItem>
                   {todosLosCiclos.map(c => (
-                    <SelectItem key={c.id} value={String(c.id)}>
+                    <SelectItem key={c.codigo} value={c.codigo}>
                       {c.nombre} ({c.codigo})
                     </SelectItem>
                   ))}
@@ -820,6 +864,17 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" onClick={clearSelection}>
             Limpiar selección ({selectedIds.size})
+          </Button>
+
+          <Button
+            variant="default"
+            size="sm"
+            className="gap-1"
+            onClick={exportToExcel}
+            disabled={dataFiltrada.length === 0}
+          >
+            <Download className="h-4 w-4" />
+            Exportar Excel
           </Button>
         </div>
       </div>

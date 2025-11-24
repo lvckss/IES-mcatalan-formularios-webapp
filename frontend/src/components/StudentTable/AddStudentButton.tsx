@@ -189,6 +189,7 @@ const AddStudentButton: React.FC = () => {
     const [selectedTurno, setSelectedTurno] = useState<string>("");
     const [selectedID, setSelectedID] = useState<string>("");
     const [errorLogicaID, setErrorLogicaID] = useState<string | null>(null);
+    const [phoneError, setPhoneError] = useState<string | null>(null);
     const [selectedYear, setSelectedYear] = useState<string>("");
     const [vinoTraslado, setVinoTraslado] = useState<boolean>(false);
     const [requisitoAcademico, setRequisitoAcademico] = useState<boolean>(true);
@@ -196,9 +197,7 @@ const AddStudentButton: React.FC = () => {
     const queryClient = useQueryClient();
 
     const {
-        error: leyesError,
         data: leyesData = [],
-        isLoading: leyesLoading,
     } = useQuery<Law[]>({
         queryKey: ['leyes'],
         queryFn: getAllLeyes,
@@ -206,7 +205,6 @@ const AddStudentButton: React.FC = () => {
     })
 
     const {
-        isPending: ciclosLoading,
         error: ciclosError,
         data: ciclosData = []
     } = useQuery({
@@ -514,6 +512,25 @@ const AddStudentButton: React.FC = () => {
         }
     };
 
+    const validatePhone = (value: string) => {
+        // Teléfono opcional: si está vacío, no mostramos error
+        if (!value) {
+            setPhoneError(null);
+            return true;
+        }
+
+        // Solo dígitos, 9 números (formato típico ES)
+        const spanishPhoneRegex = /^[0-9]{9}$/;
+
+        if (!spanishPhoneRegex.test(value)) {
+            setPhoneError("El teléfono debe tener 9 dígitos numéricos.");
+            return false;
+        }
+
+        setPhoneError(null);
+        return true;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         // ------- FUNCIONES DEL HANDLE SUBMIT PARA LA LÓGICA DE ESTUDIANTE YA EXISTENTE --------
         const isDuplicateStudentError = (err: any) =>
@@ -547,6 +564,11 @@ const AddStudentButton: React.FC = () => {
             return;
         }
 
+        if (phoneError) {
+            toast("Por favor, corrija el número de teléfono.");
+            return;
+        }
+
         // Estructurar los datos para la solicitud POST
         const [anoInicio, anoFin] = selectedYear.split('-').map(Number);
         const studentData: PostStudent = {
@@ -562,13 +584,10 @@ const AddStudentButton: React.FC = () => {
             requisito_academico: requisitoAcademico
         };
 
-        const matriculas: MatriculaPrevia[] = Object.entries(selectedModules).map(([id]) => ({
+        const matriculas = Object.entries(selectedModules).map(([id]) => ({
             id_modulo: Number(id),
-            nota: 'NE',
+            nota: 'NE' as PostEnrollment["nota"],
         }));
-
-        // da igual si pillamos la id de primero o segundo, nos importa para luego pillar el código e.g (SAN301-LOE)
-        const cicloIDPrimero = cursoIds['1'];
 
         try {
 
@@ -628,6 +647,7 @@ const AddStudentButton: React.FC = () => {
             setApellido1("");
             setApellido2(null);
             setNum_tfno(null);
+            setPhoneError(null);
             setFechaNacimiento(undefined);
             setSelectedCiclo("");
             setSelectedSexo("");
@@ -749,11 +769,18 @@ const AddStudentButton: React.FC = () => {
                                 <PhoneFormField
                                     label="Teléfono"
                                     name="num_tfno"
-                                    value={num_tfno ?? ''}
-                                    onChange={setNum_tfno}
+                                    value={num_tfno ?? ""}
+                                    onChange={(value) => {
+                                        const v = value ?? "";
+                                        setNum_tfno(v || null);
+                                        validatePhone(v);
+                                    }}
                                     placeholder="..."
                                     defaultCountry="ES"
+                                    error={phoneError ?? undefined}
                                 />
+
+
                                 <div className="z-100">
                                     <DatePicker label="Fecha de nacimiento" name="fecha_nacimiento" onChange={handleDateChange} />
                                 </div>

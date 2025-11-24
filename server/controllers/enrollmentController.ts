@@ -67,19 +67,21 @@ export const patchEnrollmentNota = async (
 export const checkSePuedeAprobar = async (id_estudiante: number, id_modulo: number): Promise<boolean> => {
   const result = await sql`
     SELECT NOT EXISTS (
-    SELECT 1
-    FROM Matriculas
-    WHERE id_estudiante = ${id_estudiante}
-      AND id_modulo = ${id_modulo}
-      AND nota IN (
-        '5','6','7','8','9','10','10-MH',
-        'APTO','CV','CV-5','CV-6','CV-7','CV-8','CV-9','CV-10'
-      )
+      SELECT 1
+      FROM Matriculas
+      WHERE id_estudiante = ${id_estudiante}
+        AND id_modulo = ${id_modulo}
+        AND nota IN (
+          '5','6','7','8','9','10','10-MH','10-Matr. Honor',
+          'APTO','CV','CV-5','CV-6','CV-7','CV-8','CV-9','CV-10','CV-10-MH',
+          'TRAS-5','TRAS-6','TRAS-7','TRAS-8','TRAS-9','TRAS-10','TRAS-10-MH',
+          'EX'
+        )
     ) AS can_approve;
   `;
 
-  return Boolean(result[0]?.can_approve)
-}
+  return Boolean(result[0]?.can_approve);
+};
 
 /*
 Borra la matrícula objetivo (id_matricula = $1) y todas las matrículas
@@ -88,62 +90,95 @@ Además, si la matrícula objetivo es de convocatoria 'Ordinaria',
 borra también la del mismo año en 'Extraordinaria' (si existiera).
 */
 
+// Deletes the target enrollment (plus cascade by your rules),
+// then deletes any empty Expedientes for that same student.
+// Returns the deleted enrollments.
 export const deleteEnrollmentCascade = async (id_matricula: number): Promise<Enrollment[]> => {
   try {
-    const results = await sql`
-      DELETE FROM Matriculas m
-      USING Matriculas t,           -- matrícula objetivo
-            Expedientes te,         -- expediente de la matrícula objetivo
-            Expedientes me          -- expediente de cada matrícula candidata a borrar
-      WHERE t.id_matricula = ${id_matricula}
-        AND te.id_expediente = t.id_expediente
-        AND me.id_expediente = m.id_expediente
+    const result = await sql.begin(async (trx) => {
+      // 1) Delete enrollments (anchor + cascade)
+      const deleted = await trx/* sql */`
+        WITH del AS (
+          DELETE FROM Matriculas m
+          USING Matriculas t,           -- matrícula objetivo
+                Expedientes te,         -- expediente del objetivo
+                Expedientes me          -- expediente de cada matrícula candidata
+          WHERE t.id_matricula = ${id_matricula}
+            AND te.id_expediente = t.id_expediente
+            AND me.id_expediente = m.id_expediente
 
-        -- mismo alumno y mismo módulo
-        AND m.id_estudiante = t.id_estudiante
-        AND m.id_modulo     = t.id_modulo
+            -- mismo alumno y mismo módulo
+            AND m.id_estudiante = t.id_estudiante
+            AND m.id_modulo     = t.id_modulo
 
-        AND (
-              -- a) años posteriores
-              me.ano_inicio > te.ano_inicio
-           OR (me.ano_inicio = te.ano_inicio AND me.ano_fin > te.ano_fin)
+            AND (
+                  -- a) años posteriores
+                  me.ano_inicio > te.ano_inicio
+               OR (me.ano_inicio = te.ano_inicio AND me.ano_fin > te.ano_fin)
 
-              -- b) el propio año/expediente objetivo (borra la matrícula ancla)
-           OR  me.id_expediente = te.id_expediente
+                  -- b) el propio año/expediente objetivo (borra la matrícula ancla)
+               OR  me.id_expediente = te.id_expediente
 
-              -- c) mismo año "extra" si el objetivo es Ordinaria
-           OR (me.ano_inicio = te.ano_inicio
-               AND me.ano_fin = te.ano_fin
-               AND te.convocatoria = 'Ordinaria'
-               AND me.convocatoria = 'Extraordinaria')
+                  -- c) mismo año "extra" si el objetivo es Ordinaria
+               OR (me.ano_inicio = te.ano_inicio
+                   AND me.ano_fin = te.ano_fin
+                   AND te.convocatoria = 'Ordinaria'
+                   AND me.convocatoria = 'Extraordinaria')
+            )
+          RETURNING
+            m.id_matricula,
+            m.id_expediente,
+            m.id_modulo,
+            m.id_estudiante,
+            (m.nota)::text AS nota
         )
-      RETURNING
-        m.id_matricula,
-        m.id_expediente,
-        m.id_modulo,
-        m.id_estudiante,
-        (m.nota)::text AS nota;
-    `;
+        SELECT * FROM del;
+      `;
 
-    if (!results[0]) {
-      const err: any = new Error("No existe la matrícula");
-      err.status = 404;
-      throw err;
-    }
+      if (deleted.length === 0) {
+        const err: any = new Error("No existe la matrícula");
+        err.status = 404;
+        throw err;
+      }
 
-    return results.map((row: any) => EnrollmentSchema.parse(row));
-  } catch (e) {
+      // 2) Cleanup: remove empty Expedientes for this student
+      const studentId = deleted[0].id_estudiante as number;
+
+      await trx/* sql */`
+        DELETE FROM Expedientes e
+        WHERE e.id_estudiante = ${studentId}
+          AND NOT EXISTS (
+            SELECT 1
+            FROM Matriculas mm
+            WHERE mm.id_expediente = e.id_expediente
+          );
+      `;
+
+      // 3) Return the deleted enrollments parsed
+      return deleted.map((row: any) => EnrollmentSchema.parse(row));
+    });
+
+    return result;
+  } catch (e: any) {
+    // Optional: surface FK issues clearly if some other table blocks deleting an Expediente
+    // if (e.code === '23503') {
+    //   const err: any = new Error('No se puede borrar el expediente vacío por dependencias (FK).');
+    //   err.status = 409;
+    //   throw err;
+    // }
     throw e;
   }
 };
 
+
 // QUERY GRANDE [SEPARACIÓN] -----------------------------------------------------------------
 
 type NotaEnum =
-  | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10'
-  | '10-MH'
-  | 'CV' | 'CV-5' | 'CV-6' | 'CV-7' | 'CV-8' | 'CV-9' | 'CV-10'
-  | 'AM' | 'RC' | 'NE' | 'APTO' | 'NO APTO';
+  | "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10"
+  | "10-MH" | "10-Matr. Honor"
+  | "CV" | "CV-5" | "CV-6" | "CV-7" | "CV-8" | "CV-9" | "CV-10" | "CV-10-MH"
+  | "TRAS-5" | "TRAS-6" | "TRAS-7" | "TRAS-8" | "TRAS-9" | "TRAS-10" | "TRAS-10-MH"
+  | "RC" | "NE" | "APTO" | "NO APTO" | "EX";
 
 type NotasMasAltasPorCicloReturn = {
   id_ciclo: number;     // curso concreto (1º o 2º) dentro del ciclo

@@ -1,9 +1,9 @@
 // ==================== IMPORTS ====================
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, Controller } from "react-hook-form";
 
 import { api } from "@/lib/api";
-import { useQuery, useQueries } from "@tanstack/react-query";
+import { useQuery, useQueries, useQueryClient } from "@tanstack/react-query";
 
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,9 +13,6 @@ import SelectField from "@/components/StudentTable/SelectField";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-// react-hook-form
-import { Controller } from "react-hook-form";
 
 import { toast } from "sonner";
 
@@ -28,39 +25,38 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 
-import { useQueryClient } from "@tanstack/react-query";
-
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-import { Save, RefreshCw } from "lucide-react";
-
 import { PostRecord, PostEnrollment, Enrollment, Student, Law } from '@/types';
+
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+
+import {
+  Command,
+  CommandInput,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+
+import { Check, ChevronsUpDown, Save, Trash2 } from "lucide-react";
 
 // ==================== API HELPERS ====================
 
 // Fetch Leyes data from API
 async function getAllLeyes(): Promise<Law[]> {
   const response = await api.laws.$get();
-
-  if (!response) {
-    throw new Error("Error fetching laws")
-  }
-
+  if (!response) throw new Error("Error fetching laws");
   const data = await response.json();
   return data.leyes as Law[];
 }
 
 // FETCH CICLOS SIN DIFERENCIAR CURSO POR LEY (LOGSE, LOE, LFP)
 async function getCiclosByLey(ley: string) {
-  const response = await api.cycles.law[':ley'].$get({
-    param: { ley }
-  });
-
-  if (!response) {
-    throw new Error("No existen ciclos con esa ley");
-  }
-
+  const response = await api.cycles.law[':ley'].$get({ param: { ley } });
+  if (!response) throw new Error("No existen ciclos con esa ley");
   const data = await response.json();
   return data.ciclo;
 }
@@ -70,11 +66,7 @@ async function getModulosByCicloAndCurso(cod_ciclo: string, curso: string) {
   const response = await api.modules.cycle[':cycle_code'].curso[':curso'].$get({
     param: { cycle_code: cod_ciclo, curso: curso }
   });
-
-  if (!response) {
-    throw new Error(`No existen móduclos para el ciclo ${cod_ciclo} en el curso ${curso}`);
-  }
-
+  if (!response) throw new Error(`No existen móduclos para el ciclo ${cod_ciclo} en el curso ${curso}`);
   const data = await response.json();
   return data.modulos;
 }
@@ -110,7 +102,6 @@ async function getAllStudentsFromCycleYearCursoTurnoConvocatoria(
     return s === "true" || s === "1" || s === "t";
   };
 
-  // si tu API usa otro nombre (ej. expediente_dado_baja), lo cubrimos aquí
   const activos = arr.filter((r) => {
     const baja =
       r?.dado_baja ??
@@ -140,7 +131,6 @@ async function getAllStudentsFromCycleYearCursoTurnoConvocatoria(
       ...base,
       expediente_id: Number(r.expediente_id),
       convocatoria: r.convocatoria as 'Ordinaria' | 'Extraordinaria',
-      // siempre false aquí porque hemos filtrado los de baja, pero lo dejamos por tipado
       dado_baja: false,
     };
   });
@@ -167,10 +157,11 @@ async function patchNota(
 type Convocatoria = "Ordinaria" | "Extraordinaria";
 
 type NotaEnum =
-  | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10"
-  | "10-MH"
-  | "CV" | "CV-5" | "CV-6" | "CV-7" | "CV-8" | "CV-9" | "CV-10"
-  | "AM" | "RC" | "NE" | "APTO" | "NO APTO";
+  | "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10"
+  | "10-MH" | "10-Matr. Honor"
+  | "CV" | "CV-5" | "CV-6" | "CV-7" | "CV-8" | "CV-9" | "CV-10" | "CV-10-MH"
+  | "TRAS-5" | "TRAS-6" | "TRAS-7" | "TRAS-8" | "TRAS-9" | "TRAS-10" | "TRAS-10-MH"
+  | "RC" | "NE" | "APTO" | "NO APTO" | "EX";
 
 type NotasMasAltasPorCicloReturn = {
   id_ciclo: number;
@@ -198,23 +189,15 @@ async function getNotasAltasEstudiantePorCiclo(
 
 // POST DE EXPEDIENTE (PARA CREAR EXPEDIENTE DE ESTUDIANTES EN EXTRAORDINARIA)
 async function createRecord(recordData: PostRecord) {
-  const response = await api.records.$post({
-    json: recordData,
-  });
-  if (!response.ok) {
-    throw new Error('Error al crear el expediente')
-  }
+  const response = await api.records.$post({ json: recordData });
+  if (!response.ok) throw new Error('Error al crear el expediente');
   return response.json();
 }
 
 // POST DE MATRICULAS
 async function createMatriculas(enrollmentData: PostEnrollment) {
-  const response = await api.enrollments.$post({
-    json: enrollmentData,
-  });
-  if (!response.ok) {
-    throw new Error('Error al crear las matrículas');
-  }
+  const response = await api.enrollments.$post({ json: enrollmentData });
+  if (!response.ok) throw new Error('Error al crear las matrículas');
   return response.json();
 }
 
@@ -228,7 +211,18 @@ async function enrollmentsByRecord(id_expediente: number, id_estudiante: number)
   return data.expedientes as Enrollment[];
 };
 
+// FETCH CONVOCATORIAS POR ESTUDIANTE Y MODULO
+async function countConvocatorias(id_modulo: number, id_estudiante: number) {
+  const response = await api.modules.convocatorias[":module_id"][":student_id"].$get({
+    param: { module_id: String(id_modulo), student_id: String(id_estudiante) },
+  });
+  if (!response.ok) throw new Error("Error obteniendo las convocatorias");
+  const data = await response.json();
+  return data.convocatorias;
+}
+
 // ==================== UTILS ====================
+
 // GENERA LAS OPCIONES DE AÑO ESCOLAR (EJ: 2024-2025)
 const generateSchoolYearOptions = (): { value: string; label: string }[] => {
   const currentYear = new Date().getFullYear(); // AÑO ACTUAL
@@ -237,10 +231,7 @@ const generateSchoolYearOptions = (): { value: string; label: string }[] => {
 
   for (let year = currentYear; year >= startYear; year--) {
     const schoolYear = `${year}-${year + 1}`;
-    options.push({
-      value: schoolYear,
-      label: schoolYear,
-    });
+    options.push({ value: schoolYear, label: schoolYear });
   }
 
   return options;
@@ -251,7 +242,6 @@ const notaToNumber = (v: unknown): number | null => {
   if (v == null || v === "") return null;
   if (typeof v === "number") return isFinite(v) ? v : null;
   if (typeof v === "string") {
-    // "10-MH" -> 10 ; "CV-8" -> 8 ; "CV" / "AM" / "RC" / "NE" / "APTO" / "NO APTO" -> null
     const mh = v.match(/^(\d{1,2})(?:-MH)?$/);
     if (mh) {
       const n = Number(mh[1]);
@@ -276,14 +266,13 @@ const isPassingNota = (v: unknown): boolean => {
 // ==================== VALIDATION SCHEMAS (ZOD) ====================
 // NOTAS OPCIONES
 const NOTA_OPTIONS = [
-  "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "10-MH",
-  "CV", "CV-5", "CV-6", "CV-7", "CV-8", "CV-9", "CV-10",
-  "AM", "RC", "NE", "APTO", "NO APTO"
+  "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "10-MH", "10-Matr. Honor",
+  "CV", "CV-5", "CV-6", "CV-7", "CV-8", "CV-9", "CV-10", "CV-10-MH",
+  "TRAS-5", "TRAS-6", "TRAS-7", "TRAS-8", "TRAS-9", "TRAS-10", "TRAS-10-MH",
+  "RC", "NE", "APTO", "NO APTO", "EX"
 ] as const;
 
 type Nota = typeof NOTA_OPTIONS[number];
-
-const NOTA_OPTIONS_NO_CV = NOTA_OPTIONS.filter(o => !o.startsWith("CV")) as Nota[];
 
 const actaNotaSchema = z.union([
   z.literal(""),
@@ -303,11 +292,18 @@ const actaEstudianteSchema = z.object({
 
 const tablaSchema = z.object({
   students: z.array(actaEstudianteSchema),
-  numSubjects: z.number().min(1, "Debe haber al menos 1 asignatura"),
 });
 
 type tablaForm = z.infer<typeof tablaSchema>;
 
+const NOTA_SET = new Set<string>(NOTA_OPTIONS as readonly string[]);
+
+const toDisplayNota = (v: unknown): string => {
+  if (v === "-" || v === "—" || v === "…") return v as string;
+  if (typeof v === "string" && NOTA_SET.has(v)) return v;
+  // cualquier otra cosa (incluidos números sueltos) -> "NE"
+  return "NE";
+};
 
 // ==================== COMPONENTE PRINCIPAL ====================
 const IntroduceActa: React.FC = () => {
@@ -317,71 +313,73 @@ const IntroduceActa: React.FC = () => {
   const [selectedCurso, setSelectedCurso] = useState<string>("");
   const [selectedAnioEscolar, setSelectedAnioEscolar] = useState<string>("");
   const [selectedTurno, setSelectedTurno] = useState<string>("");
-  const [numEstudiantes, setNumEstudiantes] = useState<number | ''>(0);
-  const [numAsignaturas, setNumAsignaturas] = useState<number | ''>('');
   const [selectedModuleCodes, setSelectedModuleCodes] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [selectedConvocatoria, setSelectedConvocatoria] = useState<"Ordinaria" | "Extraordinaria">("Ordinaria");
 
+  // MULTI: columnas extra de 1º en acta de 2º
+  const [extraFirstModuleCodes, setExtraFirstModuleCodes] = useState<string[]>([]);
+
   const queryClient = useQueryClient();
 
+  // Column codes in order: base (curso actual) + extras (1º)
+  const columnCodes = useMemo(
+    () => [...selectedModuleCodes, ...extraFirstModuleCodes],
+    [selectedModuleCodes, extraFirstModuleCodes]
+  );
+  const nCols = columnCodes.length;
+  const baseLen = selectedModuleCodes.length;
 
-  // ---------- REACT-QUERY: OBTENER LEYES -----------
-  const {
-    error: leyesError,
-    data: leyesData = [],
-    isLoading: leyesLoading,
-  } = useQuery<Law[]>({
+  // ---------- REACT-QUERY ----------
+  const { data: leyesData = [] } = useQuery<Law[]>({
     queryKey: ['leyes'],
     queryFn: getAllLeyes,
     staleTime: 5 * 60 * 1000,
-  })
+  });
 
-  // ---------- REACT-QUERY: OBTENER CICLOS ----------
-  const {
-    data: ciclosData = [],
-  } = useQuery({
+  const { data: ciclosData = [] } = useQuery({
     queryKey: ['ciclos-by-ley', selectedLey],
     queryFn: () => getCiclosByLey(selectedLey),
     enabled: !!selectedLey,
-    staleTime: 5 * 60 * 1000, // CACHE DE 5 MINUTOS
+    staleTime: 5 * 60 * 1000,
   });
 
-  // ---------- REACT-QUERY: OBTENER MÓDULOS ----------
-  const {
-    data: modulesData = [],
-  } = useQuery({
+  // módulos del curso seleccionado
+  const { data: modulesData = [] } = useQuery({
     queryKey: ['modules-by-cycle-curso', selectedCiclo, selectedCurso],
     queryFn: () => getModulosByCicloAndCurso(selectedCiclo, selectedCurso),
     enabled: !!selectedCurso && !!selectedCiclo,
     staleTime: 5 * 60 * 1000,
   });
 
-  // id_modulo by codigo_modulo (needed for patch)
+  // módulos de 1º (para extras)
+  const { data: modulesFirstYear = [] } = useQuery({
+    queryKey: ['modules-by-cycle-curso-first', selectedCiclo, '1'],
+    queryFn: () => getModulosByCicloAndCurso(selectedCiclo, '1'),
+    enabled: selectedCurso === '2' && !!selectedCiclo,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // map ids for both sets
   const modIdByCode = useMemo(() => {
     const m = new Map<string, number>();
-    (modulesData ?? []).forEach((mo: any) => {
+    [...(modulesData ?? []), ...(modulesFirstYear ?? [])].forEach((mo: any) => {
       if (mo?.codigo_modulo && mo?.id_modulo != null) m.set(mo.codigo_modulo, Number(mo.id_modulo));
     });
     return m;
-  }, [modulesData]);
+  }, [modulesData, modulesFirstYear]);
 
-  // inverse map: id_modulo -> codigo_modulo
   const codeByModId = useMemo(() => {
     const m = new Map<number, string>();
-    (modulesData ?? []).forEach((mo: any) => {
+    [...(modulesData ?? []), ...(modulesFirstYear ?? [])].forEach((mo: any) => {
       if (mo?.id_modulo != null && mo?.codigo_modulo) m.set(Number(mo.id_modulo), mo.codigo_modulo);
     });
     return m;
-  }, [modulesData]);
+  }, [modulesData, modulesFirstYear]);
 
   const cicloIdFromModules = modulesData?.[0]?.id_ciclo ?? null;
 
-  // ---------- REACT-QUERY: OBTENER ESTUDIANTES FILTRADOS -------
-  const {
-    data: studentsData = [],
-    isFetching: isFetchingStudents,
-  } = useQuery<StudentWithExpediente[]>({
+  const { data: studentsData = [], isFetching: isFetchingStudents } = useQuery<StudentWithExpediente[]>({
     queryKey: [
       "students-by-filter",
       selectedCiclo,
@@ -411,27 +409,24 @@ const IntroduceActa: React.FC = () => {
     staleTime: 5 * 60 * 1000,
   });
 
-  // All student IDs (if present in the payload)
   const studentIds = useMemo(
     () => (Array.isArray(studentsData) ? studentsData.map((s: any) => s.id_estudiante).filter(Boolean) : []),
     [studentsData]
   );
 
-  // (sid, rid) pairs for students that have an expediente
   const studentRecords = useMemo(
     () =>
     (Array.isArray(studentsData)
       ? studentsData
         .map((s: any) => ({
           sid: s.id_estudiante,
-          rid: s.id_expediente ?? s.expediente_id, // ← por si acaso
+          rid: s.id_expediente ?? s.expediente_id,
         }))
         .filter(({ sid, rid }) => Boolean(sid && rid))
       : []),
     [studentsData]
   );
 
-  // parallel queries: enrollments by record for each student
   const enrollmentsQueries = useQueries({
     queries: studentRecords.map(({ sid, rid }) => ({
       queryKey: ["enrollments-by-record", rid, sid, selectedConvocatoria] as const,
@@ -441,17 +436,12 @@ const IntroduceActa: React.FC = () => {
     })),
   });
 
-  // Map: studentId -> Set<codigo_modulo> en los que SÍ está matriculado
-  // studentId -> Set<codigo_modulo> con matrícula
-  // Map: studentId -> Set<codigo_modulo> (SOLO si la query terminó OK)
   const enrolledCodesByStudent = useMemo(() => {
     const map = new Map<number, Set<string>>();
     enrollmentsQueries.forEach((q, idx) => {
       const sid = studentRecords[idx]?.sid;
       if (!sid) return;
-
-      if (q.status !== "success" || !Array.isArray(q.data)) return; // ← no metas nada todavía
-
+      if (q.status !== "success" || !Array.isArray(q.data)) return;
       const set = new Set<string>();
       q.data.forEach((row) => {
         const code = codeByModId.get(row.id_modulo);
@@ -462,7 +452,6 @@ const IntroduceActa: React.FC = () => {
     return map;
   }, [enrollmentsQueries, studentRecords, codeByModId]);
 
-  // Map: studentId -> { [codigo_modulo]: notaDelExpedienteActual }
   const gradeByStudentCode = useMemo(() => {
     const map = new Map<number, Record<string, Nota>>();
     enrollmentsQueries.forEach((q, idx) => {
@@ -479,8 +468,6 @@ const IntroduceActa: React.FC = () => {
     return map;
   }, [enrollmentsQueries, studentRecords, codeByModId]);
 
-
-  // Fire parallel queries for best marks per student for this ciclo
   const notasQueries = useQueries({
     queries: (studentIds ?? []).map((sid: number) => ({
       queryKey: ["notas-altas", sid, cicloIdFromModules],
@@ -490,7 +477,6 @@ const IntroduceActa: React.FC = () => {
     })),
   });
 
-  // Build a map: studentId -> { [codigo_modulo]: mejor_nota }
   const notasByStudent = useMemo(() => {
     const map = new Map<number, Record<string, NotaEnum>>();
     if (!notasQueries?.length) return map;
@@ -507,9 +493,8 @@ const IntroduceActa: React.FC = () => {
     return map;
   }, [notasQueries, studentIds]);
 
-  // saber que notas bloquear
   const lockedByStudent = useMemo(() => {
-    const map = new Map<number, Set<string>>();  // studentId → Set(codigo_modulo)
+    const map = new Map<number, Set<string>>();
     notasByStudent.forEach((per, sid) => {
       const set = new Set<string>();
       Object.entries(per).forEach(([codigo, nota]) => {
@@ -520,245 +505,285 @@ const IntroduceActa: React.FC = () => {
     return map;
   }, [notasByStudent]);
 
-  // ¿Hay ya una convocatoria "Ordinaria" para el conjunto filtrado?
-  // Intenta leerla de studentsData (ajusta las claves si tu API usa otros nombres)
+  // ---------- CONVOCATORIAS POR (ESTUDIANTE, MÓDULO) ----------
+  const convCells = useMemo(() => {
+    const arr: Array<{ sid: number; code: string; modId: number }> = [];
+    if (!studentIds?.length || !columnCodes?.length) return arr;
+    for (const sid of studentIds) {
+      for (const code of columnCodes) {
+        const modId = modIdByCode.get(code);
+        if (!modId) continue;
+        arr.push({ sid, code, modId });
+      }
+    }
+    return arr;
+  }, [studentIds, columnCodes, modIdByCode]);
+
+  const convocatoriasQueries = useQueries({
+    queries: convCells.map(({ sid, modId }) => ({
+      queryKey: ["convocatorias", sid, modId] as const,
+      queryFn: () => countConvocatorias(modId, sid),
+      enabled: Boolean(sid && modId),
+      staleTime: 5 * 60 * 1000,
+    })),
+  });
+
+  const convCountByStudentCode = useMemo(() => {
+    const map = new Map<number, Record<string, number>>();
+    convCells.forEach((cell, idx) => {
+      const q = convocatoriasQueries[idx];
+      if (q?.status !== "success") return;
+      const count = Number(q.data ?? 0);
+      const rec = map.get(cell.sid) ?? {};
+      rec[cell.code] = count;
+      map.set(cell.sid, rec);
+    });
+    return map;
+  }, [convCells, convocatoriasQueries]);
+
   const hasOrdinaria = useMemo(() => {
     if (!Array.isArray(studentsData)) return false;
     return studentsData.some((s: any) => {
-      const c =
-        s?.convocatoria ??           // string "Ordinaria"/"Extraordinaria"
-        s?.record_convocatoria ??    // alternativa
-        s?.convocatoria_actual ??    // alternativa
-        null;
+      const c = s?.convocatoria ?? s?.record_convocatoria ?? s?.convocatoria_actual ?? null;
       if (typeof c === "string") return c.toLowerCase() === "ordinaria" || c === "1";
       if (typeof c === "number") return c === 1;
       return false;
     });
   }, [studentsData]);
 
-  // ---------- FORM CONFIG (REACT-HOOK-FORM) ----------
+  // ---------- FORM ----------
   const form = useForm<tablaForm>({
     resolver: zodResolver(tablaSchema),
-    defaultValues: {
-      students: [],
-      numSubjects: 5,
-    },
+    defaultValues: { students: [] },
   });
+  const { fields, replace } = useFieldArray({ control: form.control, name: "students" });
 
-  const { fields, replace } = useFieldArray({
-    control: form.control,
-    name: "students",
-  });
-
-  // ---------- UTILIDADES ----------
-  const nAsign = typeof numAsignaturas === "number" ? numAsignaturas : 0;
-  // CALCULA LA MEDIA DE UN ESTUDIANTE (solo con notas numéricas)
-  // CALCULA LA MEDIA CONTANDO "NE" (y vacío) COMO 0, INCLUIDOS EN EL DENOMINADOR
+  // ---------- UTILITIES ----------
   const calculateAverage = useCallback((grades: (string | number | null | undefined)[]) => {
     let total = 0;
     let sum = 0;
-
     for (const g of grades) {
-      if (g == null || g === "") { // vacío -> cuenta como 0
-        total += 1;
-        continue;
-      }
-      if (typeof g === "number" && isFinite(g)) {
-        sum += g; total += 1; continue;
-      }
+      if (g == null || g === "") { total += 1; continue; }
+      if (typeof g === "number" && isFinite(g)) { sum += g; total += 1; continue; }
       if (typeof g === "string") {
-        if (g === "NE") { // NE -> 0
-          total += 1; continue;
-        }
-        // "10" | "10-MH"
+        if (g === "NE") { total += 1; continue; }
         const mh = g.match(/^(\d{1,2})(?:-MH)?$/);
         if (mh) { sum += Number(mh[1]); total += 1; continue; }
-
-        // "CV-7" etc. (numérica, cuenta)
         const cv = g.match(/^CV-(\d{1,2})$/);
         if (cv) { sum += Number(cv[1]); total += 1; continue; }
-
-        // "APTO", "NO APTO", "AM", "RC", "CV" (sin número) -> NO cuentan en el denominador
       }
     }
-
     return total > 0 ? Number((sum / total).toFixed(2)) : 0;
   }, []);
 
-
-  // GENERAR O ACTUALIZAR LA TABLA
-  const generateTable = useCallback(() => {
-    const currentStudents = form.getValues("students");
-    const newStudents: any[] = [];
-
-    const nEstud = typeof numEstudiantes === 'number' ? numEstudiantes : 0;
-
-    for (let i = 0; i < nEstud; i++) {
-      const existingStudent = currentStudents[i];
-      const newGrades = Array(modulesData.length).fill("").map((_, gradeIndex) => {
-        const prev = existingStudent?.notas?.[gradeIndex];
-        return (typeof prev === "string" || typeof prev === "number")
-          ? prev
-          : "NE";
-      });
-
-      newStudents.push({
-        apellido1: existingStudent?.apellido1 || "",
-        apellido2: existingStudent?.apellido2 || "",
-        nombre: existingStudent?.nombre || "",
-        notas: newGrades,
-        nota_final: calculateAverage(newGrades),
-      });
-    }
-
-    form.setValue("students", newStudents);
-    form.setValue("numSubjects", modulesData.length);
-  }, [numEstudiantes, modulesData, form, calculateAverage]);
-
-  // ACTUALIZAR SELECCIÓN DE MÓDULOS CUANDO CAMBIA numAsignaturas
-  useEffect(() => {
-    const nAsign = typeof numAsignaturas === 'number' ? numAsignaturas : 0;
-
-    if (modulesData && nAsign > 0) {
-      setSelectedModuleCodes(prev => {
-        const nuevo = [...prev];
-        while (nuevo.length < nAsign) nuevo.push('');
-        return nuevo.slice(0, nAsign);
-      });
-    }
-  }, [modulesData, numAsignaturas]);
-
-  // '2021-2022' -> {inicio: 2021, fin: 2022}
-  const parseSchoolYear = (s: string) => {
-    const m = s?.match?.(/^(\d{4})-(\d{4})$/);
-    if (!m) return null;
-    return { inicio: Number(m[1]), fin: Number(m[2]) };
-  };
-
-
-  // ---------- HANDLERS ----------
-
-  const handleNumEstudiantesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { value } = e.target;
-    setNumEstudiantes(value === '' ? '' : Number(value));
-  };
-
-  // --- arriba del componente (antes del return) ---
-  const COL_W = {
-    hash: 64,       // # -> w-16 (4rem = 64px)
-    ape1: 160,      // Apellido 1
-    ape2: 160,      // Apellido 2
-    nombre: 180,    // Nombre
-    modulo: 120,    // cada columna de módulo
-    media: 100,     // columna "Media"
-  };
-
-  const LEFT = {
-    hash: 0,
-    ape1: COL_W.hash,
-    ape2: COL_W.hash + COL_W.ape1,
-    nombre: COL_W.hash + COL_W.ape1 + COL_W.ape2,
-  };
-
-  // Si usas el minWidth dinámico de la tabla, actualízalo:
-  const baseWidth = COL_W.hash + COL_W.ape1 + COL_W.ape2 + COL_W.nombre + COL_W.media;
-
-  // ---------- EFFECTS: SINCRONIZAR DATOS DE MÓDULOS Y ASIGNATURAS ----------
-  // Cuando llega modulesData ⇒ selecciona por defecto
+  // ---------- EFFECTS ----------
+  // Autoselect columns for current course
   useEffect(() => {
     if (modulesData && modulesData.length) {
-      setNumAsignaturas(modulesData.length);          // mismo nº de columnas que módulos
-      setSelectedModuleCodes(modulesData.map(m => m.codigo_modulo)); // autoselección inicial
+      setSelectedModuleCodes(modulesData.map((m: any) => m.codigo_modulo));
+    } else {
+      setSelectedModuleCodes([]);
     }
   }, [modulesData]);
 
-  // Cuando el usuario cambie el nº de asignaturas ⇒ NO autoselecciones nada nuevo
+  // Force Ordinaria on main filters change
   useEffect(() => {
-    const n = typeof numAsignaturas === "number" ? numAsignaturas : 0;
+    if (selectedConvocatoria !== "Ordinaria") {
+      setSelectedConvocatoria("Ordinaria");
+    }
+  }, [selectedAnioEscolar, selectedCurso, selectedCiclo]);
 
-    setSelectedModuleCodes(prev => {
-      // Si añadió columnas → rellena las nuevas con ""
-      if (n > prev.length) {
-        return [...prev, ...Array(n - prev.length).fill("")];
+  // Reset all when ley changes
+  useEffect(() => {
+    if (!selectedLey) return;
+    setSelectedConvocatoria("Ordinaria");
+    setSelectedCiclo("");
+    setSelectedCurso("");
+    setSelectedAnioEscolar("");
+    setSelectedTurno("");
+    setSelectedModuleCodes([]);
+    setExtraFirstModuleCodes([]);
+    replace([]);
+  }, [selectedLey, replace]);
+
+  // Mantén las columnas; solo vacía las filas para evitar parpadeos de datos
+  useEffect(() => {
+    replace([]);
+  }, [selectedCiclo, selectedCurso, replace]);
+
+
+  // Cuando dejamos de estar en 2º, elimina las columnas extra de 1º y recorta notas
+  useEffect(() => {
+    if (selectedCurso !== '2' && extraFirstModuleCodes.length > 0) {
+      const nExtra = extraFirstModuleCodes.length;
+
+      const rows = form.getValues("students");
+      if (rows?.length) {
+        const next = rows.map((st: any) => {
+          const notas = Array.isArray(st.notas)
+            ? st.notas.slice(0, Math.max(0, st.notas.length - nExtra))
+            : [];
+          return { ...st, notas, nota_final: calculateAverage(notas) };
+        });
+        form.setValue("students", next, { shouldDirty: true });
       }
-      // Si quitó columnas → recorta el array
-      return prev.slice(0, n);
-    });
-  }, [numAsignaturas]);
 
-  // Cuando los estudiante
+      setExtraFirstModuleCodes([]);
+    }
+  }, [selectedCurso, extraFirstModuleCodes.length, form, calculateAverage]);
+
+
+  // Populate students on fetch
   useEffect(() => {
     if (!studentsData || !Array.isArray(studentsData)) return;
-
-    const moduloCount =
-      (modulesData?.length ?? 0) ||
-      (typeof numAsignaturas === "number" ? numAsignaturas : 0) ||
-      0;
-
+    const moduloCount = (modulesData?.length ?? 0);
     const mapped = studentsData.map((s: any) => {
       const notas = Array(Math.max(moduloCount, 0)).fill("NE");
       const apellido1 = s.apellido_1 ?? s.apellido1 ?? "";
       const apellido2 = s.apellido_2 ?? s.apellido2 ?? "";
       const nombre = s.nombre ?? "";
-
       return {
         id_estudiante: s.id_estudiante,
         id_expediente: s.id_expediente ?? s.expediente_id,
-        apellido1,
-        apellido2,
-        nombre,
+        apellido1, apellido2, nombre,
         notas,
         nota_final: calculateAverage(notas),
       };
     });
-
     replace(mapped);
-    setNumEstudiantes(mapped.length);
-  }, [studentsData, modulesData, numAsignaturas, replace, calculateAverage]);
+  }, [studentsData, modulesData, replace, calculateAverage]);
 
-  // autofill marks
+  // Adjust rows length when nCols changes (append/truncate with NE)
   useEffect(() => {
-    if (!selectedModuleCodes?.length) return;
     const rows = form.getValues("students");
     if (!rows?.length) return;
-
+    const cols = nCols;
     let changed = false;
+    const next = rows.map((st: any) => {
+      const notas = Array.isArray(st.notas) ? [...st.notas] : [];
+      if (notas.length < cols) {
+        while (notas.length < cols) notas.push("NE");
+      } else if (notas.length > cols) {
+        notas.length = cols;
+      }
+      const nf = calculateAverage(notas);
+      if (notas.length !== (st.notas?.length ?? 0) || nf !== st.nota_final) changed = true;
+      return { ...st, notas, nota_final: nf };
+    });
+    if (changed) form.setValue("students", next, { shouldDirty: true });
+  }, [nCols, form, calculateAverage]);
 
+  // Autofill (prefer actual current record, then historical pass)
+  useEffect(() => {
+    if (!columnCodes?.length) return;
+    const rows = form.getValues("students");
+    if (!rows?.length) return;
+    let changed = false;
     const next = rows.map((st: any) => {
       const sid = st?.id_estudiante as number | undefined;
-      const historicas = sid ? notasByStudent.get(sid) : undefined;         // mejores aprobadas históricas
-      const actuales = sid ? gradeByStudentCode.get(sid) : undefined;      // notas del expediente (aprobadas o no)
-
-      const notas = st.notas.map((cell: any, colIdx: number) => {
-        const code = selectedModuleCodes[colIdx];
-        if (!code) return cell;
-
-        // si ya hay algo escrito por el usuario, respétalo
+      const historicas = sid ? notasByStudent.get(sid) : undefined;
+      const actuales = sid ? gradeByStudentCode.get(sid) : undefined;
+      const notas = (st.notas ?? []).map((cell: any, colIdx: number) => {
+        const code = columnCodes[colIdx];
+        if (!code) return "NE"; // sin módulo seleccionado
         const isEmptyOrNE = cell == null || cell === "" || cell === "NE";
         if (!isEmptyOrNE) return cell;
-
-        // 1) prefiero la nota REAL del expediente actual (puede ser suspensa)
         const nActual = actuales?.[code] as Nota | undefined;
         if (nActual) return nActual;
-
-        // 2) si no hay actual, usa la mejor aprobada histórica
         const nHist = historicas?.[code] as Nota | undefined;
         if (nHist && isPassingNota(nHist)) return nHist;
-
-        // 3) si no hay nada: NE
         return "NE";
       });
-
       const nf = calculateAverage(notas);
       if (JSON.stringify(notas) !== JSON.stringify(st.notas) || nf !== st.nota_final) changed = true;
       return { ...st, notas, nota_final: nf };
     });
+    if (changed) form.setValue("students", next, { shouldDirty: true });
+  }, [columnCodes, notasByStudent, gradeByStudentCode, form, calculateAverage]);
 
-    if (changed) {
+  // ---------- EXTRA COL HANDLERS ----------
+  const addExtraColumn = useCallback(() => {
+    if (selectedCurso !== '2') {
+      toast.error("La columna de 1º solo se puede añadir en 2º.");
+      return;
+    }
+    setExtraFirstModuleCodes((prev) => [...prev, ""]);
+    // Insert "NE" column at the end (handled by nCols effect, but do it eagerly)
+    const rows = form.getValues("students");
+    if (rows?.length) {
+      const next = rows.map((st: any) => {
+        const notas = Array.isArray(st.notas) ? [...st.notas, "NE"] : ["NE"];
+        return { ...st, notas, nota_final: calculateAverage(notas) };
+      });
       form.setValue("students", next, { shouldDirty: true });
     }
-  }, [selectedModuleCodes, notasByStudent, gradeByStudentCode, form, calculateAverage]);
+  }, [selectedCurso, form, calculateAverage]);
 
+  const removeExtraColumn = useCallback((idx: number) => {
+    setExtraFirstModuleCodes((prev) => prev.filter((_, i) => i !== idx));
+    // splice the corresponding column from all rows (baseLen + idx)
+    const colToRemove = baseLen + idx;
+    const rows = form.getValues("students");
+    if (rows?.length) {
+      const next = rows.map((st: any) => {
+        const notas = Array.isArray(st.notas) ? [...st.notas] : [];
+        if (colToRemove >= 0 && colToRemove < notas.length) {
+          notas.splice(colToRemove, 1);
+        }
+        return { ...st, notas, nota_final: calculateAverage(notas) };
+      });
+      form.setValue("students", next, { shouldDirty: true });
+    }
+  }, [baseLen, form, calculateAverage]);
+
+  const handleExtraModuleSelect = useCallback((idx: number, newCode: string) => {
+    // prevent duplicates across base + other extras
+    const used = new Set<string>([
+      ...selectedModuleCodes.filter(Boolean),
+      ...extraFirstModuleCodes.filter((c, i) => i !== idx && !!c),
+    ]);
+    if (newCode && used.has(newCode)) {
+      toast.error("Ese módulo ya está seleccionado en otra columna.");
+      return;
+    }
+    setExtraFirstModuleCodes((prev) => {
+      const next = [...prev];
+      next[idx] = newCode;
+      return next;
+    });
+  }, [selectedModuleCodes, extraFirstModuleCodes]);
+
+  // ---------- BASE COL HANDLER ----------
+  const handleModuleSelect = useCallback(
+    (colIndex: number, newCode: string) => {
+      setSelectedModuleCodes(prev => {
+        const currentCode = prev[colIndex] ?? "";
+        if (newCode === currentCode) return prev;
+
+        const otherCol = prev.findIndex(c => c === newCode);
+        const next = [...prev];
+
+        if (otherCol !== -1) {
+          // swap base columns (and notas indices)
+          [next[colIndex], next[otherCol]] = [next[otherCol], next[colIndex]];
+          const rows = form.getValues("students");
+          const updated = rows.map((st: any) => {
+            const notas = [...(st.notas ?? [])];
+            [notas[colIndex], notas[otherCol]] = [notas[otherCol], notas[colIndex]];
+            return { ...st, notas, nota_final: calculateAverage(notas) };
+          });
+          form.setValue("students", updated, { shouldDirty: true });
+        } else {
+          next[colIndex] = newCode;
+        }
+
+        return next;
+      });
+    },
+    [form, calculateAverage]
+  );
+
+  // ---------- SUBMIT ----------
   async function runBatches<T>(jobs: (() => Promise<T>)[], batchSize = 8) {
     let ok = 0, fail = 0;
     for (let i = 0; i < jobs.length; i += batchSize) {
@@ -774,7 +799,7 @@ const IntroduceActa: React.FC = () => {
     const jobRunner = async () => {
       setIsSaving(true);
       try {
-        // 1) PATCH de notas en el expediente actual
+        // 1) PATCH en expediente actual
         const patchJobs: Array<() => Promise<any>> = [];
         const missingExpedientes: number[] = [];
 
@@ -788,25 +813,27 @@ const IntroduceActa: React.FC = () => {
             return;
           }
 
-          selectedModuleCodes.forEach((code, colIdx) => {
-            if (!code) return;
+          columnCodes.forEach((code, colIdx) => {
+            if (!code) return; // columna sin módulo
             const modId = modIdByCode.get(code);
             if (!modId) return;
 
-            if (enrolledSet && !enrolledSet.has(code)) return;
+            const isHistoricalPass = !!sid && !!lockedByStudent.get(sid)?.has(code);
+            if (isHistoricalPass) return;
 
-            const raw = st.notas[colIdx];
+            if (!enrolledSet || !enrolledSet.has(code)) return;
+
+            const raw = (st.notas?.[colIdx]) as any;
             const nota: Nota | null = raw == null || raw === "" ? "NE" : (raw as Nota);
-
             patchJobs.push(() => patchNota(expedienteId, modId, nota));
           });
         });
 
         const patchRes = await runBatches(patchJobs, 10);
 
-        // 2) Crear expediente Extraordinario + matrículas de suspendidas (solo si estamos en Ordinaria)
-        let extraPlanned = 0;          // nº de estudiantes con suspensas (a los que intentaremos crear Extraordinaria)
-        let extraEnrollmentsPlanned = 0; // nº total de matrículas extra a crear
+        // 2) Crear Extraordinaria si hay suspensas (en Ordinaria)
+        let extraPlanned = 0;
+        let extraEnrollmentsPlanned = 0;
 
         const parsedYear = parseSchoolYear(selectedAnioEscolar);
         if (!parsedYear) throw new Error("Año escolar inválido");
@@ -815,27 +842,20 @@ const IntroduceActa: React.FC = () => {
 
         if (selectedConvocatoria === "Ordinaria") {
           values.students.forEach((st, rowIdx) => {
-            const sid =
-              (st as any).id_estudiante ?? studentsData?.[rowIdx]?.id_estudiante;
+            const sid = (st as any).id_estudiante ?? studentsData?.[rowIdx]?.id_estudiante;
             if (!sid) return;
 
-            // ← set de códigos en los que SÍ está matriculado el alumno (solo si la query terminó OK)
             const enrolledSet = enrolledCodesByStudent.get(sid);
-
-            // módulos suspensos EN LOS QUE ESTABA MATRICULADO
             const failedModIds: number[] = [];
 
-            selectedModuleCodes.forEach((code, colIdx) => {
+            columnCodes.forEach((code, colIdx) => {
               if (!code) return;
-
-              // 🔒 Solo considerar módulos con matrícula confirmada
-              // (si la info de matrículas aún no llegó, no movemos nada a Extra para ese módulo)
               if (!enrolledSet || !enrolledSet.has(code)) return;
 
               const modId = modIdByCode.get(code);
               if (!modId) return;
 
-              const raw = st.notas[colIdx] ?? "NE";
+              const raw = (st.notas?.[colIdx]) ?? "NE";
               if (!isPassingNota(raw)) {
                 failedModIds.push(modId);
               }
@@ -848,7 +868,6 @@ const IntroduceActa: React.FC = () => {
 
             extraJobs.push(async () => {
               if (!cicloIdFromModules) throw new Error("No se pudo resolver id_ciclo");
-
               const recordData: PostRecord = {
                 id_estudiante: sid,
                 ano_inicio: parsedYear.inicio,
@@ -859,10 +878,8 @@ const IntroduceActa: React.FC = () => {
                 vino_traslado: false,
                 dado_baja: false,
               };
-
               const rec = await createRecord(recordData);
               const extraExpId: number = rec.expediente.id_expediente;
-
               for (const modId of failedModIds) {
                 const enroll: PostEnrollment = {
                   id_estudiante: sid,
@@ -878,9 +895,8 @@ const IntroduceActa: React.FC = () => {
 
         const extraRes = await runBatches(extraJobs, 3);
 
-        // 🔄 Invalidate/refetch everything relevant that’s active on screen
+        // Refetch
         await Promise.allSettled([
-          // Current students list
           queryClient.invalidateQueries({
             queryKey: [
               "students-by-filter",
@@ -892,8 +908,6 @@ const IntroduceActa: React.FC = () => {
             ],
             refetchType: "active",
           }),
-
-          // If you created Extraordinaria records, nudge that list too
           selectedConvocatoria === "Ordinaria"
             ? queryClient.invalidateQueries({
               queryKey: [
@@ -907,18 +921,8 @@ const IntroduceActa: React.FC = () => {
               refetchType: "active",
             })
             : Promise.resolve(),
-
-          // Enrollments (all rid/sid variants)
-          queryClient.invalidateQueries({
-            queryKey: ["enrollments-by-record"],
-            refetchType: "active",
-          }),
-
-          // Best grades per student/cycle
-          queryClient.invalidateQueries({
-            queryKey: ["notas-altas"],
-            refetchType: "active",
-          }),
+          queryClient.invalidateQueries({ queryKey: ["enrollments-by-record"], refetchType: "active" }),
+          queryClient.invalidateQueries({ queryKey: ["notas-altas"], refetchType: "active" }),
         ]);
 
         return {
@@ -926,7 +930,7 @@ const IntroduceActa: React.FC = () => {
           fail: patchRes.fail,
           missingExpedientes,
           extraStudents: extraPlanned,
-          extraCreated: extraRes.ok,         // estudiantes para los que se creó Extraordinaria correctamente
+          extraCreated: extraRes.ok,
           extraFailed: extraRes.fail,
           extraEnrollmentsPlanned,
         };
@@ -935,16 +939,13 @@ const IntroduceActa: React.FC = () => {
       }
     };
 
-    // Toast con estado de carga y resultado
     toast.promise(jobRunner(), {
       loading: "Guardando notas…",
       success: (r) => {
         const lines: string[] = [];
         lines.push(`Notas guardadas: ${r.ok} OK${r.fail ? `, ${r.fail} fallidas` : ""}.`);
         if (r.missingExpedientes?.length) {
-          setTimeout(() => {
-            toast.message(`Filas sin expediente: ${r.missingExpedientes.join(", ")}`);
-          }, 0);
+          setTimeout(() => { toast.message(`Filas sin expediente: ${r.missingExpedientes.join(", ")}`); }, 0);
         }
         if (selectedConvocatoria === "Ordinaria") {
           if (r.extraStudents > 0) {
@@ -964,57 +965,17 @@ const IntroduceActa: React.FC = () => {
     });
   };
 
-  // Swap or assign module to a column; if newCode already exists in another column → swap both columns
-  const handleModuleSelect = React.useCallback(
-    (colIndex: number, newCode: string) => {
-      setSelectedModuleCodes(prev => {
-        const currentCode = prev[colIndex] ?? "";
-        if (newCode === currentCode) return prev;
+  // ---------- TABLE LAYOUT ----------
+  const COL_W = { hash: 64, ape1: 160, ape2: 160, nombre: 180, modulo: 120 } as const;
+  const baseWidth = COL_W.hash + COL_W.ape1 + COL_W.ape2 + COL_W.nombre;
+  const LEFT = { hash: 0, ape1: COL_W.hash, ape2: COL_W.hash + COL_W.ape1, nombre: COL_W.hash + COL_W.ape1 + COL_W.ape2 } as const;
 
-        const otherCol = prev.findIndex(c => c === newCode);
-
-        // We'll build the next codes array either swapping or assigning
-        let next = [...prev];
-
-        if (otherCol !== -1) {
-          // --- SWAP COLUMNS (codes + notas) ---
-          [next[colIndex], next[otherCol]] = [next[otherCol], next[colIndex]];
-
-          const rows = form.getValues("students");
-          const updated = rows.map((st: any) => {
-            const notas = [...st.notas];
-            [notas[colIndex], notas[otherCol]] = [notas[otherCol], notas[colIndex]];
-            return { ...st, notas, nota_final: calculateAverage(notas) };
-          });
-          form.setValue("students", updated, { shouldDirty: true });
-        } else {
-          // --- JUST REASSIGN THIS COLUMN TO A NEW MODULE ---
-          next[colIndex] = newCode;
-
-          // OPTIONAL: clear this column to "NE" when you change to a brand-new módulo
-          // to avoid grades lingering from the previous mapping.
-          // Uncomment if you prefer this behavior:
-          // const rows = form.getValues("students");
-          // const updated = rows.map((st: any) => {
-          //   const notas = [...st.notas];
-          //   notas[colIndex] = "NE";
-          //   return { ...st, notas, nota_final: calculateAverage(notas) };
-          // });
-          // form.setValue("students", updated, { shouldDirty: true });
-        }
-
-        return next;
-      });
-    },
-    [form, calculateAverage, setSelectedModuleCodes]
-  );
-
-  // ==================== RENDER ====================
+  // ---------- RENDER ----------
   return (
     <div className='min-w-0'>
       {/* FILTROS DE CABECERA */}
       <div className="mt-5 px-5">
-        <div className="flex">
+        <div className="flex flex-wrap gap-3 items-end">
           <div className="w-[260px] shrink-0">
             <SelectField
               label="Ley Educativa"
@@ -1022,12 +983,7 @@ const IntroduceActa: React.FC = () => {
               value={selectedLey}
               onValueChange={setSelectedLey}
               placeholder="Seleccionar ley"
-              options={
-                leyesData.map((ley) => ({
-                  value: `${ley.id_ley}`,
-                  label: `${ley.nombre_ley}`
-                }))
-              }
+              options={leyesData.map((ley) => ({ value: `${ley.id_ley}`, label: `${ley.nombre_ley}` }))}
               width={260}
             />
           </div>
@@ -1039,10 +995,7 @@ const IntroduceActa: React.FC = () => {
               value={selectedCiclo || ""}
               onValueChange={setSelectedCiclo}
               placeholder="Seleccionar ciclo"
-              options={(ciclosData ?? []).map((c) => ({
-                value: `${c.codigo}`,
-                label: `${c.nombre} (${c.codigo})`,
-              }))}
+              options={(ciclosData ?? []).map((c) => ({ value: `${c.codigo}`, label: `${c.nombre} (${c.codigo})` }))}
               width={260}
             />
           </div>
@@ -1091,10 +1044,7 @@ const IntroduceActa: React.FC = () => {
 
           {/* CONVOCATORIA */}
           <div className="space-y-2">
-            <Select
-              value={selectedConvocatoria}
-              onValueChange={(v) => setSelectedConvocatoria(v as Convocatoria)}
-            >
+            <Select value={selectedConvocatoria} onValueChange={(v) => setSelectedConvocatoria(v as Convocatoria)}>
               <SelectTrigger id="convocatoria" className="w-full">
                 <SelectValue placeholder="Convocatoria" />
               </SelectTrigger>
@@ -1106,6 +1056,20 @@ const IntroduceActa: React.FC = () => {
               </SelectContent>
             </Select>
           </div>
+
+          {/* CONTROL: Añadir columnas de 1º cuando estamos en 2º */}
+          {selectedCurso === '2' && (
+            <div className="ml-auto flex items-end gap-2">
+              <Button type="button" variant="outline" onClick={addExtraColumn}>
+                Añadir columna de 1º
+              </Button>
+              {extraFirstModuleCodes.length > 0 && (
+                <span className="text-sm text-muted-foreground">
+                  {extraFirstModuleCodes.length} añadida(s)
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -1120,110 +1084,85 @@ const IntroduceActa: React.FC = () => {
               <CardDescription>Introduce manualmente los datos de evaluación de los alumnos</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 min-w-0">
-              {/* CONTROLES DE CONFIGURACIÓN DE LA TABLA */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                {/* NÚMERO DE ESTUDIANTES */}
-                <div className="space-y-2">
-                  <Label htmlFor="numEstudiantes">Número de estudiantes</Label>
-                  <Input
-                    id="numEstudiantes"
-                    type="number"
-                    min="1"
-                    max="50"
-                    value={numEstudiantes}
-                    onChange={handleNumEstudiantesChange}
-                  />
-                </div>
-                {/* NÚMERO DE ASIGNATURAS */}
-                <div className="space-y-2">
-                  <Label htmlFor="numSubjects">Número de asignaturas</Label>
-                  <Input
-                    id="numSubjects"
-                    type="number"
-                    min="1"
-                    max="20"
-                    value={numAsignaturas}
-                    onChange={(e) => setNumAsignaturas(Number(e.target.value))}
-                  />
-                </div>
-                {/* BOTÓN GENERAR / ACTUALIZAR */}
-                <Button onClick={generateTable} variant="outline" className="w-full bg-transparent">
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Generar/Actualizar Tabla
-                </Button>
-              </div>
-
               {/* TABLA COMPLETA */}
               <form onSubmit={form.handleSubmit(onSubmitSave)}>
-                {/* WRAPPER: scroll interno en X e Y */}
                 {/* WRAPPER con scroll interno y header sticky */}
-                <div
-                  className="relative isolate w-full overflow-x-auto overflow-y-auto overscroll-contain rounded-lg border"
-                  style={{ maxHeight: '55vh' }}
-                >
-                  <Table
-                    className="table-fixed" // importante: fija los anchos de columna
-                    style={{ minWidth: `${baseWidth + nAsign * COL_W.modulo}px` }}
-                  >
+                <div className="relative isolate w-full overflow-x-auto overflow-y-auto overscroll-contain rounded-lg border" style={{ maxHeight: '55vh' }}>
+                  <Table className="table-fixed" style={{ minWidth: `${baseWidth + nCols * COL_W.modulo}px` }}>
                     {/* HEADER */}
                     <TableHeader className="sticky top-0 z-40 bg-background/95 border-b">
                       <TableRow>
                         {/* # */}
-                        <TableHead
-                          className="sticky left-0 z-50 bg-background border-r"
-                          style={{ width: COL_W.hash, minWidth: COL_W.hash, maxWidth: COL_W.hash }}
-                        >
-                          #
-                        </TableHead>
+                        <TableHead className="sticky left-0 z-50 bg-background border-r" style={{ width: COL_W.hash, minWidth: COL_W.hash, maxWidth: COL_W.hash }}>#</TableHead>
 
                         {/* Apellido 1 */}
-                        <TableHead
-                          className="sticky z-50 bg-background border-r"
-                          style={{ left: LEFT.ape1, width: COL_W.ape1, minWidth: COL_W.ape1, maxWidth: COL_W.ape1 }}
-                        >
-                          Apellido 1
-                        </TableHead>
+                        <TableHead className="sticky z-50 bg-background border-r" style={{ left: LEFT.ape1, width: COL_W.ape1, minWidth: COL_W.ape1, maxWidth: COL_W.ape1 }}>Apellido 1</TableHead>
 
                         {/* Apellido 2 */}
-                        <TableHead
-                          className="sticky z-50 bg-background border-r"
-                          style={{ left: LEFT.ape2, width: COL_W.ape2, minWidth: COL_W.ape2, maxWidth: COL_W.ape2 }}
-                        >
-                          Apellido 2
-                        </TableHead>
+                        <TableHead className="sticky z-50 bg-background border-r" style={{ left: LEFT.ape2, width: COL_W.ape2, minWidth: COL_W.ape2, maxWidth: COL_W.ape2 }}>Apellido 2</TableHead>
 
                         {/* Nombre*/}
-                        <TableHead
-                          className="sticky z-50 bg-background border-r"
-                          style={{ left: LEFT.nombre, width: COL_W.nombre, minWidth: COL_W.nombre, maxWidth: COL_W.nombre }}
-                        >
-                          Nombre
-                        </TableHead>
+                        <TableHead className="sticky z-50 bg-background border-r" style={{ left: LEFT.nombre, width: COL_W.nombre, minWidth: COL_W.nombre, maxWidth: COL_W.nombre }}>Nombre</TableHead>
 
-                        {/* Módulos dinámicos */}
-                        {Array.from({ length: nAsign }, (_, i) => (
-                          <TableHead key={i} className="text-center"
+                        {/* Columnas base (curso seleccionado) */}
+                        {Array.from({ length: selectedModuleCodes.length }, (_, i) => (
+                          <TableHead
+                            key={`base-${i}`}
+                            className="text-center"
                             style={{ width: COL_W.modulo, minWidth: COL_W.modulo, maxWidth: COL_W.modulo }}
                           >
-                            <div>{i + 1}</div>
-                            <SelectField
-                              label=""
-                              name={`module_col_${i}`}
-                              value={selectedModuleCodes[i] || ""}
-                              onValueChange={(value) => handleModuleSelect(i, value)}
-                              placeholder="Seleccionar módulo"
-                              width={COL_W.modulo}
-                              options={modulesData.map((m) => ({ value: m.codigo_modulo, label: m.nombre }))}
-                            />
+                            <div className="flex flex-col items-center justify-center gap-1">
+                              <div className="text-xs font-medium opacity-70">{i + 1}</div>
+                              <SelectField
+                                label=""
+                                name={`module_col_${i}`}
+                                value={selectedModuleCodes[i] || ""}
+                                onValueChange={(value) => handleModuleSelect(i, value)}
+                                placeholder="Seleccionar módulo"
+                                width={COL_W.modulo}
+                                options={modulesData.map((m: any) => ({ value: m.codigo_modulo, label: m.nombre }))}
+                              />
+                            </div>
                           </TableHead>
                         ))}
 
-                        {/* Media */}
-                        <TableHead className="text-center bg-muted"
-                          style={{ width: COL_W.media, minWidth: COL_W.media, maxWidth: COL_W.media }}
-                        >
-                          Media
-                        </TableHead>
+                        {/* Columnas extra (1º) */}
+                        {extraFirstModuleCodes.map((code, ei) => {
+                          const colNum = baseLen + ei + 1;
+                          return (
+                            <TableHead
+                              key={`extra-${ei}`}
+                              className="text-center"
+                              style={{ width: COL_W.modulo, minWidth: COL_W.modulo, maxWidth: COL_W.modulo }}
+                            >
+                              <div className="flex flex-col items-center justify-center gap-1">
+                                <div className="text-xs font-medium opacity-70">{colNum}</div>
+
+                                <SelectField
+                                  label=""
+                                  name={`module_col_extra_first_${ei}`}
+                                  value={code || ""}
+                                  onValueChange={(v) => handleExtraModuleSelect(ei, v)}
+                                  placeholder="Módulo de 1º"
+                                  width={COL_W.modulo}
+                                  options={(modulesFirstYear ?? []).map((m: any) => ({ value: m.codigo_modulo, label: m.nombre }))}
+                                />
+
+                                {/* Botón pequeño con icono de papelera */}
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  title="Quitar columna"
+                                  onClick={() => removeExtraColumn(ei)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableHead>
+                          );
+                        })}
                       </TableRow>
                     </TableHeader>
 
@@ -1232,61 +1171,26 @@ const IntroduceActa: React.FC = () => {
                       {fields.map((field, studentIndex) => (
                         <TableRow key={field.id}>
                           {/* # */}
-                          <TableCell
-                            className="sticky left-0 z-30 bg-background border-r text-center font-medium"
-                            style={{ width: COL_W.hash, minWidth: COL_W.hash, maxWidth: COL_W.hash }}
-                          >
-                            {studentIndex + 1}
-                          </TableCell>
+                          <TableCell className="sticky left-0 z-30 bg-background border-r text-center font-medium" style={{ width: COL_W.hash, minWidth: COL_W.hash, maxWidth: COL_W.hash }}>{studentIndex + 1}</TableCell>
 
                           {/* Apellido 1 */}
-                          <TableCell
-                            className="sticky z-30 bg-background border-r"
-                            style={{ left: LEFT.ape1, width: COL_W.ape1, minWidth: COL_W.ape1, maxWidth: COL_W.ape1 }}
-                          >
-                            <Input
-                              {...form.register(`students.${studentIndex}.apellido1`)}
-                              readOnly
-                              tabIndex={-1}
-                              title="Campo bloqueado"
-                              className={`${form.formState.errors.students?.[studentIndex]?.apellido1 ? "border-red-500" : ""} bg-muted/50 cursor-not-allowed focus-visible:ring-0 focus-visible:ring-offset-0`}
-                            />
+                          <TableCell className="sticky z-30 bg-background border-r" style={{ left: LEFT.ape1, width: COL_W.ape1, minWidth: COL_W.ape1, maxWidth: COL_W.ape1 }}>
+                            <Input {...form.register(`students.${studentIndex}.apellido1`)} readOnly tabIndex={-1} title="Campo bloqueado" className={`${form.formState.errors.students?.[studentIndex]?.apellido1 ? "border-red-500" : ""} bg-muted/50 cursor-not-allowed focus-visible:ring-0 focus-visible:ring-offset-0`} />
                           </TableCell>
 
                           {/* Apellido 2 */}
-                          <TableCell
-                            className="sticky z-30 bg-background border-r"
-                            style={{ left: LEFT.ape2, width: COL_W.ape2, minWidth: COL_W.ape2, maxWidth: COL_W.ape2 }}
-                          >
-                            <Input
-                              {...form.register(`students.${studentIndex}.apellido2`)}
-                              readOnly
-                              tabIndex={-1}
-                              title="Campo bloqueado"
-                              className={`${form.formState.errors.students?.[studentIndex]?.apellido2 ? "border-red-500" : ""} bg-muted/50 cursor-not-allowed focus-visible:ring-0 focus-visible:ring-offset-0`}
-                            />
+                          <TableCell className="sticky z-30 bg-background border-r" style={{ left: LEFT.ape2, width: COL_W.ape2, minWidth: COL_W.ape2, maxWidth: COL_W.ape2 }}>
+                            <Input {...form.register(`students.${studentIndex}.apellido2`)} readOnly tabIndex={-1} title="Campo bloqueado" className={`${form.formState.errors.students?.[studentIndex]?.apellido2 ? "border-red-500" : ""} bg-muted/50 cursor-not-allowed focus-visible:ring-0 focus-visible:ring-offset-0`} />
                           </TableCell>
 
                           {/* Nombre */}
-                          <TableCell
-                            className="sticky z-30 bg-background border-r border-gray-200"
-                            style={{ left: LEFT.nombre, width: COL_W.nombre, minWidth: COL_W.nombre, maxWidth: COL_W.nombre }}
-                          >
-                            <Input
-                              {...form.register(`students.${studentIndex}.nombre`)}
-                              readOnly
-                              tabIndex={-1}
-                              title="Campo bloqueado"
-                              className={`${form.formState.errors.students?.[studentIndex]?.nombre ? "border-red-500" : ""} bg-muted/50 cursor-not-allowed focus-visible:ring-0 focus-visible:ring-offset-0`}
-                            />
+                          <TableCell className="sticky z-30 bg-background border-r border-gray-200" style={{ left: LEFT.nombre, width: COL_W.nombre, minWidth: COL_W.nombre, maxWidth: COL_W.nombre }}>
+                            <Input {...form.register(`students.${studentIndex}.nombre`)} readOnly tabIndex={-1} title="Campo bloqueado" className={`${form.formState.errors.students?.[studentIndex]?.nombre ? "border-red-500" : ""} bg-muted/50 cursor-not-allowed focus-visible:ring-0 focus-visible:ring-offset-0`} />
                           </TableCell>
 
-                          {/* Notas (no sticky) */}
-                          {Array.from({ length: nAsign }, (_, gradeIndex) => (
-                            <TableCell
-                              key={gradeIndex}
-                              style={{ width: COL_W.modulo, minWidth: COL_W.modulo, maxWidth: COL_W.modulo }}
-                            >
+                          {/* Notas (todas las columnas = base + extra) */}
+                          {Array.from({ length: nCols }, (_, gradeIndex) => (
+                            <TableCell key={gradeIndex} style={{ width: COL_W.modulo, minWidth: COL_W.modulo, maxWidth: COL_W.modulo }}>
                               <Controller
                                 control={form.control}
                                 name={`students.${studentIndex}.notas.${gradeIndex}`}
@@ -1294,50 +1198,117 @@ const IntroduceActa: React.FC = () => {
                                   const sid =
                                     (form.getValues(`students.${studentIndex}.id_estudiante`) as number | undefined) ??
                                     (fields[studentIndex] as any)?.id_estudiante;
+                                  const code = columnCodes[gradeIndex];
 
-                                  const code = selectedModuleCodes[gradeIndex];
-
-                                  const passedLocked = !!sid && !!code && lockedByStudent.get(sid)?.has(code);
                                   const enrolledSet = sid ? enrolledCodesByStudent.get(sid) : undefined;
-                                  const isEnrolled = enrolledSet ? enrolledSet.has(code) : true;
-                                  const isLocked = Boolean(passedLocked || !isEnrolled);
 
-                                  // nota “fetchada” del expediente actual (puede ser suspensa)
-                                  const fetchedNota = (sid && code) ? gradeByStudentCode.get(sid)?.[code] : undefined;
+                                  const passedHistorically = !!sid && !!code && lockedByStudent.get(sid)?.has(code);
 
-                                  // valor que se muestra (escribimos en el form si difiere)
-                                  const current = (field.value == null || field.value === "") ? (fetchedNota ?? "NE") : field.value;
-                                  if (current !== field.value) {
-                                    queueMicrotask(() => field.onChange(current));
+                                  const fetchedNotaRaw = sid && code ? gradeByStudentCode.get(sid)?.[code] : undefined;
+                                  // fetched -> solo si es una nota válida (string en NOTA_OPTIONS), si no “NE”
+                                  const fetchedNota =
+                                    typeof fetchedNotaRaw === "string" && NOTA_SET.has(fetchedNotaRaw)
+                                      ? fetchedNotaRaw
+                                      : "NE";
+
+                                  // Valor “candidato” a mostrar: prioriza lo que haya en el form, si no, lo fetched
+                                  const candidate =
+                                    field.value == null || field.value === ""
+                                      ? fetchedNota
+                                      : field.value;
+
+                                  // Estados de matrícula / bloqueos
+                                  const disabledBecauseNoCode = !code;
+                                  const isEnrolled = !!code && enrolledSet?.has(code) === true;
+                                  const hasFetchedReal = fetchedNota !== "NE";
+                                  const isLocked = Boolean(
+                                    disabledBecauseNoCode || passedHistorically || hasFetchedReal || !isEnrolled
+                                  );
+
+                                  // Convocatorias (solo para hover/avisos, jamás para value)
+                                  const convCountRaw = sid && code ? convCountByStudentCode.get(sid)?.[code] : undefined;
+                                  const convCount = typeof convCountRaw === "number" ? convCountRaw : undefined;
+                                  const convIncl = convCount != null ? convCount : undefined;
+
+                                  // módulo con acta editable en este momento (puedes modificar la nota)
+                                  const isEditableNow = !isLocked && isEnrolled && !passedHistorically;
+
+                                  let convPart: string | undefined;
+
+                                  // 1) Mientras carga, mostramos "cargando…"
+                                  if (convCount == null) {
+                                    convPart = "Convocatorias: cargando…";
+                                  } else if (convCount > 0) {
+                                    // 2) Ya se ha cursado al menos una vez
+                                    if (isEditableNow && convIncl != null) {
+                                      // 👉 solo aquí queremos "incluida esta"
+                                      convPart = `Convocatorias (incluida esta): ${convIncl}`;
+                                    } else {
+                                      // 👉 aprobado / histórico / no editable → convocatorias normales, sin sumar 1
+                                      convPart = `Convocatorias: ${convCount}`;
+                                    }
                                   }
+                                  // 3) convCount === 0 → nunca se ha cursado → no mostramos número de convocatorias
 
-                                  const opts =
-                                    (typeof current === "string" && current.startsWith("CV"))
-                                      ? NOTA_OPTIONS
-                                      : NOTA_OPTIONS_NO_CV;
+                                  // Aviso de 5ª convocatoria o más SOLO cuando realmente estamos generando una nueva (editable)
+                                  const needsResolution = isEditableNow && convIncl != null && convIncl >= 5;
 
+                                  const disabledTitleText = disabledBecauseNoCode
+                                    ? "Selecciona un módulo para esta columna"
+                                    : !isEnrolled
+                                      ? passedHistorically
+                                        ? "Módulo aprobado en un expediente anterior"
+                                        : "Módulo no aprobado y sin matrícula en el expediente actual"
+                                      : hasFetchedReal
+                                        ? isPassingNota(fetchedNota)
+                                          ? "Módulo ya aprobado en el expediente actual"
+                                          : "Módulo ya suspenso en el expediente actual"
+                                        : passedHistorically
+                                          ? "Módulo aprobado en un expediente anterior"
+                                          : undefined;
+
+                                  const resolutionPart = needsResolution
+                                    ? "⚠️ 5ª convocatoria o más: revisar"
+                                    : undefined;
+
+                                  const hoverTitle = [disabledTitleText, convPart, resolutionPart]
+                                    .filter(Boolean)
+                                    .join(" · ");
+
+                                  // 📌 La regla de visualización:
+                                  // - Sin módulo -> "-"
+                                  // - Sin matrícula -> "…" si aprobado histórico, si no "—"
+                                  // - Con matrícula -> mostramos SOLO valores whitelisted (toDisplayNota)
+                                  const displayValue = disabledBecauseNoCode
+                                    ? "-"
+                                    : !isEnrolled
+                                      ? passedHistorically
+                                        ? "…"
+                                        : "—"
+                                      : toDisplayNota(candidate);
+
+                                  // resalte de suspenso real ya traído del expediente actual
                                   const highlightFetchedFail =
-                                    fetchedNota != null &&
-                                    fetchedNota !== "NE" &&
-                                    !isPassingNota(fetchedNota);
+                                    !!code && hasFetchedReal && !isPassingNota(fetchedNota);
 
                                   return (
                                     <NotaCell
-                                      value={current}
-                                      options={opts}
+                                      value={displayValue}
+                                      options={NOTA_OPTIONS}
                                       disabled={isLocked}
-                                      disabledTitle={
-                                        passedLocked
-                                          ? "Módulo ya aprobado"
-                                          : (enrolledSet ? "Sin matrícula en este módulo" : undefined)
-                                      }
+                                      disabledTitle={disabledTitleText}
+                                      hoverTitle={hoverTitle}
+                                      warn={needsResolution}
                                       highlight={highlightFetchedFail}
                                       onChange={(val) => {
                                         if (isLocked) return;
+                                        // val siempre llega desde NOTA_OPTIONS
                                         field.onChange(val);
                                         const grades = form.getValues(`students.${studentIndex}.notas`);
                                         const avg = calculateAverage(grades);
-                                        form.setValue(`students.${studentIndex}.nota_final`, avg, { shouldDirty: true });
+                                        form.setValue(`students.${studentIndex}.nota_final`, avg, {
+                                          shouldDirty: true,
+                                        });
                                       }}
                                     />
                                   );
@@ -1345,20 +1316,13 @@ const IntroduceActa: React.FC = () => {
                               />
                             </TableCell>
                           ))}
-
-                          {/* Media */}
-                          <TableCell className="bg-muted text-center font-medium"
-                            style={{ width: COL_W.media, minWidth: COL_W.media, maxWidth: COL_W.media }}
-                          >
-                            {form.watch(`students.${studentIndex}.nota_final`)?.toFixed(2) || "0.00"}
-                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
                 </div>
 
-                {/* ACCIONES: AÑADIR + GUARDAR */}
+                {/* ACCIONES */}
                 <div className="flex flex-col sm:flex-row gap-4 justify-between pt-5">
                   <Button type="submit" className="w-full sm:w-auto" disabled={isSaving}>
                     <Save />{"Guardar Evaluación"}
@@ -1375,50 +1339,84 @@ const IntroduceActa: React.FC = () => {
 
 export default IntroduceActa;
 
-// ==================== CELDA DE NOTAS (SELECT) ====================
+// ==================== CELDA DE NOTAS (SELECT con búsqueda) ====================
 const NotaCell = React.memo(function NotaCell({
   value,
   onChange,
   options,
   disabled = false,
   disabledTitle,
-  highlight = false, // << NUEVO
+  hoverTitle,         // <- NUEVO
+  warn = false,       // <- NUEVO
+  highlight = false,
 }: {
   value: string | number | null | undefined;
   onChange: (val: string) => void;
   options: readonly Nota[];
   disabled?: boolean;
   disabledTitle?: string;
+  hoverTitle?: string;    // <- NUEVO
+  warn?: boolean;         // <- NUEVO
   highlight?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const v = value == null || value === "" ? "" : String(value);
+
+  const setOpenSafe = (next: boolean) => {
+    if (disabled) return;
+    setOpen(next);
+  };
+
   return (
-    <div className="h-4 flex items-center justify-center">
-      <Select
-        open={disabled ? false : open}
-        onOpenChange={disabled ? () => { } : setOpen}
-        value={v}
-        onValueChange={(val) => { if (!disabled) onChange(val); }}
-      >
-        <SelectTrigger
-          className={`h-9 w-28 text-center ${disabled ? "opacity-60 cursor-not-allowed" : ""} ${highlight ? "text-red-600 bg-red-50 border-red-300" : ""
-            }`}
-          disabled={disabled}
-          title={disabled ? disabledTitle : undefined}
-        >
-          <SelectValue placeholder="-">{v ? v : undefined}</SelectValue>
-        </SelectTrigger>
-        {!disabled && open && (
-          <SelectContent className="max-h-64">
-            {options.map((opt) => (
-              <SelectItem key={opt} value={opt}>
-                {opt}
-              </SelectItem>
-            ))}
-          </SelectContent>
+    <div className="flex items-center justify-center">
+      <Popover open={!disabled && open} onOpenChange={setOpenSafe}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            disabled={disabled}
+            title={hoverTitle || (disabled ? disabledTitle : undefined)}   // <- siempre mostramos el hover enriquecido
+            onClick={() => setOpenSafe(!open)}
+            className={[
+              "h-9 w-28 rounded-md border bg-background text-sm shadow-sm",
+              "px-2 inline-flex items-center justify-between",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+              disabled ? "opacity-60 cursor-not-allowed" : "cursor-pointer",
+              highlight ? "text-red-600 bg-red-50 border-red-300" : "",
+              warn ? "animate-pulse ring-2 ring-red-500" : "",  // <- alerta roja y parpadeando
+            ].join(" ")}
+          >
+            <span className="truncate w-full text-center">{v || "-"}</span>
+            <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+          </button>
+        </PopoverTrigger>
+
+        {!disabled && (
+          <PopoverContent className="p-0 w-48" align="start">
+            <Command shouldFilter>
+              <CommandInput placeholder="Buscar nota..." />
+              <CommandEmpty>No hay resultados.</CommandEmpty>
+              <CommandList className="max-h-64">
+                <CommandGroup>
+                  {options.map((opt) => (
+                    <CommandItem className='cursor-pointer' key={opt} value={opt} onSelect={() => { onChange(opt); setOpenSafe(false); }}>
+                      <Check className={["mr-2 h-4 w-4", v === opt ? "opacity-100" : "opacity-0"].join(" ")} />
+                      {opt}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
         )}
-      </Select>
+      </Popover>
     </div>
   );
 });
+
+// ---------------- Helpers ----------------
+// '2021-2022' -> {inicio: 2021, fin: 2022}
+const parseSchoolYear = (s: string) => {
+  const m = s?.match?.(/^(\d{4})-(\d{4})$/);
+  if (!m) return null;
+  return { inicio: Number(m[1]), fin: Number(m[2]) };
+};

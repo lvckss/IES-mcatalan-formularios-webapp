@@ -15,7 +15,18 @@ import {
 } from "../controllers/enrollmentController";
 import { z } from "zod";
 
-export const enrollmentsRoute = new Hono()
+import type { AppBindings } from "../app";
+
+export const enrollmentsRoute = new Hono<AppBindings>()
+  .use("*", async (c, next) => {
+    const user = c.get("user");
+    if (!user) {
+      // devolvemos Response aquí
+      return c.json({ error: "No autorizado" }, 401);
+    }
+    // y solo seguimos si hay sesión
+    await next();
+  })
   .get("/", async (c) => {
     const result = await getEnrollments();
     return c.json({ matriculas: result });
@@ -51,10 +62,10 @@ export const enrollmentsRoute = new Hono()
     "/notas/:record_id/:module_id",
     zValidator("json", z.object({
       nota: z.enum([
-        '1', '2', '3', '4', '5', '6', '7', '8', '9', '10',
-        '10-MH',
-        'CV', 'CV-5', 'CV-6', 'CV-7', 'CV-8', 'CV-9', 'CV-10',
-        'AM', 'RC', 'NE', 'APTO', 'NO APTO'
+        "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "10-MH", "10-Matr. Honor",
+        "CV", "CV-5", "CV-6", "CV-7", "CV-8", "CV-9", "CV-10", "CV-10-MH",
+        "TRAS-5", "TRAS-6", "TRAS-7", "TRAS-8", "TRAS-9", "TRAS-10", "TRAS-10-MH",
+        "RC", "NE", "APTO", "NO APTO", "EX"
       ]).nullable()
     })),
     async (c) => {

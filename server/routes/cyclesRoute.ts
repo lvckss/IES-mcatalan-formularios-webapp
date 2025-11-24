@@ -11,7 +11,18 @@ import {
   getCycleByLaw
 } from "../controllers/cycleController";
 
-export const cyclesRoute = new Hono()
+import type { AppBindings } from "../app";
+
+export const cyclesRoute = new Hono<AppBindings>()
+  .use("*", async (c, next) => {
+    const user = c.get("user");
+    if (!user) {
+      // devolvemos Response aquí
+      return c.json({ error: "No autorizado" }, 401);
+    }
+    // y solo seguimos si hay sesión
+    await next();
+  })
   .get("/", async (c) => {
     const result = await getCycles();
     return c.json({ ciclos: result });

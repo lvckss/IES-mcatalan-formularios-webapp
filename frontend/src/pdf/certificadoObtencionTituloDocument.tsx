@@ -11,10 +11,11 @@ import {
 import { Cycle, FullStudentData, Directivo } from '@/types';
 
 type NotaEnum =
-  | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10'
-  | '10-MH'
-  | 'CV' | 'CV-5' | 'CV-6' | 'CV-7' | 'CV-8' | 'CV-9' | 'CV-10'
-  | 'AM' | 'RC' | 'NE' | 'APTO' | 'NO APTO';
+  | "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10"
+  | "10-MH" | "10-Matr. Honor"
+  | "CV" | "CV-5" | "CV-6" | "CV-7" | "CV-8" | "CV-9" | "CV-10" | "CV-10-MH"
+  | "TRAS-5" | "TRAS-6" | "TRAS-7" | "TRAS-8" | "TRAS-9" | "TRAS-10" | "TRAS-10-MH"
+  | "RC" | "NE" | "APTO" | "NO APTO" | "EX";
 
 type NotasMasAltasPorCicloReturn = {
   id_ciclo: number;     // curso concreto (1º o 2º) dentro del ciclo
@@ -78,28 +79,52 @@ export const CertificadoObtencionDocument = ({ data, }: { data: CertificateData 
 
   const notasRaw = (data?.merged_enrollments ?? []).map((m) => m.mejor_nota);
 
+  // ✅ Convierte nota -> valor numérico para la media según las nuevas reglas
   const notaToNumber = (nota: (typeof notasRaw)[number]): number | null => {
     if (nota == null) return null;
 
-    if (typeof nota === "number") {
-      return Number.isFinite(nota) ? nota : null;
-    }
+    // Normalizamos a string para tratar todos los casos de forma uniforme
+    const s = String(nota);
 
-    if (typeof nota === "string") {
-      if (nota === "10-MH" || nota === "APTO") return 10;
+    // Casos que NO cuentan en la media
+    if (s === "APTO" || s === "EX" || s === "NO APTO") return null;
 
-      if (nota === "CV") return 5;
+    // Casos que cuentan como 0
+    if (s === "NE" || s === "RC") return 0;
 
-      if (nota.startsWith("CV-")) {
-        const n = Number(nota.split("-")[1]);
-        return Number.isFinite(n) ? n : null;
-      }
+    // Casos que valen 10
+    if (s === "10-MH" || s === "10-Matr. Honor") return 10;
 
-      const n = Number(nota);
+    // Convalidaciones
+    if (s === "CV") return 5;
+    if (s.startsWith("CV-")) {
+      // CV-5 ... CV-10, CV-10-MH -> tomar el número tras "CV-"
+      const n = Number(s.split("-")[1]); // "10" de "CV-10" o "CV-10-MH"
       return Number.isFinite(n) ? n : null;
     }
 
-    return null;
+    // Traslados
+    if (s.startsWith("TRAS-")) {
+      // TRAS-5 ... TRAS-10, TRAS-10-MH -> tomar el número tras "TRAS-"
+      const n = Number(s.split("-")[1]); // "10" de "TRAS-10" o "TRAS-10-MH"
+      return Number.isFinite(n) ? n : null;
+    }
+
+    // Notas numéricas directas "0".."10"
+    const n = Number(s);
+    return Number.isFinite(n) ? n : null;
+  };
+
+  // 👇 Nueva función auxiliar para mostrar la nota en tabla
+  const notaDisplay = (nota: NotaEnum | null): string => {
+    if (!nota) return "—";
+
+    if (nota.startsWith("TRAS-")) {
+      const n = nota.split("-")[1];
+      return `${n}*`;
+    }
+
+    return nota;
   };
 
   // Filtra solo las notas con valor numérico
@@ -114,6 +139,43 @@ export const CertificadoObtencionDocument = ({ data, }: { data: CertificateData 
       : undefined;
 
   const mediaFormateada = media !== undefined ? media.toFixed(2) : '—';
+
+  // helper: ¿esta nota aprueba el módulo?
+  const isAprobada = (nota: NotaEnum | null): boolean => {
+    if (!nota) return false;
+    const s = String(nota);
+
+    // Aprueban sin nota numérica
+    if (s === "APTO" || s === "EX") return true;
+
+    // No aprueban
+    if (s === "NO APTO" || s === "NE" || s === "RC") return false;
+
+    // Casos de 10
+    if (s === "10-MH" || s === "10-Matr. Honor") return true;
+
+    // Convalidaciones
+    if (s === "CV") return true;                 // equivale a 5 (aprobado)
+    if (s.startsWith("CV-")) {
+      const n = Number(s.split("-")[1]);         // CV-5 ... CV-10, CV-10-MH
+      return Number.isFinite(n) && n >= 5;
+    }
+
+    // Traslados
+    if (s.startsWith("TRAS-")) {
+      const n = Number(s.split("-")[1]);         // TRAS-5 ... TRAS-10, TRAS-10-MH
+      return Number.isFinite(n) && n >= 5;
+    }
+
+    // Numéricas directas
+    const n = Number(s);
+    return Number.isFinite(n) && n >= 5;
+  };
+
+  // …
+  const todasAprobadas = (data?.merged_enrollments ?? []).every(e => isAprobada(e.mejor_nota));
+
+  const notaFinalParaMostrar = todasAprobadas && media !== undefined ? media.toFixed(2) : '—';
 
   return (
     <Document>
@@ -172,7 +234,7 @@ export const CertificadoObtencionDocument = ({ data, }: { data: CertificateData 
                   <Text style={styles.tableCell}>{m.modulo}</Text>
                 </View>
                 <View style={styles.tableColGrade}>
-                  <Text style={styles.tableCell}>{m.mejor_nota as any}</Text>
+                  <Text style={styles.tableCell}>{notaDisplay(m.mejor_nota)}</Text>
                 </View>
               </View>
             ))}
@@ -189,7 +251,7 @@ export const CertificadoObtencionDocument = ({ data, }: { data: CertificateData 
               </Text>
             </View>
             <View style={styles.tableColGrade}>
-              <Text style={styles.tableCell}>{mediaFormateada}</Text>
+              <Text style={styles.tableCell}>{notaFinalParaMostrar}</Text>
             </View>
           </View>
         </View>
@@ -197,7 +259,10 @@ export const CertificadoObtencionDocument = ({ data, }: { data: CertificateData 
 
         {/* Pie de texto */}
         <Text style={[styles.paragraph, { marginBottom: 20 }]}>
-          Cumple los requisitos vigentes para la obtención del Título de Técnico Superior en {data.cycle_data.nombre}
+          {todasAprobadas
+            ? `Cumple los requisitos vigentes para la obtención del Título de Técnico Superior en ${data.cycle_data.nombre}`
+            : `No cumple los requisitos vigentes para la obtención del Título de Técnico Superior en ${data.cycle_data.nombre}`
+          }
         </Text>
 
         <Text style={styles.paragraph}>
@@ -219,7 +284,11 @@ export const CertificadoObtencionDocument = ({ data, }: { data: CertificateData 
           <Text style={styles.anottations}>
             (1) : Código establecido en la Comunidad Autónoma de Aragón{'\n'}
             (2) : Notación de las calificaciones:{'\n'}
-            Módulo profesional superado : 5,6,7,8,9,10 | Convalidado 5 : CV-5 | Convalidado : CV | Módulo profesional de FCT superado : APTO | Nota final de ciclo con "Matrícula de Honor" : (Nota)-M. Honor | Módulo profesional exento : EX | Módulo con "Mención Honorifica" : 10-MH
+            Módulo profesional superado : 5,6,7,8,9,10 | Convalidado 5 : CV-5 |
+            Convalidado : CV | Módulo profesional de FCT superado : APTO |
+            Nota final de ciclo con "Matrícula de Honor" : (Nota)-M. Honor |
+            Módulo profesional exento : EX | Módulo con "Mención Honorifica" : 10-MH |
+            Módulo procedente de traslado : (Nota)*
           </Text>
         </Text>
 

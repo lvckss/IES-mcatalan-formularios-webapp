@@ -19,6 +19,8 @@ import {
   GroupSchema,
 } from "../models/Group";
 
+import type { AppBindings } from "../app";
+
 // PATCH body: actualizar uno o ambos campos
 const updateGroupSchema = z.object({
   nombre: z.string().max(120).optional(),
@@ -32,7 +34,17 @@ const groupMembersBodySchema = z.object({
   id_estudiantes: z.array(z.number().int().positive()).min(1),
 });
 
-export const groupsRoute = new Hono()
+export const groupsRoute = new Hono<AppBindings>()
+
+  .use("*", async (c, next) => {
+    const user = c.get("user");
+    if (!user) {
+      // devolvemos Response aquí
+      return c.json({ error: "No autorizado" }, 401);
+    }
+    // y solo seguimos si hay sesión
+    await next();
+  })
 
   // Listar grupos (simples)
   .get("/", async (c) => {

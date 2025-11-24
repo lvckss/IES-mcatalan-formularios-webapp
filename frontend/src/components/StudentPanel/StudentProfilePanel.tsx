@@ -42,6 +42,7 @@ import { toast } from "sonner"
 // ===============================================================
 async function getFullStudentData(id: number): Promise<FullStudentData> {
   const response = await api.students.fullInfo[':id'].$get({ param: { id: id.toString() } });
+
   const data = await response.json();
   const raw = data.fullInfo;
 
@@ -112,18 +113,19 @@ const patchStudentPersonal = async (studentId: number, body: any) => {
 // ========================================================================
 
 const PASS_NOTAS = new Set([
-  "5", "6", "7", "8", "9", "10", "10-MH",
-  "CV", "CV-5", "CV-6", "CV-7", "CV-8", "CV-9", "CV-10",
-  "APTO",
-  "RC" // YA QUE RENUNCIA CONVOCATORIA NO VA A EXTRAORDINARIA
+  '5', '6', '7', '8', '9', '10', '10-MH', '10-Matr. Honor',
+  'APTO', 'CV', 'CV-5', 'CV-6', 'CV-7', 'CV-8', 'CV-9', 'CV-10', 'CV-10-MH',
+  'TRAS-5', 'TRAS-6', 'TRAS-7', 'TRAS-8', 'TRAS-9', 'TRAS-10', 'TRAS-10-MH',
+  'EX'
 ]);
 
 // PARA EL ENDPOINT DE LAS NOTAS
 
 const NOTA_OPTIONS = [
-  "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "10-MH",
-  "CV", "CV-5", "CV-6", "CV-7", "CV-8", "CV-9", "CV-10",
-  "AM", "RC", "NE", "APTO", "NO APTO"
+  "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "10-MH", "10-Matr. Honor",
+  "CV", "CV-5", "CV-6", "CV-7", "CV-8", "CV-9", "CV-10", "CV-10-MH",
+  "TRAS-5", "TRAS-6", "TRAS-7", "TRAS-8", "TRAS-9", "TRAS-10", "TRAS-10-MH",
+  "RC", "NE", "APTO", "NO APTO", "EX"
 ] as const;
 
 const NOTA_OPTIONS_NO_CV = NOTA_OPTIONS.filter(o => !o.startsWith("CV")) as Nota[];
@@ -1162,9 +1164,7 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
 
                               <tbody>
                                 {(anio_escolar.enrollments ?? []).map((modulo: any) => {
-                                  const notaOptions = anio_escolar.vino_traslado
-                                    ? NOTA_OPTIONS
-                                    : NOTA_OPTIONS_NO_CV;
+                                  const notaOptions = NOTA_OPTIONS;
 
                                   return (
                                     <tr key={modulo.codigo_modulo} className="border-b last:border-0">

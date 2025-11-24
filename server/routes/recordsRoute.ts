@@ -12,8 +12,18 @@ import {
   deleteRecordComplete
 } from "../controllers/recordController";
 import { z } from "zod";
+import type { AppBindings } from "../app";
 
-export const recordsRoute = new Hono()
+export const recordsRoute = new Hono<AppBindings>()
+  .use("*", async (c, next) => {
+    const user = c.get("user");
+    if (!user) {
+      // devolvemos Response aquí
+      return c.json({ error: "No autorizado" }, 401);
+    }
+    // y solo seguimos si hay sesión
+    await next();
+  })
   .get("/", async (c) => {
     const result = await getRecords();
     return c.json({ expedientes: result });

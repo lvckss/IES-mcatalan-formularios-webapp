@@ -23,7 +23,7 @@ import { Label } from "@/components/ui/label";
 import SelectField from "@/components/StudentTable/SelectField";
 import { toast } from "sonner";
 
-import { PostStudent, PostRecord, PostEnrollment, Law } from "@/types";
+import { PostStudent, PostRecord, PostEnrollment, Law, Enrollment } from "@/types";
 import { useRowState } from "react-table";
 import { AirVent } from "lucide-react";
 
@@ -180,6 +180,11 @@ const generateSchoolYearOptions = (): { value: string; label: string }[] => {
 
 import type { CheckedState } from "@radix-ui/react-checkbox";
 
+type EnrollmentExtended = Omit<Enrollment, "id_expediente"> & {
+  codigo_modulo: string;
+  nombre_modulo: string;
+};
+
 interface NewEnrollmentButtonProps {
   student_id: number;
   isOpen: boolean;
@@ -199,6 +204,8 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
   const [selectedModules, setSelectedModules] = useState<Record<number, [string, number | null]>>({});
   const [selectedTurno, setSelectedTurno] = useState<string>("");
   const [vinoTraslado, setVinoTraslado] = useState<boolean>(false);
+  const [selectedCursoExpediente, setSelectedCursoExpediente] = useState<'' | '1' | '2'>('');
+
 
   const queryClient = useQueryClient();
 
@@ -257,30 +264,52 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
 
   // id del ciclo de 1º (el que usas para crear el expediente)
   const cicloIDPrimero = cursoIds['1'];
+  const cicloIDSegundo = cursoIds['2'];
+
+  const availableCourseOptions = useMemo(
+    () => {
+      const opts: { value: string; label: string; disabled?: boolean }[] = [];
+      if (cicloIDPrimero) opts.push({ value: '1', label: '1º (primer curso)' });
+      if (cicloIDSegundo) opts.push({ value: '2', label: '2º (segundo curso)' });
+      return opts;
+    },
+    [cicloIDPrimero, cicloIDSegundo]
+  );
+
 
   // Opciones de año escolar, memorizadas
   const schoolYearOptions = useMemo(() => generateSchoolYearOptions(), []);
 
-  // Pide si puede matricularse en cada periodo (true/false)
-  const canEnrollQueries = useQueries({
+  // Pide si puede matricularse en cada periodo PARA 1º y 2º
+  const canEnrollQueriesFirst = useQueries({
     queries: schoolYearOptions.map((opt) => ({
-      queryKey: ['can-enroll-period', student_id, cicloIDPrimero, opt.value] as const,
+      queryKey: ['can-enroll-period', 'curso:1', student_id, cicloIDPrimero, opt.value] as const,
       queryFn: () =>
         checkCicloCursableEnPeriodo(student_id, Number(cicloIDPrimero), opt.value),
-      enabled: Boolean(selectedCiclo && cicloIDPrimero), // solo cuando ya hay ciclo seleccionado
+      enabled: Boolean(selectedCiclo && cicloIDPrimero), // solo si hay ciclo de 1º
       staleTime: 5 * 60 * 1000,
     })),
   });
 
-  // Set con años deshabilitados (NO puede cursar => disabled)
+  const canEnrollQueriesSecond = useQueries({
+    queries: schoolYearOptions.map((opt) => ({
+      queryKey: ['can-enroll-period', 'curso:2', student_id, cicloIDSegundo, opt.value] as const,
+      queryFn: () =>
+        checkCicloCursableEnPeriodo(student_id, Number(cicloIDSegundo), opt.value),
+      enabled: Boolean(selectedCiclo && cicloIDSegundo), // solo si hay ciclo de 2º
+      staleTime: 5 * 60 * 1000,
+    })),
+  });
+
   const disabledYearSet = useMemo(() => {
     const s = new Set<string>();
-    canEnrollQueries.forEach((q, idx) => {
-      const period = schoolYearOptions[idx]?.value;
-      if (period && q.data === false) s.add(period);
+    schoolYearOptions.forEach((opt, idx) => {
+      const first = canEnrollQueriesFirst[idx]?.data;   // true/false/undefined
+      const second = canEnrollQueriesSecond[idx]?.data;  // true/false/undefined
+      if (first === false || second === false) s.add(opt.value);
     });
     return s;
-  }, [canEnrollQueries, schoolYearOptions]);
+  }, [canEnrollQueriesFirst, canEnrollQueriesSecond, schoolYearOptions]);
 
 
   // --- 5. Carga de módulos por cada curso ----------------------
@@ -361,12 +390,20 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
     return s;
   }, [approveChecks, allModuleIds]);
 
+  const modulosIndex = useMemo(() => {
+    const idx = new Map<number, { codigo: string; nombre: string }>();
+    (modulosPrimerCurso ?? []).forEach((m: any) => idx.set(m.id_modulo, { codigo: m.codigo, nombre: m.nombre }));
+    (modulosSegundoCurso ?? []).forEach((m: any) => idx.set(m.id_modulo, { codigo: m.codigo, nombre: m.nombre }));
+    return idx;
+  }, [modulosPrimerCurso, modulosSegundoCurso]);
+
   // =============================================================
   // ============== MANEJADORES DE EVENTOS =======================
   // =============================================================
   const handleLeyChange = (ley: string) => {
     setSelectedLey(ley);
     setSelectedCiclo("");
+    setSelectedCursoExpediente(''); // NEW
     setSelectedAnioEscolar("");
     setSelectedTurno("");
     setSelectedModules({});
@@ -375,6 +412,7 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
 
   const handleCicloChange = (value: string) => {
     setSelectedCiclo(value);
+    setSelectedCursoExpediente(''); // NEW
     setSelectedAnioEscolar("");
     setSelectedTurno("");
     setSelectedModules({});
@@ -425,66 +463,224 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
     });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); // Evita el comportamiento por defecto del formulario
+  // --- helpers dentro del componente ---
+  const buildModuloCursoMap = () => {
+    const map = new Map<number, '1' | '2'>();
+    (modulosPrimerCurso ?? []).forEach((m: any) => map.set(m.id_modulo, '1'));
+    (modulosSegundoCurso ?? []).forEach((m: any) => map.set(m.id_modulo, '2'));
+    return map;
+  };
 
-    if (!selectedCiclo || !selectedAnioEscolar || Object.keys(selectedModules).length === 0) {
-      toast("Complete todos los campos.")
+  const splitSelectedByCurso = (
+    selectedModules: Record<number, [string, number | null]>,
+    moduloCursoMap: Map<number, '1' | '2'>
+  ) => {
+    const byCurso: Record<'1' | '2', number[]> = { '1': [], '2': [] };
+    Object.keys(selectedModules).map(Number).forEach((id) => {
+      const curso = moduloCursoMap.get(id);
+      if (curso) byCurso[curso].push(id);
+    });
+    return byCurso;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (
+      !selectedCiclo ||
+      !selectedAnioEscolar ||
+      !selectedTurno ||
+      Object.keys(selectedModules).length === 0
+    ) {
+      toast("Complete todos los campos.");
       return;
     }
 
-    const [anoInicio, anoFin] = selectedAnioEscolar.split('-').map(Number);
+    // índice local id_modulo -> { codigo, nombre } para construir enrollments optimistas
+    const modulosIndex = (() => {
+      const idx = new Map<number, { codigo: string; nombre: string }>();
+      (modulosPrimerCurso ?? []).forEach((m: any) =>
+        idx.set(m.id_modulo, { codigo: m.codigo, nombre: m.nombre })
+      );
+      (modulosSegundoCurso ?? []).forEach((m: any) =>
+        idx.set(m.id_modulo, { codigo: m.codigo, nombre: m.nombre })
+      );
+      return idx;
+    })();
 
-    const cicloIDPrimero = cursoIds['1'];
+    try {
+      await toast.promise(
+        (async () => {
+          const [anoInicio, anoFin] = selectedAnioEscolar.split("-").map(Number);
 
-    const recordData: PostRecord = {
-      id_estudiante: student_id,
-      ano_inicio: anoInicio,
-      ano_fin: anoFin,
-      convocatoria: "Ordinaria" as "Ordinaria" | "Extraordinaria",
-      turno: selectedTurno,
-      id_ciclo: Number(cicloIDPrimero),
-      fecha_pago_titulo: null,
-      vino_traslado: vinoTraslado,
-      dado_baja: false,
-    };
+          // Validación: no puede cursar 1º y 2º del mismo ciclo en el mismo año
+          const firstOK =
+            cicloIDPrimero
+              ? await checkCicloCursableEnPeriodo(
+                student_id,
+                Number(cicloIDPrimero),
+                selectedAnioEscolar
+              )
+              : true;
 
-    const recordResponse = await mutationExpediente.mutateAsync(recordData);
-    const recordId = recordResponse.expediente.id_expediente;
+          const secondOK =
+            cicloIDSegundo
+              ? await checkCicloCursableEnPeriodo(
+                student_id,
+                Number(cicloIDSegundo),
+                selectedAnioEscolar
+              )
+              : true;
 
-    const matriculas: PostEnrollment[] = Object.entries(selectedModules).map(([id]) => ({
-      id_modulo: Number(id),
-      nota: 'NE',
-      id_estudiante: student_id,
-      id_expediente: Number(recordId)
-    }))
+          if (!firstOK || !secondOK) {
+            throw new Error(
+              `Ya existe un expediente de este ciclo en ${selectedAnioEscolar}. ` +
+              `Un alumno no puede cursar 1º y 2º el mismo año.`
+            );
+          }
 
-    await Promise.all(
-      matriculas.map(matricula => mutationMatriculas.mutateAsync(matricula))
-    );
-    queryClient.invalidateQueries({ queryKey: ['full-student-data', student_id] });
-    // volver a calcular los años no cursables
-    queryClient.invalidateQueries({ queryKey: ['can-enroll-period', student_id] });
-    queryClient.refetchQueries({ queryKey: ['can-enroll-period', student_id], type: 'active' });
-    queryClient.invalidateQueries({ queryKey: ['students-allFullInfo'] });
-    queryClient.refetchQueries({ queryKey: ['students-allFullInfo'], type: 'active' });
-    queryClient.invalidateQueries({ queryKey: ["students-by-filter"] });
-    queryClient.refetchQueries({ queryKey: ["students-by-filter"], type: "active" });
+          if (!selectedCursoExpediente) {
+            throw new Error("Selecciona el curso del expediente (1º o 2º).");
+          }
 
-    onClose();
-    setTimeout(() => { // reset 500 ms después
-      setSelectedLey("");
-      setSelectedCiclo("");
-      setSelectedAnioEscolar("");
-      setModulesFilter("");
-      setSelectedTurno("");
-      setVinoTraslado(false);
-      setSelectedModules({});
-    }, 500);
-  }
+          const targetCurso: "1" | "2" = selectedCursoExpediente;
+          const targetCicloId = cursoIds[targetCurso];
+          if (!targetCicloId) throw new Error("No existe un ciclo para el curso elegido.");
 
-  const canPickYear = Boolean(selectedLey && selectedCiclo && cicloIDPrimero);
-  const canPickCiclo = Boolean(selectedLey)
+          // 1) Crear expediente
+          const expedientePayload: PostRecord = {
+            id_estudiante: student_id,
+            ano_inicio: anoInicio,
+            ano_fin: anoFin,
+            convocatoria: "Ordinaria",
+            turno: selectedTurno,
+            id_ciclo: Number(targetCicloId),
+            fecha_pago_titulo: null,
+            vino_traslado: vinoTraslado,
+            dado_baja: false,
+          };
+
+          const rec = await mutationExpediente.mutateAsync(expedientePayload);
+          const recordId = rec.expediente.id_expediente as number;
+
+          // 2) Crear matrículas
+          const mats: PostEnrollment[] = Object.keys(selectedModules).map((idStr) => ({
+            id_modulo: Number(idStr),
+            nota: "NE",
+            id_estudiante: student_id,
+            id_expediente: recordId,
+          }));
+          await Promise.all(mats.map((m) => mutationMatriculas.mutateAsync(m)));
+
+          // 3) UPDATE OPTIMISTA: inyecta el expediente recién creado en ['full-student-data', student_id]
+          queryClient.setQueryData<FullStudentData>(
+            ["full-student-data", student_id],
+            (prev) => {
+              if (!prev) return prev;
+
+              const already = prev.records?.some((r) => r.id_expediente === recordId);
+              if (already) return prev;
+
+              const enrollments: EnrollmentExtended[] = Object.keys(selectedModules).map((idStr) => {
+                const id = Number(idStr);
+                const meta = modulosIndex.get(id);
+                return {
+                  id_matricula: -1,                 // temporal hasta que llegue el refetch
+                  id_estudiante: student_id,
+                  id_modulo: id,
+                  codigo_modulo: meta?.codigo ?? String(id),
+                  nombre_modulo: meta?.nombre ?? "",
+                  nota: "NE",                       // cumple el union de Nota | null
+                } satisfies EnrollmentExtended;
+              });
+
+              const cicloNombre =
+                (ciclosByLeyData?.find(c => c.codigo === selectedCiclo)?.nombre)
+                ?? (Array.isArray(ciclosData)
+                  ? ciclosData.find(c => String(c.id_ciclo) === String(targetCicloId))?.nombre
+                  ?? ciclosData[0]?.nombre
+                  : undefined)
+                ?? "—";
+
+              const nuevo: RecordExtended = {
+                id_expediente: recordId,
+                ano_inicio: anoInicio,
+                ano_fin: anoFin,
+                convocatoria: "Ordinaria",
+                turno: selectedTurno,
+                vino_traslado: vinoTraslado,
+                dado_baja: false,
+                id_ciclo: Number(targetCicloId),
+                ciclo_codigo: selectedCiclo,
+                ciclo_nombre: cicloNombre,
+                enrollments,
+              };
+
+              return { ...prev, records: [...(prev.records ?? []), nuevo] };
+            }
+          );
+
+          // 4) Invalidaciones/refetch (robustas)
+          await Promise.all([
+            // Exacta: este es el detalle del alumno
+            queryClient.invalidateQueries({
+              queryKey: ["full-student-data", student_id],
+              exact: true,
+            }),
+            queryClient.refetchQueries({
+              queryKey: ["full-student-data", student_id],
+              type: "active",
+            }),
+
+            // can-enroll-period: tus keys incluyen 'curso:1'/'curso:2' y year -> usa predicate
+            queryClient.invalidateQueries({
+              predicate: (q) =>
+                Array.isArray(q.queryKey) &&
+                q.queryKey[0] === "can-enroll-period" &&
+                q.queryKey.includes(student_id),
+            }),
+
+            // can-approve: idem
+            queryClient.invalidateQueries({
+              predicate: (q) =>
+                Array.isArray(q.queryKey) &&
+                q.queryKey[0] === "can-approve" &&
+                q.queryKey.includes(student_id),
+            }),
+
+            // listados agregados
+            queryClient.invalidateQueries({ queryKey: ["students-allFullInfo"] }),
+            queryClient.invalidateQueries({ queryKey: ["students-by-filter"] }),
+          ]);
+
+          // 5) Cerrar y limpiar estado local
+          onClose();
+          setTimeout(() => {
+            setSelectedLey("");
+            setSelectedCiclo("");
+            setSelectedCursoExpediente("");
+            setSelectedAnioEscolar("");
+            setModulesFilter("");
+            setSelectedTurno("");
+            setVinoTraslado(false);
+            setSelectedModules({});
+          }, 500);
+        })(),
+        {
+          loading: "Creando matrícula…",
+          success: "Matrícula creada correctamente",
+          error: (e) =>
+            e?.message || "No se pudo crear la matrícula. Revisa los datos o la conexión.",
+        }
+      );
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const canPickCiclo = Boolean(selectedLey);
+  const canPickCurso = Boolean(selectedLey && selectedCiclo && (cicloIDPrimero || cicloIDSegundo));
+  const canPickYear = Boolean(selectedLey && selectedCiclo && (cicloIDPrimero || cicloIDSegundo));
 
   // =============================================================
   // ======================= RENDER UI ===========================
@@ -495,9 +691,10 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
       onOpenChange={(open) => {
         if (!open) {
           onClose();
-          setTimeout(() => { // reset 500 ms después
+          setTimeout(() => {
             setSelectedLey("");
             setSelectedCiclo("");
+            setSelectedCursoExpediente(''); // NEW
             setSelectedAnioEscolar("");
             setModulesFilter("");
             setSelectedTurno("");
@@ -559,6 +756,19 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
             />
           </div>
 
+          {/* ---------- SELECT CURSO DEL EXPEDIENTE ----------- */}
+          <div className={!canPickCurso ? "pointer-events-none opacity-60" : ""}>
+            <SelectField
+              label="Curso del expediente"
+              name="curso_expediente"
+              value={selectedCursoExpediente}
+              onValueChange={(v) => setSelectedCursoExpediente(v as '1' | '2')}
+              placeholder={canPickCurso ? "Seleccionar curso (1º / 2º)" : "Selecciona ciclo primero"}
+              options={availableCourseOptions}
+              width={1000}
+            />
+          </div>
+
           {/* ---------- SELECT AÑO ESCOLAR ----------- */}
           <div className={!canPickYear ? "pointer-events-none opacity-60" : ""}>
             <SelectField
@@ -577,12 +787,11 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
                       disabled: isDisabled,
                     };
                   })
-                  : [] // sin opciones hasta que haya ley + ciclo
+                  : []
               }
               width={1000}
             />
           </div>
-
 
           {/* ---------- SELECT TURNO ----------- */}
           <div>

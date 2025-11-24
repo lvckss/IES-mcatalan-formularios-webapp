@@ -39,7 +39,7 @@ const SidebarAvatar: React.FC = () => {
                                 <span className="font-medium">Email:</span>{" "}
                                 <a
                                     href="mailto:lgarcirz@gmail.com"
-                                    className="inline-flex items-center gap-1 underline decoration-dashed hover:decoration-solid hover:text-green-300 transition-colors"
+                                    className="inline-flex items-center gap-1 underline hover:decoration-solid hover:text-green-300 transition-colors"
                                 >
                                     lgarcirz@gmail.com
                                 </a>
@@ -51,7 +51,7 @@ const SidebarAvatar: React.FC = () => {
                                     href="https://github.com/lvckss"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 underline decoration-dashed hover:decoration-solid hover:text-green-300 transition-colors"
+                                    className="inline-flex items-center gap-1 underline hover:decoration-solid hover:text-green-300 transition-colors"
                                 >
                                     github.com/lvckss
                                 </a>

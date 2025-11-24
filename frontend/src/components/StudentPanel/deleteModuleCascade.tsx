@@ -74,6 +74,7 @@ export const DeleteModuleCascadeButton: React.FC<DeleteModuleCascadeButtonProps>
             qc.refetchQueries({ queryKey: ["can-enroll-period", studentId], type: "active" });
 
             qc.invalidateQueries({ queryKey: ["students-by-filter"] });
+            qc.refetchQueries({ queryKey: ["students-by-filter"], type: "active" });
 
             toast.success(`Módulo eliminado${data.count > 1 ? ` (${data.count} matrículas en cascada)` : ""}.`);
             setOpen(false);

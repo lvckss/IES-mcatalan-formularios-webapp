@@ -1,37 +1,43 @@
+import "dotenv/config";
 import postgres from "postgres";
 
-const sql = postgres({
-  host: 'localhost',
-  port: 5432,
-  database: 'mcatalan',
-  username: 'postgres',
-  password: 'postgres',
+const isProd = process.env.BUN_ENV === "production";
 
-  // 🔎 Modo debug: imprime la consulta y sus parámetros
-  debug: (connection, query, params) => {
-    // ID del backend de Postgres (útil si hay varias conexiones)
-    const pid = (connection as any)?.processID ?? 'conn';
+const { DATABASE_URL } = process.env;
 
-    console.log(`[pg:${pid}] QUERY:\n${query}`);
-    console.log(`[pg:${pid}] PARAMS:`, params);
-
-    // Aviso específico si entra un NaN
-    if (Array.isArray(params) && params.some(p => typeof p === 'number' && Number.isNaN(p))) {
-      console.warn(`[pg:${pid}] ⚠️ Detectado parámetro NaN en la consulta anterior.`);
-      // Si quieres pinchar la ejecución en dev:
-      // throw new Error('NaN parameter passed to Postgres query');
-    }
-  },
-
-  // Notificaciones del servidor (NOTICE, etc.)
-  onnotice: (notice) => {
-    console.warn('[pg notice]', notice);
-  },
-});
+const sql = DATABASE_URL
+  // Camino Render (hosting) / producción: usar la URL completa
+  ? postgres(DATABASE_URL, {
+      // En Render Postgres normalmente hace falta cifrado SSL; "require" es el valor correcto.
+      ssl: "require",
+      debug: !isProd
+        ? (connection, query, params) => {
+            const pid = (connection as any)?.processID ?? "conn";
+            console.log(`[pg:${pid}] QUERY:\n${query}`);
+            console.log(`[pg:${pid}] PARAMS:`, params);
+          }
+        : undefined,
+    })
+  // Camino local: variables separadas
+  : postgres({
+      host: process.env.DB_HOST ?? "localhost",
+      port: Number(process.env.DB_PORT ?? 5432),
+      database: process.env.DB_NAME ?? "mcatalan",
+      username: process.env.DB_USER ?? "mcatalan_app",
+      password: process.env.DB_PASSWORD ?? "cambia_esto",
+      ssl: isProd ? "require" : undefined,
+      debug: !isProd
+        ? (connection, query, params) => {
+            const pid = (connection as any)?.processID ?? "conn";
+            console.log(`[pg:${pid}] QUERY:\n${query}`);
+            console.log(`[pg:${pid}] PARAMS:`, params);
+          }
+        : undefined,
+    });
 
 (async () => {
   try {
-    await sql`SELECT 1`; // Test query
+    await sql`SELECT 1`;
     console.log("Database connected successfully!");
   } catch (error) {
     console.error("Failed to connect to the database:", error);

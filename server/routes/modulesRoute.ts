@@ -7,10 +7,22 @@ import {
   getModuleById,
   deleteModule,
   getModuleByCycleId,
-  getModulesByCycleCodeAndCurso
+  getModulesByCycleCodeAndCurso,
+  countConvocatorias
 } from "../controllers/moduleController";
 
-export const modulesRoute = new Hono()
+import type { AppBindings } from "../app";
+
+export const modulesRoute = new Hono<AppBindings>()
+  .use("*", async (c, next) => {
+    const user = c.get("user");
+    if (!user) {
+      // devolvemos Response aquí
+      return c.json({ error: "No autorizado" }, 401);
+    }
+    // y solo seguimos si hay sesión
+    await next();
+  })
   .get("/", async (c) => {
     const result = await getModules();
     return c.json({ modulos: result });
@@ -24,6 +36,12 @@ export const modulesRoute = new Hono()
     const id = Number(c.req.param("id"));
     const result = await getModuleById(id);
     return c.json({ modulo: result });
+  })
+  .get("/convocatorias/:module_id/:student_id", async (c) => {
+    const module_id = Number(c.req.param("module_id"));
+    const student_id = Number(c.req.param("student_id"));
+    const result = await countConvocatorias(student_id, module_id)
+    return c.json({ convocatorias: result })
   })
   .get("/cycle_id/:cycle_id", async (c) => {
     const cycleId = Number(c.req.param("cycle_id"));

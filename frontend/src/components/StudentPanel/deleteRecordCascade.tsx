@@ -124,7 +124,7 @@ export const DeleteRecordCascadeButton: React.FC<DeleteRecordCascadeButtonProps>
         {stage === 1 && (
           <div className="space-y-3">
             <p className="text-sm">
-              Vas a borrar este expediente y sus sucesores, ¿estás seguro?
+              Vas a borrar este curso escolar y sus sucesores, ¿estás seguro?
             </p>
             <div className="flex items-center justify-end gap-2">
               <Button variant="outline" onClick={resetFlow} disabled={mutation.isPending}>

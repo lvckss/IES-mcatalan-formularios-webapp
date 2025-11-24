@@ -76,10 +76,10 @@ CREATE TABLE Expedientes (
 -- 6) TIPO DE NOTA
 -- ==============================
 CREATE TYPE nota_enum AS ENUM (
-    '1','2','3','4','5','6','7','8','9','10',
-    '10-MH',
-    'CV','CV-5','CV-6','CV-7','CV-8','CV-9','CV-10',
-    'AM','RC','NE','APTO','NO APTO'
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '10-MH', '10-Matr. Honor',
+    'CV', 'CV-5', 'CV-6', 'CV-7', 'CV-8', 'CV-9', 'CV-10', 'CV-10-MH',
+    'TRAS-5', 'TRAS-6', 'TRAS-7', 'TRAS-8', 'TRAS-9', 'TRAS-10', 'TRAS-10-MH',
+    'RC', 'NE', 'APTO', 'NO APTO', 'EX'
 );
 
 -- ==============================
@@ -124,8 +124,10 @@ CREATE TABLE Directivos (
 CREATE UNIQUE INDEX uq_pass_once_per_student_module
   ON Matriculas (id_estudiante, id_modulo)
   WHERE nota IN (
-    '5','6','7','8','9','10','10-MH',
-    'APTO','CV','CV-5','CV-6','CV-7','CV-8','CV-9','CV-10'
+    '5', '6', '7', '8', '9', '10', '10-MH', '10-Matr. Honor',
+    'APTO', 'CV', 'CV-5', 'CV-6', 'CV-7', 'CV-8', 'CV-9', 'CV-10', 'CV-10-MH',
+    'TRAS-5', 'TRAS-6', 'TRAS-7', 'TRAS-8', 'TRAS-9', 'TRAS-10', 'TRAS-10-MH',
+    'EX'
 );
 
 -- 10) GRUPOS

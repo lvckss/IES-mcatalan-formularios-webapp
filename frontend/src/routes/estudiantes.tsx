@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import Estudiantes from "@/components/StudentTable/Students";
 import Header from "@/components/Header";
+import { RequireAuth } from "@/components/auth/RequireAuth";
 
 export const Route = createFileRoute('/estudiantes')({
   component: EstudiantesPage,
@@ -8,9 +9,11 @@ export const Route = createFileRoute('/estudiantes')({
 
 function EstudiantesPage() {
   return (
-    <>
-      <Header activeTab='Estudiantes:'></Header>
-      <Estudiantes />
-    </>
-  )
+    <RequireAuth>
+      <>
+        <Header activeTab="Estudiantes:" />
+        <Estudiantes />
+      </>
+    </RequireAuth>
+  );
 }
