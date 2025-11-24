@@ -1,20 +1,42 @@
 // frontend/src/lib/auth-client.ts
 import { createAuthClient } from "better-auth/react";
 
-// true en build de producción, false en `bun dev`
+// En Vite:
+const isDev = import.meta.env.DEV;
 const isProd = import.meta.env.PROD;
 
-// En desarrollo: backend en http://localhost:3000
-// En producción (Render): el backend sirve también el frontend, así que usamos la misma origin
-const baseURL = isProd
-  ? "/api/auth" // => https://tu-app.onrender.com/api/auth/...
-  : `${import.meta.env.VITE_API_URL ?? "http://localhost:3000"}/api/auth`;
-//      ^ en dev puedes tener VITE_API_URL=http://localhost:3000 si quieres;
-//        si no, cae en "http://localhost:3000" igualmente
+// 1) Decidir el ORIGIN de la API
+let apiOrigin: string;
+
+if (isDev) {
+  // 🔹 Desarrollo: el backend corre en http://localhost:3000
+  //    (o lo que tú pongas en VITE_API_URL)
+  apiOrigin = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+} else {
+  // 🔹 Producción (Render):
+  //    - Si defines VITE_API_URL en Render, usamos eso
+  //    - Si no, usamos window.location.origin (el propio dominio de Render)
+  if (import.meta.env.VITE_API_URL) {
+    apiOrigin = import.meta.env.VITE_API_URL;
+  } else if (typeof window !== "undefined") {
+    apiOrigin = window.location.origin;
+  } else {
+    // Fallback ultra defensivo (no debería ocurrir en el navegador)
+    apiOrigin = "";
+  }
+}
+
+if (!apiOrigin) {
+  throw new Error(
+    "No se pudo determinar apiOrigin. Define VITE_API_URL o revisa auth-client.ts"
+  );
+}
+
+// 2) Base URL completa para Better Auth
+const baseURL = `${apiOrigin}/api/auth`;
 
 export const authClient = createAuthClient({
   baseURL,
 });
 
-// Helpers que usas en la app
 export const { signIn, signUp, signOut, useSession } = authClient;
