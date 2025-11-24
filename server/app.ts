@@ -85,11 +85,20 @@ const apiRoutes = app.basePath("/api")
 // ----------------------------------------------------------------------------------------------------
 // Static frontend SOLO en producción
 // En dev ya usas Vite en el 5173.
-if (isProd) {
-  // Sirve los archivos generados por `frontend` (bun run build dentro de frontend)
-  app.get('*', serveStatic({ root: '/frontend/dist' }));
-  app.get('*', serveStatic({ path: '/frontend/dist/index.html' }));
-}
+// permitimos que el backend sirva archivos estáticos para la producción
+
+app.get(
+  '*',
+  serveStatic({
+    root: './frontend/dist',
+    rewriteRequestPath(path) {
+      // Para la raíz, servir el index.html del frontend
+      if (path === '/') return '/index.html'
+      return path
+    },
+  }),
+)
+
 
 export default app;
 export type ApiRoutes = typeof apiRoutes;
