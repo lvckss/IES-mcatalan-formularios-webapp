@@ -1,12 +1,20 @@
 // frontend/src/lib/auth-client.ts
 import { createAuthClient } from "better-auth/react";
 
-// Si quieres, define en .env.frontend:
-// VITE_API_URL=http://localhost:3000
+// true en build de producción, false en `bun dev`
+const isProd = import.meta.env.PROD;
+
+// En desarrollo: backend en http://localhost:3000
+// En producción (Render): el backend sirve también el frontend, así que usamos la misma origin
+const baseURL = isProd
+  ? "/api/auth" // => https://tu-app.onrender.com/api/auth/...
+  : `${import.meta.env.VITE_API_URL ?? "http://localhost:3000"}/api/auth`;
+//      ^ en dev puedes tener VITE_API_URL=http://localhost:3000 si quieres;
+//        si no, cae en "http://localhost:3000" igualmente
+
 export const authClient = createAuthClient({
-  // URL del servidor donde tienes Better Auth montado (Hono)
-  baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:3000",
+  baseURL,
 });
 
-// Exponemos helpers cómodos para usar en la app
+// Helpers que usas en la app
 export const { signIn, signUp, signOut, useSession } = authClient;
