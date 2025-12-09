@@ -726,6 +726,7 @@ const AddStudentButton: React.FC = () => {
             queryClient.refetchQueries({ queryKey: ['students-allFullInfo'], type: 'active' });
             queryClient.invalidateQueries({ queryKey: ["students-by-filter"] });
             queryClient.refetchQueries({ queryKey: ["students-by-filter"], type: "active" });
+            queryClient.invalidateQueries({ queryKey: ['student-by-legal'] });
 
             // Cerrar diálogo y resetear formulario
             setOpen(false);

@@ -968,6 +968,11 @@ export function StudentDeleteButton({ id }: { id: number }) {
         description: `ID del estudiante: ${id}`,
       });
       queryClient.invalidateQueries({ queryKey: ["get-total-students"] });
+      queryClient.invalidateQueries({ queryKey: ["students-allFullInfo"] });
+      queryClient.invalidateQueries({ queryKey: ["students-by-filter"] });
+
+      // 🔴 Muy importante: limpiar cache de búsquedas por DNI/NIE/pasaporte
+      queryClient.invalidateQueries({ queryKey: ["student-by-legal"] });
       setOpen(false); // cerrar al terminar
     },
   });
