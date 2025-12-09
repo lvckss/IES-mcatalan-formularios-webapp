@@ -1199,7 +1199,7 @@ const AddStudentButton: React.FC = () => {
                                 </p>
                                 <p>
                                     Si necesitas crear un <strong>nuevo año escolar/expediente </strong>
-                                    para este alumno, cierra este diálogo y utiliza el botón:
+                                    para este alumno, cierra este diálogo y utiliza el siguiente botón en la fila respectiva al estudiante en cuestión.
                                 </p>
                                 <p className="flex items-center gap-2">
                                     <span className="inline-flex items-center gap-1 rounded-md border px-2.5 py-2.5 text-[11px] font-mono">

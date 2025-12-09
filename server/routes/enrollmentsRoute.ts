@@ -11,7 +11,8 @@ import {
   checkSePuedeAprobar,
   notasMasAltasEstudiantePorCicloCompleto,
   notasMasAltasEstudiantePorCicloCompletoSoloAprobadas,
-  enrollmentsByRecord
+  enrollmentsByRecord,
+  addModuleToRecordIfAllowed,
 } from "../controllers/enrollmentController";
 import { z } from "zod";
 
@@ -79,6 +80,41 @@ export const enrollmentsRoute = new Hono<AppBindings>()
         return c.json({ error: "No se pudo actualizar la matrícula." }, 500);
       }
     })
+  .post(
+    "/addModule/:id_expediente/:id_modulo",
+    async (c) => {
+      const id_expediente = Number(c.req.param("id_expediente"));
+      const id_modulo = Number(c.req.param("id_modulo"));
+
+      if (!Number.isFinite(id_expediente) || !Number.isFinite(id_modulo)) {
+        return c.json({ error: "Parámetros inválidos." }, 400);
+      }
+
+      try {
+        const result = await addModuleToRecordIfAllowed(id_expediente, id_modulo);
+
+        if (!result) {
+          // No se ha insertado porque ya había matrícula aprobada
+          // o ya existía la matrícula en ese expediente
+          return c.json(
+            {
+              error:
+                "No se puede añadir el módulo: ya existe una matrícula aprobada de este módulo para este alumno o ya está matriculado en este expediente.",
+            },
+            409
+          );
+        }
+
+        return c.json({ matricula: result }, 201);
+      } catch (e: any) {
+        console.error(e);
+        return c.json(
+          { error: "No se pudo añadir el módulo al expediente." },
+          500
+        );
+      }
+    }
+  )
   .get(
     "/puedeAprobar/:id_estudiante/:id_modulo",
     async (c) => {

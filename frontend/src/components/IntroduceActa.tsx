@@ -254,14 +254,22 @@ const notaToNumber = (v: unknown): number | null => {
   if (v == null || v === "") return null;
   if (typeof v === "number") return isFinite(v) ? v : null;
   if (typeof v === "string") {
+    // 5, 7, 10-MH...
     const mh = v.match(/^(\d{1,2})(?:-MH)?$/);
     if (mh) {
       const n = Number(mh[1]);
       return isFinite(n) ? n : null;
     }
-    const cv = v.match(/^CV-(\d{1,2})$/);
+    // CV-5, CV-10, CV-10-MH...
+    const cv = v.match(/^CV-(\d{1,2})(?:-MH)?$/);
     if (cv) {
       const n = Number(cv[1]);
+      return isFinite(n) ? n : null;
+    }
+    // TRAS-5, TRAS-10, TRAS-10-MH...
+    const tras = v.match(/^TRAS-(\d{1,2})(?:-MH)?$/);
+    if (tras) {
+      const n = Number(tras[1]);
       return isFinite(n) ? n : null;
     }
     return null;
@@ -270,9 +278,20 @@ const notaToNumber = (v: unknown): number | null => {
 };
 
 const isPassingNota = (v: unknown): boolean => {
-  if (v === "APTO") return true;               // treat APTO as passed
+  // APTOS “puros”
+  if (v === "APTO") return true;
+
+  // Convalidado sin nota numérica
+  if (v === "CV") return true;
+
+  // Notas trasladadas: TRAS-5, TRAS-10, TRAS-10-MH, etc.
+  if (typeof v === "string" && v.startsWith("TRAS-")) {
+    return true;
+  }
+
+  // Resto: numéricas, 10-MH, CV-5..CV-10...
   const n = notaToNumber(v);
-  return n != null && n >= 5;                  // 5–10, 10-MH, CV-5..CV-10
+  return n != null && n >= 5;
 };
 
 // ==================== VALIDATION SCHEMAS (ZOD) ====================

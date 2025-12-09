@@ -170,6 +170,55 @@ export const deleteEnrollmentCascade = async (id_matricula: number): Promise<Enr
   }
 };
 
+export async function addModuleToRecordIfAllowed(
+  expedienteId: number,
+  moduloId: number,
+) {
+  const rows = await sql<Enrollment[]>`
+    WITH exp AS (
+      SELECT e.id_estudiante
+      FROM Expedientes e
+      WHERE e.id_expediente = ${expedienteId}
+    ),
+    can_insert AS (
+      SELECT e.id_estudiante
+      FROM exp e
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM Matriculas m
+        WHERE m.id_estudiante = e.id_estudiante
+          AND m.id_modulo = ${moduloId}
+          AND m.nota IN (
+            '5', '6', '7', '8', '9', '10', '10-MH', '10-Matr. Honor',
+            'APTO', 'CV', 'CV-5', 'CV-6', 'CV-7', 'CV-8', 'CV-9', 'CV-10', 'CV-10-MH',
+            'TRAS-5', 'TRAS-6', 'TRAS-7', 'TRAS-8', 'TRAS-9', 'TRAS-10', 'TRAS-10-MH',
+            'EX'
+          )
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM Matriculas m2
+        WHERE m2.id_expediente = ${expedienteId}
+          AND m2.id_modulo     = ${moduloId}
+      )
+    )
+    INSERT INTO Matriculas (id_expediente, id_modulo, id_estudiante, nota)
+    SELECT
+      ${expedienteId} AS id_expediente,
+      ${moduloId}     AS id_modulo,
+      c.id_estudiante,
+      NULL            AS nota
+    FROM can_insert c
+    RETURNING *;
+  `;
+
+  // Si no hay filas -> no se ha insertado porque no estaba permitido
+  if (rows.length === 0) {
+    return null; // o lanza un error más explícito
+  }
+
+  return rows[0];
+}
 
 // QUERY GRANDE [SEPARACIÓN] -----------------------------------------------------------------
 

@@ -22,13 +22,13 @@ import {
   SelectItem,
 } from "@/components/ui/select"
 
-import { Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge"
 import DatePicker from "@/components/StudentTable/DatePicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-import { Pencil, X } from "lucide-react"; // NEW (opcional para iconos)
+import { Pencil, X, Plus } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 
 import { api } from "@/lib/api"
 
@@ -109,6 +109,58 @@ const patchStudentPersonal = async (studentId: number, body: any) => {
   }
   return res.json();
 };
+
+async function addModuleToRecord(expedienteId: number, moduloId: number) {
+  const res = await api.enrollments.addModule[":id_expediente"][":id_modulo"].$post({
+    param: {
+      id_expediente: String(expedienteId),
+      id_modulo: String(moduloId),
+    },
+  });
+
+  let data: any = null;
+  try {
+    data = await res.json();
+  } catch {
+    // por si viene sin body
+  }
+
+  if (!res.ok) {
+    const msg = data?.error || "No se pudo añadir el módulo al expediente.";
+    throw new Error(msg);
+  }
+
+  return data;
+}
+
+type ModuleSummary = {
+  id_modulo: number;
+  codigo_modulo: string;
+  nombre: string;
+  curso: string;
+};
+
+async function getModulesByCycle(cycleCode: string): Promise<ModuleSummary[]> {
+  if (!cycleCode) return [];
+
+  // Ajusta "1º" y "2º" si en tu BD son "1", "2" o similar
+  const [res1, res2] = await Promise.all([
+    api.modules.cycle[":cycle_code"].curso[":curso"].$get({
+      param: { cycle_code: cycleCode, curso: "1" },
+    }),
+    api.modules.cycle[":cycle_code"].curso[":curso"].$get({
+      param: { cycle_code: cycleCode, curso: "2" },
+    }),
+  ]);
+
+  const data1 = await res1.json();
+  const data2 = await res2.json();
+
+  return [
+    ...(data1.modulos ?? []),
+    ...(data2.modulos ?? []),
+  ] as ModuleSummary[];
+}
 
 // ========================================================================
 
@@ -239,6 +291,10 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
 
   // NEW: error de ID legal + valor normalizado
   const [idError, setIdError] = useState<string | null>(null);
+
+  const [newModuleCode, setNewModuleCode] = useState("");
+
+  const [selectedModuleIdToAdd, setSelectedModuleIdToAdd] = useState<string>("");
 
   // -------------------- MUTATIONS ------------------------------
 
@@ -405,6 +461,40 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
     },
   });
 
+  const addModuleMutation = useMutation({
+    mutationFn: async (vars: { expedienteId: number; moduloId: number }) => {
+      return addModuleToRecord(vars.expedienteId, vars.moduloId);
+    },
+    onSuccess: (_data, _vars) => {
+      toast.success("Módulo añadido al expediente.");
+      setSelectedModuleIdToAdd("");
+
+      const sid = fullData?.student.id_estudiante ?? id;
+
+      // refrescamos datos del alumno
+      queryClient.invalidateQueries({ queryKey: ["full-student-data", sid] });
+      queryClient.refetchQueries({ queryKey: ["full-student-data", sid], type: "active" });
+
+      // refrescamos notas-altas
+      const cicloId = currentRecord?.id_ciclo ?? baseRecordCore?.id_ciclo ?? null;
+      if (cicloId != null) {
+        queryClient.invalidateQueries({ queryKey: ["notas-altas", id, cicloId] });
+        queryClient.refetchQueries({ queryKey: ["notas-altas", id, cicloId], type: "active" });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["notas-altas", id] });
+        queryClient.refetchQueries({ queryKey: ["notas-altas", id], type: "active" });
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["can-approve", id] });
+      queryClient.refetchQueries({ queryKey: ["can-approve", id], type: "active" });
+      queryClient.invalidateQueries({ queryKey: ["can-enroll-period", id] });
+      queryClient.refetchQueries({ queryKey: ["can-enroll-period", id], type: "active" });
+    },
+    onError: (err: any) => {
+      toast.error(err?.message ?? "No se puede añadir el módulo al expediente.");
+    },
+  });
+
   // -------------------- QUERY PRINCIPAL ------------------------
   const { data: fullData } = useQuery({
     queryKey: ['full-student-data', id],
@@ -412,6 +502,15 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
       const [_key, studentId] = queryKey;
       return getFullStudentData(studentId as number);
     }
+  });
+
+  const { data: modulesForCycle = [], isLoading: isLoadingModules } = useQuery<ModuleSummary[]>({
+    queryKey: ["modules-by-cycle", selectedCycle],
+    queryFn: async () => {
+      if (!selectedCycle) return [];
+      return getModulesByCycle(selectedCycle);
+    },
+    enabled: !!selectedCycle,
   });
 
   // ------------------ DERIVAR OPCIONES -------------------------
@@ -741,6 +840,29 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
     if (years.length) return years[years.length - 1]; // fallback: latest remaining
     return null;
   }, [getOrdinariaYearsAsc]);
+
+  const findModuleIdByCode = React.useCallback(
+    (code: string): number | null => {
+      if (!fullData || !selectedCycle) return null;
+
+      const normalized = code.trim().toUpperCase();
+
+      for (const rec of fullData.records) {
+        if (rec.ciclo_codigo !== selectedCycle) continue;
+
+        for (const m of rec.enrollments ?? []) {
+          const cod = String(m.codigo_modulo ?? "").trim().toUpperCase();
+          if (cod === normalized) {
+            const moduleId: number | undefined = m.id_modulo;
+            if (moduleId != null) return moduleId;
+          }
+        }
+      }
+      return null;
+    },
+    [fullData, selectedCycle]
+  );
+
 
   const handleAfterDelete = React.useCallback((deleted: RecordExtended | null) => {
     if (!deleted) return;
@@ -1225,33 +1347,125 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
                             </table>
                           </div>
 
-                          {/* -------- Fecha + Guardar ---------- */}
-                          < div className="mt-2 flex items-center gap-2" >
-                            <DatePicker
-                              label="Fecha de pago del título"
-                              name="pago_titulo"
-                              value={selectedFechaPagoTitulo} // precargada al cambiar convocatoria
-                              onChange={handleFechaPagoTitulo}
-                            />
-                            <Button
-                              variant="outline"
-                              type="button"
-                              onClick={() => {
-                                if (selectedExpedienteId == null) {
-                                  toast("Selecciona ciclo, año y convocatoria antes de guardar.");
-                                  return;
+                          {/* -------- Añadir módulo + Fecha + Guardar ---------- */}
+                          <div className="mt-2 flex flex-col gap-2">
+                            {isEditingNotas && (
+                              <div className="flex items-center gap-2 flex-nowrap">
+                                <Select
+                                  value={selectedModuleIdToAdd}
+                                  onValueChange={setSelectedModuleIdToAdd}
+                                  disabled={
+                                    !selectedCycle ||
+                                    isLoadingModules ||
+                                    addModuleMutation.isPending
+                                  }
+                                >
+                                  <SelectTrigger className="h-9 w-[420px] text-xs">
+                                    <SelectValue
+                                      placeholder={
+                                        isLoadingModules
+                                          ? "Cargando..."
+                                          : "Módulo"
+                                      }
+                                    />
+                                  </SelectTrigger>
+                                  <SelectContent className="max-h-64 w-[375px]">
+                                    {modulesForCycle.length ? (
+                                      modulesForCycle.map((m) => (
+                                        <SelectItem
+                                          key={m.id_modulo}
+                                          value={String(m.id_modulo)}
+                                          className="cursor-pointer"
+                                        >
+                                          {/* En la lista seguimos dando contexto completo */}
+                                          {m.codigo_modulo} | {m.nombre}
+                                        </SelectItem>
+                                      ))
+                                    ) : (
+                                      <div className="px-3 py-2 text-sm text-muted-foreground">
+                                        No hay módulos disponibles para este ciclo.
+                                      </div>
+                                    )}
+                                  </SelectContent>
+                                </Select>
+
+                                {/* Botón solo icono + tooltip */}
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="icon"
+                                        type="button"
+                                        onClick={() => {
+                                          if (selectedExpedienteId == null) {
+                                            toast("Selecciona ciclo, año y convocatoria antes de añadir.");
+                                            return;
+                                          }
+                                          if (!selectedModuleIdToAdd) {
+                                            toast("Selecciona un módulo.");
+                                            return;
+                                          }
+
+                                          const moduloId = Number(selectedModuleIdToAdd);
+                                          if (!Number.isFinite(moduloId)) {
+                                            toast("Selecciona un módulo válido.");
+                                            return;
+                                          }
+
+                                          addModuleMutation.mutate({
+                                            expedienteId: selectedExpedienteId,
+                                            moduloId,
+                                          });
+                                        }}
+                                        disabled={
+                                          addModuleMutation.isPending ||
+                                          selectedExpedienteId == null ||
+                                          !modulesForCycle.length
+                                        }
+                                      >
+                                        <Plus className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">
+                                      <p>Añadir módulo</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </div>
+                            )}
+
+                            <div className="flex items-center gap-2">
+                              <DatePicker
+                                label="Fecha de pago del título"
+                                name="pago_titulo"
+                                value={selectedFechaPagoTitulo}
+                                onChange={handleFechaPagoTitulo}
+                              />
+                              <Button
+                                variant="outline"
+                                type="button"
+                                onClick={() => {
+                                  if (selectedExpedienteId == null) {
+                                    toast("Selecciona ciclo, año y convocatoria antes de guardar.");
+                                    return;
+                                  }
+                                  mutation.mutate({
+                                    expedienteId: selectedExpedienteId,
+                                    selectedFechaPagoTitulo,
+                                    notasUpdates,
+                                  });
+                                }}
+                                disabled={
+                                  selectedExpedienteId == null ||
+                                  mutation.isPending ||
+                                  !isDirty
                                 }
-                                mutation.mutate({
-                                  expedienteId: selectedExpedienteId,
-                                  selectedFechaPagoTitulo,
-                                  notasUpdates, // << aquí va el array
-                                });
-                              }}
-                              disabled={selectedExpedienteId == null || mutation.isPending || !isDirty}
-                              className="min-w-[80px]"
-                            >
-                              {mutation.isPending ? "..." : "Guardar"}
-                            </Button>
+                                className="min-w-[80px]"
+                              >
+                                {mutation.isPending ? "..." : "Guardar"}
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       )
