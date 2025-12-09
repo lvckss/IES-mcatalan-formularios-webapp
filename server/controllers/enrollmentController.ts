@@ -173,14 +173,14 @@ export const deleteEnrollmentCascade = async (id_matricula: number): Promise<Enr
 
 // QUERY GRANDE [SEPARACIÓN] -----------------------------------------------------------------
 
-type NotaEnum =
+export type NotaEnum =
   | "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10"
   | "10-MH" | "10-Matr. Honor"
   | "CV" | "CV-5" | "CV-6" | "CV-7" | "CV-8" | "CV-9" | "CV-10" | "CV-10-MH"
   | "TRAS-5" | "TRAS-6" | "TRAS-7" | "TRAS-8" | "TRAS-9" | "TRAS-10" | "TRAS-10-MH"
   | "RC" | "NE" | "APTO" | "NO APTO" | "EX";
 
-type NotasMasAltasPorCicloReturn = {
+export type NotasMasAltasPorCicloReturn = {
   id_ciclo: number;     // curso concreto (1º o 2º) dentro del ciclo
   id_modulo: number;
   modulo: string;
@@ -269,18 +269,27 @@ export const notasMasAltasEstudiantePorCicloCompleto = async (
       FROM attempts
       GROUP BY id_modulo
     ),
-    -- Mejor intento por tus reglas (para "mejor_nota" y años)
+    -- Mejor intento por módulo:
+    --  - Si existe alguna aprobada, se elige la mejor aprobada (mayor base_num, MH, etc.).
+    --  - Si no hay aprobadas, se elige SIEMPRE el último intento (mayor intento_num).
     best AS (
       SELECT DISTINCT ON (id_modulo)
             id_modulo, id_matricula, id_expediente, nota,
             pass_flag, base_num, mh_boost,
             ano_inicio, ano_fin
-      FROM m_all
+      FROM attempts
       ORDER BY
         id_modulo,
+        -- Primero cualquier intento aprobado
         pass_flag DESC,
-        base_num  DESC,
-        mh_boost  DESC,
+        -- Entre aprobadas, manda la mejor nota; entre suspensas, el último intento
+        CASE
+          WHEN pass_flag = 1 THEN base_num      -- aprobadas: mejor nota
+          ELSE intento_num                      -- suspensas: último intento
+        END DESC,
+        -- Si hay empates entre aprobadas con misma base_num, prioriza MH
+        mh_boost DESC,
+        -- Tiebreakers adicionales por año y matrícula
         ano_fin   DESC,
         ano_inicio DESC,
         id_matricula DESC

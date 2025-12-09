@@ -16,7 +16,7 @@ export const StudentSchema = z.object({
     }
     return arg;
   }, z.date()),
-  observaciones: z.string().max(5000).optional(),
+  observaciones: z.string().max(5000).nullable().optional(),
   requisito_academico: z.boolean().default(true),
 });
 

@@ -427,18 +427,30 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
 
   // -- 2. Años escolares disponibles ----------------------------
   const yearOptions = useMemo(() => {
-    if (!selectedCycle) return [{ value: "invalido", label: "Selecciona antes un ciclo." }];
+    if (!selectedCycle) {
+      return [{ value: "invalido", label: "Selecciona antes un ciclo." }];
+    }
+
     const seen = new Set<string>();
-    return (fullData?.records ?? [])
+    const years: { start: number; end: number }[] = [];
+
+    (fullData?.records ?? [])
       .filter((r) => r.ciclo_codigo === selectedCycle)
-      .filter((r) => {
+      .forEach((r) => {
         const key = `${r.ano_inicio}-${r.ano_fin}`;
-        return !seen.has(key) && seen.add(key);
-      })
-      .map((r) => ({
-        value: `${r.ano_inicio}-${r.ano_fin}`,
-        label: `${r.ano_inicio}-${r.ano_fin}`,
-      }));
+        if (!seen.has(key)) {
+          seen.add(key);
+          years.push({ start: r.ano_inicio, end: r.ano_fin });
+        }
+      });
+
+    // ⬅️ aquí los ordenas ascendentemente
+    years.sort((a, b) => (a.start - b.start) || (a.end - b.end));
+
+    return years.map(({ start, end }) => {
+      const v = `${start}-${end}`;
+      return { value: v, label: v };
+    });
   }, [fullData, selectedCycle]);
 
   // ================== LÓGICA DE LA CONVOCATORIA EXTRAORDINARIA ===================
@@ -1106,8 +1118,8 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
                       {(selectedCycle && selectedYear && selectedConvocatoria)
                         ? (
                           <PdfCertificateGeneratorButton
-                            student_data={fullData!}
                             cycle_code={selectedCycle}
+                            student_id={id}
                           />
                         ) : null
                       }

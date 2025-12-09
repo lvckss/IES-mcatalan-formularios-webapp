@@ -43,6 +43,18 @@ import {
 
 import { Check, ChevronsUpDown, Save, Trash2 } from "lucide-react";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
 // ==================== API HELPERS ====================
 
 // Fetch Leyes data from API
@@ -295,6 +307,7 @@ const tablaSchema = z.object({
 });
 
 type tablaForm = z.infer<typeof tablaSchema>;
+type CellRefMatrix = (HTMLButtonElement | null)[][];
 
 const NOTA_SET = new Set<string>(NOTA_OPTIONS as readonly string[]);
 
@@ -316,16 +329,20 @@ const IntroduceActa: React.FC = () => {
   const [selectedModuleCodes, setSelectedModuleCodes] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [selectedConvocatoria, setSelectedConvocatoria] = useState<"Ordinaria" | "Extraordinaria">("Ordinaria");
+  const [overrideLocked, setOverrideLocked] = useState(false);
 
   // MULTI: columnas extra de 1º en acta de 2º
-  const [extraFirstModuleCodes, setExtraFirstModuleCodes] = useState<string[]>([]);
+  const [extraOtherCourseModuleCodes, setExtraOtherCourseModuleCodes] = useState<string[]>([]);
+
+  const [overrideDialogOpen, setOverrideDialogOpen] = useState(false);
+  const [overrideConfirmText, setOverrideConfirmText] = useState("");
 
   const queryClient = useQueryClient();
 
   // Column codes in order: base (curso actual) + extras (1º)
   const columnCodes = useMemo(
-    () => [...selectedModuleCodes, ...extraFirstModuleCodes],
-    [selectedModuleCodes, extraFirstModuleCodes]
+    () => [...selectedModuleCodes, ...extraOtherCourseModuleCodes],
+    [selectedModuleCodes, extraOtherCourseModuleCodes]
   );
   const nCols = columnCodes.length;
   const baseLen = selectedModuleCodes.length;
@@ -352,30 +369,41 @@ const IntroduceActa: React.FC = () => {
     staleTime: 5 * 60 * 1000,
   });
 
-  // módulos de 1º (para extras)
-  const { data: modulesFirstYear = [] } = useQuery({
-    queryKey: ['modules-by-cycle-curso-first', selectedCiclo, '1'],
-    queryFn: () => getModulosByCicloAndCurso(selectedCiclo, '1'),
-    enabled: selectedCurso === '2' && !!selectedCiclo,
+  // curso "opuesto": si estás en 1º se usa 2º, y viceversa
+  const otherCourse = useMemo(
+    () => (selectedCurso === '1' ? '2' : selectedCurso === '2' ? '1' : null),
+    [selectedCurso]
+  );
+
+  // módulos del otro curso (para columnas extra)
+  const { data: modulesOtherYear = [] } = useQuery({
+    queryKey: ['modules-by-cycle-curso-other', selectedCiclo, otherCourse],
+    queryFn: () => getModulosByCicloAndCurso(selectedCiclo, otherCourse!),
+    enabled: !!selectedCiclo && !!otherCourse,
     staleTime: 5 * 60 * 1000,
   });
 
   // map ids for both sets
   const modIdByCode = useMemo(() => {
     const m = new Map<string, number>();
-    [...(modulesData ?? []), ...(modulesFirstYear ?? [])].forEach((mo: any) => {
-      if (mo?.codigo_modulo && mo?.id_modulo != null) m.set(mo.codigo_modulo, Number(mo.id_modulo));
+    [...(modulesData ?? []), ...(modulesOtherYear ?? [])].forEach((mo: any) => {
+      if (mo?.codigo_modulo && mo?.id_modulo != null) {
+        m.set(mo.codigo_modulo, Number(mo.id_modulo));
+      }
     });
     return m;
-  }, [modulesData, modulesFirstYear]);
+  }, [modulesData, modulesOtherYear]);
 
   const codeByModId = useMemo(() => {
     const m = new Map<number, string>();
-    [...(modulesData ?? []), ...(modulesFirstYear ?? [])].forEach((mo: any) => {
-      if (mo?.id_modulo != null && mo?.codigo_modulo) m.set(Number(mo.id_modulo), mo.codigo_modulo);
+    [...(modulesData ?? []), ...(modulesOtherYear ?? [])].forEach((mo: any) => {
+      if (mo?.id_modulo != null && mo?.codigo_modulo) {
+        m.set(Number(mo.id_modulo), mo.codigo_modulo);
+      }
     });
     return m;
-  }, [modulesData, modulesFirstYear]);
+  }, [modulesData, modulesOtherYear]);
+
 
   const cicloIdFromModules = modulesData?.[0]?.id_ciclo ?? null;
 
@@ -602,7 +630,7 @@ const IntroduceActa: React.FC = () => {
     setSelectedAnioEscolar("");
     setSelectedTurno("");
     setSelectedModuleCodes([]);
-    setExtraFirstModuleCodes([]);
+    setExtraOtherCourseModuleCodes([]);
     replace([]);
   }, [selectedLey, replace]);
 
@@ -611,26 +639,24 @@ const IntroduceActa: React.FC = () => {
     replace([]);
   }, [selectedCiclo, selectedCurso, replace]);
 
-
-  // Cuando dejamos de estar en 2º, elimina las columnas extra de 1º y recorta notas
+  // Cuando cambiamos de curso, eliminamos las columnas extra del otro curso y recortamos notas
   useEffect(() => {
-    if (selectedCurso !== '2' && extraFirstModuleCodes.length > 0) {
-      const nExtra = extraFirstModuleCodes.length;
+    if (!extraOtherCourseModuleCodes.length) return;
 
-      const rows = form.getValues("students");
-      if (rows?.length) {
-        const next = rows.map((st: any) => {
-          const notas = Array.isArray(st.notas)
-            ? st.notas.slice(0, Math.max(0, st.notas.length - nExtra))
-            : [];
-          return { ...st, notas, nota_final: calculateAverage(notas) };
-        });
-        form.setValue("students", next, { shouldDirty: true });
-      }
-
-      setExtraFirstModuleCodes([]);
+    const nExtra = extraOtherCourseModuleCodes.length;
+    const rows = form.getValues("students");
+    if (rows?.length) {
+      const next = rows.map((st: any) => {
+        const notas = Array.isArray(st.notas)
+          ? st.notas.slice(0, Math.max(0, st.notas.length - nExtra))
+          : [];
+        return { ...st, notas, nota_final: calculateAverage(notas) };
+      });
+      form.setValue("students", next, { shouldDirty: true });
     }
-  }, [selectedCurso, extraFirstModuleCodes.length, form, calculateAverage]);
+
+    setExtraOtherCourseModuleCodes([]);
+  }, [selectedCurso, form, calculateAverage]); // 👈 quitamos extraOtherCourseModuleCodes.length
 
 
   // Populate students on fetch
@@ -703,12 +729,13 @@ const IntroduceActa: React.FC = () => {
 
   // ---------- EXTRA COL HANDLERS ----------
   const addExtraColumn = useCallback(() => {
-    if (selectedCurso !== '2') {
-      toast.error("La columna de 1º solo se puede añadir en 2º.");
+    if (selectedCurso !== '1' && selectedCurso !== '2') {
+      toast.error("Solo puedes añadir columnas de otro curso en 1º o 2º.");
       return;
     }
-    setExtraFirstModuleCodes((prev) => [...prev, ""]);
-    // Insert "NE" column at the end (handled by nCols effect, but do it eagerly)
+
+    setExtraOtherCourseModuleCodes((prev) => [...prev, ""]);
+
     const rows = form.getValues("students");
     if (rows?.length) {
       const next = rows.map((st: any) => {
@@ -720,7 +747,7 @@ const IntroduceActa: React.FC = () => {
   }, [selectedCurso, form, calculateAverage]);
 
   const removeExtraColumn = useCallback((idx: number) => {
-    setExtraFirstModuleCodes((prev) => prev.filter((_, i) => i !== idx));
+    setExtraOtherCourseModuleCodes((prev) => prev.filter((_, i) => i !== idx));
     // splice the corresponding column from all rows (baseLen + idx)
     const colToRemove = baseLen + idx;
     const rows = form.getValues("students");
@@ -740,18 +767,18 @@ const IntroduceActa: React.FC = () => {
     // prevent duplicates across base + other extras
     const used = new Set<string>([
       ...selectedModuleCodes.filter(Boolean),
-      ...extraFirstModuleCodes.filter((c, i) => i !== idx && !!c),
+      ...extraOtherCourseModuleCodes.filter((c, i) => i !== idx && !!c),
     ]);
     if (newCode && used.has(newCode)) {
       toast.error("Ese módulo ya está seleccionado en otra columna.");
       return;
     }
-    setExtraFirstModuleCodes((prev) => {
+    setExtraOtherCourseModuleCodes((prev) => {
       const next = [...prev];
       next[idx] = newCode;
       return next;
     });
-  }, [selectedModuleCodes, extraFirstModuleCodes]);
+  }, [selectedModuleCodes, extraOtherCourseModuleCodes]);
 
   // ---------- BASE COL HANDLER ----------
   const handleModuleSelect = useCallback(
@@ -782,6 +809,7 @@ const IntroduceActa: React.FC = () => {
     },
     [form, calculateAverage]
   );
+
 
   // ---------- SUBMIT ----------
   async function runBatches<T>(jobs: (() => Promise<T>)[], batchSize = 8) {
@@ -965,6 +993,50 @@ const IntroduceActa: React.FC = () => {
     });
   };
 
+  // ---------- CELDAS DE INSERCIÓN DE NOTAS (navegación tab) ------------
+
+  const cellRefs = React.useRef<CellRefMatrix>([]);
+
+  const registerCellRef = useCallback(
+    (rowIndex: number, colIndex: number) =>
+      (el: HTMLButtonElement | null) => {
+        if (!cellRefs.current[rowIndex]) {
+          cellRefs.current[rowIndex] = [];
+        }
+        cellRefs.current[rowIndex][colIndex] = el;
+      },
+    []
+  );
+
+  const focusCell = useCallback((rowIndex: number, colIndex: number) => {
+    const el = cellRefs.current[rowIndex]?.[colIndex];
+    if (el) {
+      el.focus();
+    }
+  }, []);
+
+  const goToNextCell = useCallback(
+    (rowIndex: number, colIndex: number) => {
+      const totalRows = fields.length;   // nº de alumnos
+      const totalCols = nCols;          // nº de módulos (base + extra)
+      if (!totalRows || !totalCols) return;
+
+      const flatIndex = rowIndex * totalCols + colIndex;
+      const nextFlat = flatIndex + 1;
+
+      if (nextFlat >= totalRows * totalCols) {
+        // estamos en la última celda -> puedes dejarlo aquí o volver al principio
+        // focusCell(0, 0);
+        return;
+      }
+
+      const nextRow = Math.floor(nextFlat / totalCols);
+      const nextCol = nextFlat % totalCols;
+      focusCell(nextRow, nextCol);
+    },
+    [fields.length, nCols, focusCell]
+  );
+
   // ---------- TABLE LAYOUT ----------
   const COL_W = { hash: 64, ape1: 160, ape2: 160, nombre: 180, modulo: 120 } as const;
   const baseWidth = COL_W.hash + COL_W.ape1 + COL_W.ape2 + COL_W.nombre;
@@ -1058,14 +1130,16 @@ const IntroduceActa: React.FC = () => {
           </div>
 
           {/* CONTROL: Añadir columnas de 1º cuando estamos en 2º */}
-          {selectedCurso === '2' && (
+          {(selectedCurso === '1' || selectedCurso === '2') && (
             <div className="ml-auto flex items-end gap-2">
               <Button type="button" variant="outline" onClick={addExtraColumn}>
-                Añadir columna de 1º
+                {selectedCurso === '1'
+                  ? "Añadir columna de 2º"
+                  : "Añadir columna de 1º"}
               </Button>
-              {extraFirstModuleCodes.length > 0 && (
+              {extraOtherCourseModuleCodes.length > 0 && (
                 <span className="text-sm text-muted-foreground">
-                  {extraFirstModuleCodes.length} añadida(s)
+                  {extraOtherCourseModuleCodes.length} añadida(s)
                 </span>
               )}
             </div>
@@ -1079,7 +1153,7 @@ const IntroduceActa: React.FC = () => {
           <Card>
             <CardHeader>
               <CardTitle>
-                Evaluación de Estudiantes {isFetchingStudents ? "· Cargando…" : ""}
+                Evaluación de Estudiantes
               </CardTitle>
               <CardDescription>Introduce manualmente los datos de evaluación de los alumnos</CardDescription>
             </CardHeader>
@@ -1087,29 +1161,78 @@ const IntroduceActa: React.FC = () => {
               {/* TABLA COMPLETA */}
               <form onSubmit={form.handleSubmit(onSubmitSave)}>
                 {/* WRAPPER con scroll interno y header sticky */}
-                <div className="relative isolate w-full overflow-x-auto overflow-y-auto overscroll-contain rounded-lg border" style={{ maxHeight: '55vh' }}>
-                  <Table className="table-fixed" style={{ minWidth: `${baseWidth + nCols * COL_W.modulo}px` }}>
+                <div
+                  className="relative isolate w-full overflow-x-auto overflow-y-auto overscroll-contain rounded-lg border"
+                  style={{ maxHeight: "55vh" }}
+                >
+                  <Table
+                    className="table-fixed"
+                    style={{ minWidth: `${baseWidth + nCols * COL_W.modulo}px` }}
+                  >
                     {/* HEADER */}
                     <TableHeader className="sticky top-0 z-40 bg-background/95 border-b">
                       <TableRow>
                         {/* # */}
-                        <TableHead className="sticky left-0 z-50 bg-background border-r" style={{ width: COL_W.hash, minWidth: COL_W.hash, maxWidth: COL_W.hash }}>#</TableHead>
+                        <TableHead
+                          className="sticky left-0 z-50 bg-background border-r"
+                          style={{
+                            width: COL_W.hash,
+                            minWidth: COL_W.hash,
+                            maxWidth: COL_W.hash,
+                          }}
+                        >
+                          #
+                        </TableHead>
 
                         {/* Apellido 1 */}
-                        <TableHead className="sticky z-50 bg-background border-r" style={{ left: LEFT.ape1, width: COL_W.ape1, minWidth: COL_W.ape1, maxWidth: COL_W.ape1 }}>Apellido 1</TableHead>
+                        <TableHead
+                          className="sticky z-50 bg-background border-r"
+                          style={{
+                            left: LEFT.ape1,
+                            width: COL_W.ape1,
+                            minWidth: COL_W.ape1,
+                            maxWidth: COL_W.ape1,
+                          }}
+                        >
+                          Apellido 1
+                        </TableHead>
 
                         {/* Apellido 2 */}
-                        <TableHead className="sticky z-50 bg-background border-r" style={{ left: LEFT.ape2, width: COL_W.ape2, minWidth: COL_W.ape2, maxWidth: COL_W.ape2 }}>Apellido 2</TableHead>
+                        <TableHead
+                          className="sticky z-50 bg-background border-r"
+                          style={{
+                            left: LEFT.ape2,
+                            width: COL_W.ape2,
+                            minWidth: COL_W.ape2,
+                            maxWidth: COL_W.ape2,
+                          }}
+                        >
+                          Apellido 2
+                        </TableHead>
 
-                        {/* Nombre*/}
-                        <TableHead className="sticky z-50 bg-background border-r" style={{ left: LEFT.nombre, width: COL_W.nombre, minWidth: COL_W.nombre, maxWidth: COL_W.nombre }}>Nombre</TableHead>
+                        {/* Nombre */}
+                        <TableHead
+                          className="sticky z-50 bg-background border-r"
+                          style={{
+                            left: LEFT.nombre,
+                            width: COL_W.nombre,
+                            minWidth: COL_W.nombre,
+                            maxWidth: COL_W.nombre,
+                          }}
+                        >
+                          Nombre
+                        </TableHead>
 
                         {/* Columnas base (curso seleccionado) */}
                         {Array.from({ length: selectedModuleCodes.length }, (_, i) => (
                           <TableHead
                             key={`base-${i}`}
                             className="text-center"
-                            style={{ width: COL_W.modulo, minWidth: COL_W.modulo, maxWidth: COL_W.modulo }}
+                            style={{
+                              width: COL_W.modulo,
+                              minWidth: COL_W.modulo,
+                              maxWidth: COL_W.modulo,
+                            }}
                           >
                             <div className="flex flex-col items-center justify-center gap-1">
                               <div className="text-xs font-medium opacity-70">{i + 1}</div>
@@ -1120,35 +1243,46 @@ const IntroduceActa: React.FC = () => {
                                 onValueChange={(value) => handleModuleSelect(i, value)}
                                 placeholder="Seleccionar módulo"
                                 width={COL_W.modulo}
-                                options={modulesData.map((m: any) => ({ value: m.codigo_modulo, label: m.nombre }))}
+                                options={modulesData.map((m: any) => ({
+                                  value: m.codigo_modulo,
+                                  label: m.nombre,
+                                }))}
                               />
                             </div>
                           </TableHead>
                         ))}
 
                         {/* Columnas extra (1º) */}
-                        {extraFirstModuleCodes.map((code, ei) => {
+                        {extraOtherCourseModuleCodes.map((code, ei) => {
                           const colNum = baseLen + ei + 1;
                           return (
                             <TableHead
                               key={`extra-${ei}`}
                               className="text-center"
-                              style={{ width: COL_W.modulo, minWidth: COL_W.modulo, maxWidth: COL_W.modulo }}
+                              style={{
+                                width: COL_W.modulo,
+                                minWidth: COL_W.modulo,
+                                maxWidth: COL_W.modulo,
+                              }}
                             >
                               <div className="flex flex-col items-center justify-center gap-1">
                                 <div className="text-xs font-medium opacity-70">{colNum}</div>
 
                                 <SelectField
                                   label=""
-                                  name={`module_col_extra_first_${ei}`}
+                                  name={`module_col_extra_other_${ei}`}
                                   value={code || ""}
                                   onValueChange={(v) => handleExtraModuleSelect(ei, v)}
-                                  placeholder="Módulo de 1º"
+                                  placeholder={
+                                    selectedCurso === "1" ? "Módulo de 2º" : "Módulo de 1º"
+                                  }
                                   width={COL_W.modulo}
-                                  options={(modulesFirstYear ?? []).map((m: any) => ({ value: m.codigo_modulo, label: m.nombre }))}
+                                  options={(modulesOtherYear ?? []).map((m: any) => ({
+                                    value: m.codigo_modulo,
+                                    label: m.nombre,
+                                  }))}
                                 />
 
-                                {/* Botón pequeño con icono de papelera */}
                                 <Button
                                   type="button"
                                   variant="ghost"
@@ -1171,114 +1305,209 @@ const IntroduceActa: React.FC = () => {
                       {fields.map((field, studentIndex) => (
                         <TableRow key={field.id}>
                           {/* # */}
-                          <TableCell className="sticky left-0 z-30 bg-background border-r text-center font-medium" style={{ width: COL_W.hash, minWidth: COL_W.hash, maxWidth: COL_W.hash }}>{studentIndex + 1}</TableCell>
+                          <TableCell
+                            className="sticky left-0 z-30 bg-background border-r text-center font-medium"
+                            style={{
+                              width: COL_W.hash,
+                              minWidth: COL_W.hash,
+                              maxWidth: COL_W.hash,
+                            }}
+                          >
+                            {studentIndex + 1}
+                          </TableCell>
 
                           {/* Apellido 1 */}
-                          <TableCell className="sticky z-30 bg-background border-r" style={{ left: LEFT.ape1, width: COL_W.ape1, minWidth: COL_W.ape1, maxWidth: COL_W.ape1 }}>
-                            <Input {...form.register(`students.${studentIndex}.apellido1`)} readOnly tabIndex={-1} title="Campo bloqueado" className={`${form.formState.errors.students?.[studentIndex]?.apellido1 ? "border-red-500" : ""} bg-muted/50 cursor-not-allowed focus-visible:ring-0 focus-visible:ring-offset-0`} />
+                          <TableCell
+                            className="sticky z-30 bg-background border-r"
+                            style={{
+                              left: LEFT.ape1,
+                              width: COL_W.ape1,
+                              minWidth: COL_W.ape1,
+                              maxWidth: COL_W.ape1,
+                            }}
+                          >
+                            <Input
+                              {...form.register(`students.${studentIndex}.apellido1`)}
+                              readOnly
+                              tabIndex={-1}
+                              title="Campo bloqueado"
+                              className={`${form.formState.errors.students?.[studentIndex]?.apellido1
+                                ? "border-red-500"
+                                : ""
+                                } bg-muted/50 cursor-not-allowed focus-visible:ring-0 focus-visible:ring-offset-0`}
+                            />
                           </TableCell>
 
                           {/* Apellido 2 */}
-                          <TableCell className="sticky z-30 bg-background border-r" style={{ left: LEFT.ape2, width: COL_W.ape2, minWidth: COL_W.ape2, maxWidth: COL_W.ape2 }}>
-                            <Input {...form.register(`students.${studentIndex}.apellido2`)} readOnly tabIndex={-1} title="Campo bloqueado" className={`${form.formState.errors.students?.[studentIndex]?.apellido2 ? "border-red-500" : ""} bg-muted/50 cursor-not-allowed focus-visible:ring-0 focus-visible:ring-offset-0`} />
+                          <TableCell
+                            className="sticky z-30 bg-background border-r"
+                            style={{
+                              left: LEFT.ape2,
+                              width: COL_W.ape2,
+                              minWidth: COL_W.ape2,
+                              maxWidth: COL_W.ape2,
+                            }}
+                          >
+                            <Input
+                              {...form.register(`students.${studentIndex}.apellido2`)}
+                              readOnly
+                              tabIndex={-1}
+                              title="Campo bloqueado"
+                              className={`${form.formState.errors.students?.[studentIndex]?.apellido2
+                                ? "border-red-500"
+                                : ""
+                                } bg-muted/50 cursor-not-allowed focus-visible:ring-0 focus-visible:ring-offset-0`}
+                            />
                           </TableCell>
 
                           {/* Nombre */}
-                          <TableCell className="sticky z-30 bg-background border-r border-gray-200" style={{ left: LEFT.nombre, width: COL_W.nombre, minWidth: COL_W.nombre, maxWidth: COL_W.nombre }}>
-                            <Input {...form.register(`students.${studentIndex}.nombre`)} readOnly tabIndex={-1} title="Campo bloqueado" className={`${form.formState.errors.students?.[studentIndex]?.nombre ? "border-red-500" : ""} bg-muted/50 cursor-not-allowed focus-visible:ring-0 focus-visible:ring-offset-0`} />
+                          <TableCell
+                            className="sticky z-30 bg-background border-r border-gray-200"
+                            style={{
+                              left: LEFT.nombre,
+                              width: COL_W.nombre,
+                              minWidth: COL_W.nombre,
+                              maxWidth: COL_W.nombre,
+                            }}
+                          >
+                            <Input
+                              {...form.register(`students.${studentIndex}.nombre`)}
+                              readOnly
+                              tabIndex={-1}
+                              title="Campo bloqueado"
+                              className={`${form.formState.errors.students?.[studentIndex]?.nombre
+                                ? "border-red-500"
+                                : ""
+                                } bg-muted/50 cursor-not-allowed focus-visible:ring-0 focus-visible:ring-offset-0`}
+                            />
                           </TableCell>
 
                           {/* Notas (todas las columnas = base + extra) */}
                           {Array.from({ length: nCols }, (_, gradeIndex) => (
-                            <TableCell key={gradeIndex} style={{ width: COL_W.modulo, minWidth: COL_W.modulo, maxWidth: COL_W.modulo }}>
+                            <TableCell
+                              key={gradeIndex}
+                              style={{
+                                width: COL_W.modulo,
+                                minWidth: COL_W.modulo,
+                                maxWidth: COL_W.modulo,
+                              }}
+                            >
                               <Controller
                                 control={form.control}
                                 name={`students.${studentIndex}.notas.${gradeIndex}`}
                                 render={({ field }) => {
                                   const sid =
-                                    (form.getValues(`students.${studentIndex}.id_estudiante`) as number | undefined) ??
+                                    (form.getValues(
+                                      `students.${studentIndex}.id_estudiante`
+                                    ) as number | undefined) ??
                                     (fields[studentIndex] as any)?.id_estudiante;
+
                                   const code = columnCodes[gradeIndex];
 
-                                  const enrolledSet = sid ? enrolledCodesByStudent.get(sid) : undefined;
+                                  const enrolledSet = sid
+                                    ? enrolledCodesByStudent.get(sid)
+                                    : undefined;
 
-                                  const passedHistorically = !!sid && !!code && lockedByStudent.get(sid)?.has(code);
+                                  const passedHistorically =
+                                    !!sid && !!code && lockedByStudent.get(sid)?.has(code);
 
-                                  const fetchedNotaRaw = sid && code ? gradeByStudentCode.get(sid)?.[code] : undefined;
-                                  // fetched -> solo si es una nota válida (string en NOTA_OPTIONS), si no “NE”
+                                  const fetchedNotaRaw =
+                                    sid && code
+                                      ? gradeByStudentCode.get(sid)?.[code]
+                                      : undefined;
+
                                   const fetchedNota =
-                                    typeof fetchedNotaRaw === "string" && NOTA_SET.has(fetchedNotaRaw)
+                                    typeof fetchedNotaRaw === "string" &&
+                                      NOTA_SET.has(fetchedNotaRaw)
                                       ? fetchedNotaRaw
                                       : "NE";
 
-                                  // Valor “candidato” a mostrar: prioriza lo que haya en el form, si no, lo fetched
                                   const candidate =
                                     field.value == null || field.value === ""
                                       ? fetchedNota
                                       : field.value;
 
-                                  // Estados de matrícula / bloqueos
                                   const disabledBecauseNoCode = !code;
-                                  const isEnrolled = !!code && enrolledSet?.has(code) === true;
+                                  const isEnrolled =
+                                    !!code && enrolledSet?.has(code) === true;
                                   const hasFetchedReal = fetchedNota !== "NE";
+
                                   const isLocked = Boolean(
-                                    disabledBecauseNoCode || passedHistorically || hasFetchedReal || !isEnrolled
+                                    disabledBecauseNoCode ||
+                                    !isEnrolled ||
+                                    passedHistorically ||
+                                    (!overrideLocked && hasFetchedReal)
                                   );
 
-                                  // Convocatorias (solo para hover/avisos, jamás para value)
-                                  const convCountRaw = sid && code ? convCountByStudentCode.get(sid)?.[code] : undefined;
-                                  const convCount = typeof convCountRaw === "number" ? convCountRaw : undefined;
-                                  const convIncl = convCount != null ? convCount : undefined;
+                                  const convCountRaw =
+                                    sid && code
+                                      ? convCountByStudentCode.get(sid)?.[code]
+                                      : undefined;
+                                  const convCount =
+                                    typeof convCountRaw === "number"
+                                      ? convCountRaw
+                                      : undefined;
+                                  const convIncl =
+                                    convCount != null ? convCount : undefined;
 
-                                  // módulo con acta editable en este momento (puedes modificar la nota)
-                                  const isEditableNow = !isLocked && isEnrolled && !passedHistorically;
+                                  const isEditableNow =
+                                    !isLocked && isEnrolled && !passedHistorically;
+
+                                  let baseLockReason: string | undefined;
+
+                                  if (disabledBecauseNoCode) {
+                                    baseLockReason =
+                                      "Selecciona un módulo para esta columna";
+                                  } else if (!isEnrolled) {
+                                    baseLockReason = passedHistorically
+                                      ? "Módulo aprobado en un expediente anterior"
+                                      : "Módulo no aprobado y sin matrícula en el expediente actual";
+                                  } else if (hasFetchedReal) {
+                                    baseLockReason = isPassingNota(fetchedNota)
+                                      ? "Módulo ya aprobado en el expediente actual"
+                                      : "Módulo ya suspenso en el expediente actual";
+                                  } else if (passedHistorically) {
+                                    baseLockReason =
+                                      "Módulo aprobado en un expediente anterior";
+                                  }
+
+                                  const disabledTitleText = baseLockReason;
+
+                                  const overrideWarning =
+                                    overrideLocked &&
+                                      !isLocked &&
+                                      (hasFetchedReal || passedHistorically)
+                                      ? "⚠️ Nota desbloqueada manualmente. Asegúrate de tener autorización."
+                                      : undefined;
 
                                   let convPart: string | undefined;
-
-                                  // 1) Mientras carga, mostramos "cargando…"
                                   if (convCount == null) {
                                     convPart = "Convocatorias: cargando…";
                                   } else if (convCount > 0) {
-                                    // 2) Ya se ha cursado al menos una vez
                                     if (isEditableNow && convIncl != null) {
-                                      // 👉 solo aquí queremos "incluida esta"
                                       convPart = `Convocatorias (incluida esta): ${convIncl}`;
                                     } else {
-                                      // 👉 aprobado / histórico / no editable → convocatorias normales, sin sumar 1
                                       convPart = `Convocatorias: ${convCount}`;
                                     }
                                   }
-                                  // 3) convCount === 0 → nunca se ha cursado → no mostramos número de convocatorias
 
-                                  // Aviso de 5ª convocatoria o más SOLO cuando realmente estamos generando una nueva (editable)
-                                  const needsResolution = isEditableNow && convIncl != null && convIncl >= 5;
-
-                                  const disabledTitleText = disabledBecauseNoCode
-                                    ? "Selecciona un módulo para esta columna"
-                                    : !isEnrolled
-                                      ? passedHistorically
-                                        ? "Módulo aprobado en un expediente anterior"
-                                        : "Módulo no aprobado y sin matrícula en el expediente actual"
-                                      : hasFetchedReal
-                                        ? isPassingNota(fetchedNota)
-                                          ? "Módulo ya aprobado en el expediente actual"
-                                          : "Módulo ya suspenso en el expediente actual"
-                                        : passedHistorically
-                                          ? "Módulo aprobado en un expediente anterior"
-                                          : undefined;
+                                  const needsResolution =
+                                    isEditableNow && convIncl != null && convIncl >= 5;
 
                                   const resolutionPart = needsResolution
                                     ? "⚠️ 5ª convocatoria o más: revisar"
                                     : undefined;
 
-                                  const hoverTitle = [disabledTitleText, convPart, resolutionPart]
-                                    .filter(Boolean)
-                                    .join(" · ");
+                                  const hoverTitle =
+                                    [
+                                      baseLockReason,
+                                      overrideWarning,
+                                      convPart,
+                                      resolutionPart,
+                                    ]
+                                      .filter(Boolean)
+                                      .join(" · ") || undefined;
 
-                                  // 📌 La regla de visualización:
-                                  // - Sin módulo -> "-"
-                                  // - Sin matrícula -> "…" si aprobado histórico, si no "—"
-                                  // - Con matrícula -> mostramos SOLO valores whitelisted (toDisplayNota)
                                   const displayValue = disabledBecauseNoCode
                                     ? "-"
                                     : !isEnrolled
@@ -1287,9 +1516,10 @@ const IntroduceActa: React.FC = () => {
                                         : "—"
                                       : toDisplayNota(candidate);
 
-                                  // resalte de suspenso real ya traído del expediente actual
                                   const highlightFetchedFail =
-                                    !!code && hasFetchedReal && !isPassingNota(fetchedNota);
+                                    !!code &&
+                                    hasFetchedReal &&
+                                    !isPassingNota(fetchedNota);
 
                                   return (
                                     <NotaCell
@@ -1302,13 +1532,18 @@ const IntroduceActa: React.FC = () => {
                                       highlight={highlightFetchedFail}
                                       onChange={(val) => {
                                         if (isLocked) return;
-                                        // val siempre llega desde NOTA_OPTIONS
                                         field.onChange(val);
-                                        const grades = form.getValues(`students.${studentIndex}.notas`);
+                                        const grades = form.getValues(
+                                          `students.${studentIndex}.notas`
+                                        );
                                         const avg = calculateAverage(grades);
-                                        form.setValue(`students.${studentIndex}.nota_final`, avg, {
-                                          shouldDirty: true,
-                                        });
+                                        form.setValue(
+                                          `students.${studentIndex}.nota_final`,
+                                          avg,
+                                          {
+                                            shouldDirty: true,
+                                          }
+                                        );
                                       }}
                                     />
                                   );
@@ -1321,12 +1556,118 @@ const IntroduceActa: React.FC = () => {
                     </TableBody>
                   </Table>
                 </div>
-
                 {/* ACCIONES */}
                 <div className="flex flex-col sm:flex-row gap-4 justify-between pt-5">
-                  <Button type="submit" className="w-full sm:w-auto" disabled={isSaving}>
-                    <Save />{"Guardar Evaluación"}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button type="submit" className="w-full sm:w-auto" disabled={isSaving}>
+                      <Save />
+                      <span className="ml-1">Guardar Evaluación</span>
+                    </Button>
+                  </div>
+
+                  <div className="flex gap-2 items-center justify-end">
+                    {overrideLocked ? (
+                      <>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          onClick={() => {
+                            setOverrideLocked(false);
+                            toast.success(
+                              "Modo edición avanzada DESACTIVADO: las notas vuelven a estar bloqueadas."
+                            );
+                          }}
+                          className="w-full sm:w-auto"
+                        >
+                          Bloquear de nuevo acta
+                        </Button>
+                        <span className="text-xs text-destructive">
+                          Modo edición avanzada activo
+                        </span>
+                      </>
+                    ) : (
+                      <AlertDialog
+                        open={overrideDialogOpen}
+                        onOpenChange={(open) => {
+                          setOverrideDialogOpen(open);
+                          if (!open) setOverrideConfirmText("");
+                        }}
+                      >
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full sm:w-auto"
+                          >
+                            Desbloquear acta
+                          </Button>
+                        </AlertDialogTrigger>
+
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Desbloquear edición de acta</AlertDialogTitle>
+                            <AlertDialogDescription className="space-y-2">
+                              <p>
+                                Vas a habilitar la edición de notas ya cerradas para este acta.
+                                Esto debería hacerse solo para corregir errores detectados
+                                después del cierre.
+                              </p>
+                              <ul className="list-disc pl-5 text-xs">
+                                <li className='mb-2'>
+                                  Los cambios pueden requerir justificación o autorización
+                                  formal.
+                                </li>
+                                <li>
+                                  Cambiar una calificación suspensa a aprobada
+                                  puede requerir comprobar que no exista otra acta posterior en la que
+                                  esta misma asignatura figure ya como aprobada.
+                                </li>
+                              </ul>
+                              <div className="pt-3 space-y-1">
+                                <p className="text-xs font-medium">
+                                  Escribe{" "}
+                                  <span className="font-mono font-semibold">DESBLOQUEAR</span>{" "}
+                                  para confirmar:
+                                </p>
+                                <Input
+                                  autoFocus
+                                  value={overrideConfirmText}
+                                  onChange={(e) =>
+                                    setOverrideConfirmText(e.target.value.toUpperCase())
+                                  }
+                                  placeholder="DESBLOQUEAR"
+                                  className="h-8 text-xs"
+                                />
+                              </div>
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+
+                          <AlertDialogFooter>
+                            <AlertDialogCancel
+                              onClick={() => {
+                                setOverrideConfirmText("");
+                              }}
+                            >
+                              Cancelar
+                            </AlertDialogCancel>
+                            <AlertDialogAction
+                              disabled={overrideConfirmText !== "DESBLOQUEAR"}
+                              onClick={() => {
+                                setOverrideLocked(true);
+                                setOverrideDialogOpen(false);
+                                setOverrideConfirmText("");
+                                toast.warning(
+                                  "Modo edición avanzada ACTIVADO: puedes modificar notas que estaban bloqueadas en este acta."
+                                );
+                              }}
+                            >
+                              Confirmar desbloqueo
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                  </div>
                 </div>
               </form>
             </CardContent>

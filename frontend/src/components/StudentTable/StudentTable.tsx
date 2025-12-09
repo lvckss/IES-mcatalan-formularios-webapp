@@ -32,6 +32,13 @@ import {
 
 import { Switch } from "@/components/ui/switch";
 
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
+
 import { RotateCcw } from "lucide-react";
 
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
@@ -297,7 +304,11 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
 
   // ==================================================================================
 
-  const extraerCursoDeNombre = (nombre: string): number | null => {
+  const extraerCursoDeNombre = (
+    nombre: string | null | undefined
+  ): number | null => {
+    if (!nombre) return null; // si no hay nombre, no hay curso
+
     const m = nombre.match(/\((\d+)º\)/);
     return m ? Number(m[1]) : null;
   };
@@ -597,17 +608,6 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
     getScrollElement: () => parentRef.current,
     estimateSize: () => 35,
     overscan: 5,
-  });
-
-  console.log("dataFiltrada.len", dataFiltrada.length);
-
-  // DEBUG: borra luego
-  console.log({
-    selectedGroupId,
-    groupIdNum,
-    allFullInfoReady: Array.isArray(allFullInfo) && allFullInfo.length > 0,
-    allFullInfoLen: allFullInfo?.length ?? 0,
-    studentsLen: students.length
   });
 
   return (
@@ -974,17 +974,28 @@ export function StudentDeleteButton({ id }: { id: number }) {
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger asChild>
-        <Button
-          variant="outline"
-          size="icon"
-          disabled={mutation.isPending}
-          aria-label={`Eliminar estudiante ${id}`}
-          className="h-9 w-9 rounded-xl"
-        >
-          {mutation.isPending ? "..." : <Trash className="h-5 w-5 text-red-500" />}
-        </Button>
-      </AlertDialogTrigger>
+      <TooltipProvider>
+        <Tooltip>
+          <AlertDialogTrigger asChild>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                disabled={mutation.isPending}
+                aria-label={`Eliminar estudiante ${id}`}
+                className="h-9 w-9 rounded-xl"
+              >
+                {mutation.isPending ? "..." : (
+                  <Trash className="h-5 w-5 text-red-500" />
+                )}
+              </Button>
+            </TooltipTrigger>
+          </AlertDialogTrigger>
+          <TooltipContent>
+            <p>Eliminar el estudiante</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
       <AlertDialogContent>
         <AlertDialogHeader>
@@ -996,7 +1007,9 @@ export function StudentDeleteButton({ id }: { id: number }) {
         </AlertDialogHeader>
 
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={mutation.isPending}>Cancelar</AlertDialogCancel>
+          <AlertDialogCancel disabled={mutation.isPending}>
+            Cancelar
+          </AlertDialogCancel>
           <AlertDialogAction
             // Evita que el diálogo se cierre automáticamente;
             // lo cerraremos en onSuccess.
@@ -1019,11 +1032,29 @@ function StudentPanelButton({ id }: { id: number }) {
   const [panelIsOpen, setPanelIsOpen] = useState(false);
   return (
     <>
-      <Button variant="outline" size="icon" className="h-9 w-9 rounded-xl"
-        onClick={() => setPanelIsOpen(true)}>
-        <ContactRound className="h-5 w-5" />
-      </Button>
-      <StudentProfilePanel id={id} isOpen={panelIsOpen} onClose={() => setPanelIsOpen(false)} />
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9 rounded-xl"
+              onClick={() => setPanelIsOpen(true)}
+            >
+              <ContactRound className="h-5 w-5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Panel de información</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
+      <StudentProfilePanel
+        id={id}
+        isOpen={panelIsOpen}
+        onClose={() => setPanelIsOpen(false)}
+      />
     </>
   );
 }
@@ -1032,11 +1063,29 @@ function NewEnrollmentButton({ id }: { id: number }) {
   const [dialogIsOpen, setDialogIsOpen] = useState(false);
   return (
     <>
-      <Button variant="outline" size="icon" className="h-9 w-9 rounded-xl"
-        onClick={() => setDialogIsOpen(true)}>
-        <FolderPlus className="h-5 w-5" />
-      </Button>
-      <NewEnrollmentDialog student_id={id} isOpen={dialogIsOpen} onClose={() => setDialogIsOpen(false)} />
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9 rounded-xl"
+              onClick={() => setDialogIsOpen(true)}
+            >
+              <FolderPlus className="h-5 w-5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Añadir un nuevo año escolar</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
+      <NewEnrollmentDialog
+        student_id={id}
+        isOpen={dialogIsOpen}
+        onClose={() => setDialogIsOpen(false)}
+      />
     </>
   );
 }

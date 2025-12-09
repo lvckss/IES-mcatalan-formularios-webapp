@@ -1,4 +1,4 @@
-// src/components/CertificadoDocument.jsx
+// src/components/CertificadoDocument.tsx
 import {
   Document,
   Page,
@@ -47,6 +47,7 @@ const styles = StyleSheet.create({
   tableCol: { width: '20%', borderWidth: 1, borderColor: '#000', padding: 4 },
   tableCellHeader: { fontWeight: 'bold', fontSize: 8.5, textAlign: 'center' },
   tableCell: { textAlign: 'center' },
+  tableCellName: { textAlign: 'left' },
   tableColCode: { fontSize: 7.5, width: '15%', borderWidth: 1, borderColor: '#000', padding: 4, justifyContent: 'center', alignItems: 'center' },
   tableColName: { fontSize: 7.5, width: '60%', borderWidth: 1, borderColor: '#000', padding: 4, flex: 3, justifyContent: 'center' },
   tableColGrade: { width: '10%', borderWidth: 1, fontSize: 9.5, borderColor: '#000', padding: 4, flex: 1, justifyContent: 'center', alignItems: 'center' },
@@ -100,49 +101,17 @@ interface CertificateData {
 
 export const CertificadoTrasladoDocument = ({ data, }: { data: CertificateData }) => {
 
-  const notasRaw = (data?.merged_enrollments ?? []).map((m) => m.mejor_nota);
-
-  // Convierte nota -> valor numérico para la media según las nuevas reglas
-  const notaToNumber = (nota: (typeof notasRaw)[number]): number | null => {
-    if (nota == null) return null;
-
-    // Normalizamos a string para tratar todos los casos de forma uniforme
-    const s = String(nota);
-
-    // Casos que NO cuentan en la media
-    if (s === "APTO" || s === "EX" || s === "NO APTO") return null;
-
-    // Casos que cuentan como 0
-    if (s === "NE" || s === "RC") return 0;
-
-    // Casos que valen 10
-    if (s === "10-MH" || s === "10-Matr. Honor") return 10;
-
-    // Convalidaciones
-    if (s === "CV") return 5;
-    if (s.startsWith("CV-")) {
-      // CV-5 ... CV-10, CV-10-MH -> tomar el número tras "CV-"
-      const n = Number(s.split("-")[1]); // "10" de "CV-10" o "CV-10-MH"
-      return Number.isFinite(n) ? n : null;
-    }
-
-    // Traslados
-    if (s.startsWith("TRAS-")) {
-      // TRAS-5 ... TRAS-10, TRAS-10-MH -> tomar el número tras "TRAS-"
-      const n = Number(s.split("-")[1]); // "10" de "TRAS-10" o "TRAS-10-MH"
-      return Number.isFinite(n) ? n : null;
-    }
-
-    // Notas numéricas directas "0".."10"
-    const n = Number(s);
-    return Number.isFinite(n) ? n : null;
-  };
+  // textos según tipo_ciclo
+  const gradoTexto =
+    data.cycle_data.tipo_ciclo === 'GM'
+      ? 'Grado Medio (Técnico)'
+      : 'Grado Superior (Técnico Superior)';
 
   const notaDisplay = (nota: NotaEnum | null): string => {
     if (!nota) return "—";
 
     if (nota == "NE") {
-      return "No cursada"
+      return "No evaluada"
     }
 
     if (nota.startsWith("TRAS-")) {
@@ -152,19 +121,6 @@ export const CertificadoTrasladoDocument = ({ data, }: { data: CertificateData }
 
     return nota;
   };
-
-  // Filtra solo las notas con valor numérico
-  const notasNumericas = notasRaw
-    .map(notaToNumber)
-    .filter((n): n is number => typeof n === "number");
-
-
-  const media =
-    notasNumericas.length > 0
-      ? notasNumericas.reduce((sum, n) => sum + n, 0) / notasNumericas.length
-      : undefined;
-
-  const mediaFormateada = media !== undefined ? media.toFixed(2) : '—';
 
   const formatConvocatoria = (n: number | null | undefined): string => {
     if (n == null) return '—';
@@ -206,6 +162,21 @@ export const CertificadoTrasladoDocument = ({ data, }: { data: CertificateData }
     }).format(d);
   };
 
+  const cursoFromModulo = (m: NotasMasAltasPorCicloReturn): number => {
+    // Intenta sacar "1" o "2" de algo tipo "... (1º)" o "... (2º)"
+    const match = m.modulo.match(/\((\d)º\)\s*$/);
+    if (match) {
+      return Number(match[1]); // 1 o 2
+    }
+    // Fallback: por si acaso no hay "(1º)" en el nombre, usa id_ciclo
+    return m.id_ciclo ?? 0;
+  };
+
+  const textoTitulo =
+    data.cycle_data.tipo_ciclo === 'GM'
+      ? `Título de Técnico en ${data.cycle_data.nombre}`
+      : `Título de Técnico Superior en ${data.cycle_data.nombre}`;
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -230,7 +201,7 @@ export const CertificadoTrasladoDocument = ({ data, }: { data: CertificateData }
 
         {/* Párrafo con datos del alumno */}
         <Text style={styles.paragraph}>
-          Que <Text style={styles.bold}>{data.student_data.student.nombre} {data.student_data.student.apellido_1} {data.student_data.student.apellido_2}</Text>, con {data.student_data.student.tipo_id_legal} <Text style={styles.bold}>{data.student_data.student.id_legal}</Text>, nacido/a el {formatFechaES(data.student_data.student.fecha_nac)}, matriculado/a en el Centro Privado de Formación Profesional Especifica "Formacciona" con código de Centro 50019640 y domicilio en Calle Asín y Palacios 18 de la localidad de Zaragoza adscrito administrativamente a este Centro, en <Text style={styles.bold}>{data.cycle_data.nombre}</Text> de Ciclos Formativos de Formación Profesional de Grado Superior, regulado por {data.cycle_data.norma_1} y {data.cycle_data.norma_2}:
+          Que <Text style={styles.bold}>{data.student_data.student.nombre} {data.student_data.student.apellido_1} {data.student_data.student.apellido_2}</Text>, con {data.student_data.student.tipo_id_legal} <Text style={styles.bold}>{data.student_data.student.id_legal}</Text>, nacido/a el {formatFechaES(data.student_data.student.fecha_nac)}, matriculado/a en el Centro Privado de Formación Profesional Especifica "Formacciona" con código de Centro 50019640 y domicilio en Calle Asín y Palacios 18 de la localidad de Zaragoza adscrito administrativamente a este Centro, en <Text style={styles.bold}>{data.cycle_data.nombre}</Text> de Ciclos Formativos de Formación Profesional de {gradoTexto}, regulado por {data.cycle_data.norma_1} y {data.cycle_data.norma_2}:
         </Text>
 
         <View style={styles.checkRow}>
@@ -276,23 +247,31 @@ export const CertificadoTrasladoDocument = ({ data, }: { data: CertificateData }
           {/* Filas dinámicas */}
           {(data?.merged_enrollments ?? [])
             .slice()
-            .sort((a, b) => a.codigo_modulo.localeCompare(b.codigo_modulo))
+            .sort((a, b) => {
+              // 1º: curso 1º → 2º
+              const cursoA = cursoFromModulo(a);
+              const cursoB = cursoFromModulo(b);
+              if (cursoA !== cursoB) {
+                return cursoA - cursoB;
+              }
+
+              // 2º: dentro de cada curso, por código de módulo
+              return a.codigo_modulo.localeCompare(b.codigo_modulo);
+            })
             .map((m, i) => (
               <View style={styles.tableRow} key={i}>
                 <View style={styles.tableColCode}>
                   <Text style={styles.tableCell}>{m.codigo_modulo}</Text>
                 </View>
                 <View style={styles.tableColName}>
-                  <Text style={styles.tableCell}>{m.modulo}</Text>
+                  <Text style={styles.tableCellName}>{m.modulo}</Text>
                 </View>
                 <View style={styles.tableColGrade}>
                   <Text style={styles.tableCell}>{notaDisplay(m.mejor_nota)}</Text>
                 </View>
-                {/* Convocatoria formateada */}
                 <View style={styles.tableColConvocatoria}>
                   <Text style={styles.tableCell}>{formatConvocatoria(m.convocatoria)}</Text>
                 </View>
-                {/* Curso escolar (solo si hay ambos años) */}
                 <View style={styles.tableColCurso}>
                   <Text style={styles.tableCell}>
                     {m.mejor_ano_inicio != null && m.mejor_ano_fin != null
@@ -307,7 +286,7 @@ export const CertificadoTrasladoDocument = ({ data, }: { data: CertificateData }
 
         {/* Pie de texto */}
         <Text style={[styles.paragraph, { marginBottom: 20 }]}>
-          No cumple los requisitos vigentes para la obtención del Título de Técnico Superior en {data.cycle_data.nombre}
+          No cumple los requisitos vigentes para la obtención del Título de {textoTitulo}
         </Text>
 
         <Text style={styles.paragraph}>

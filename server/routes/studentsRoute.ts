@@ -11,7 +11,8 @@ import {
   updateStudent,
   updateStudentObservaciones,
   getAllStudentsFromCycleYearCursoTurnoConvocatoria,
-  getAllStudentsFullInfo
+  getAllStudentsFullInfo,
+  getStudentFullInfoByCycleCode
 } from "../controllers/studentController";
 
 import { z } from "zod";
@@ -134,6 +135,23 @@ export const studentsRoute = new Hono<AppBindings>()
 
     const result = await getAllStudentsFromCycleYearCursoTurnoConvocatoria(cycle_code, ano_inicio, ano_fin, curso, turno, convocatoria);
     return c.json({ estudiantes: result })
+  })
+  .get("/fullInfo/:id/cycle/:cycle_code", async (c) => {
+    const id = Number(c.req.param("id"));
+    const cycle_code = c.req.param("cycle_code");
+
+    try {
+      const result = await getStudentFullInfoByCycleCode(id, cycle_code);
+      return c.json({ fullInfo: result });
+    } catch (error: any) {
+      if (error?.message === "NO_RECORDS_FOR_STUDENT_AND_CYCLE") {
+        return c.json(
+          { error: "No hay expedientes para ese estudiante y ciclo." },
+          404
+        );
+      }
+      return c.json({ error: "Error interno del servidor." }, 500);
+    }
   })
   .get("/fullInfo/:id", async (c) => {
     const id = Number(c.req.param("id"));

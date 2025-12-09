@@ -6,11 +6,12 @@
 --       norma_1 TEXT NOT NULL,
 --       norma_2 TEXT NOT NULL,
 --       ley VARCHAR(15) NOT NULL,
+--       tipo_ciclo VARCHAR(20) NOT NULL
 --   );
 
 -- 1
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
+        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
 VALUES
         (
                 '1',
@@ -18,12 +19,13 @@ VALUES
                 'AFD301_LOGSE',
                 'Real Decreto 2048/1995 22/12/1995',
                 'Real Decreto 1262/1997 24/07/1997',
-                1
+                1,
+                'GS'
         );
 
 --2
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
+        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
 VALUES
         (
                 '2',
@@ -31,12 +33,13 @@ VALUES
                 'AFD301_LOGSE',
                 'Real Decreto 2048/1995 22/12/1995',
                 'Real Decreto 1262/1997 24/07/1997',
-                1
+                1,
+                'GS'
         );
 
 -- 3
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
+        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
 VALUES
         (
                 '1',
@@ -44,12 +47,13 @@ VALUES
                 'AFD201_LOGSE',
                 'Real Decreto 2049/1995 14/02/1996',
                 'Real Decreto 1263/1997 12/09/1997',
-                1
+                1,
+                'GM'
         );
 
 -- 4
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
+        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
 VALUES
         (
                 '1',
@@ -57,12 +61,13 @@ VALUES
                 'SAN201_LOGSE',
                 'Real Decreto 546/1995 05/06/1995',
                 'Real Decreto 558/1995 06/06/1995',
-                1
+                1,
+                'GM'
         );
 
 -- 5
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
+        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
 VALUES
         (
                 '2',
@@ -70,12 +75,13 @@ VALUES
                 'SAN201_LOGSE',
                 'Real Decreto 546/1995 05/06/1995',
                 'Real Decreto 558/1995 06/06/1995',
-                1
+                1,
+                'GM'
         );
 
 -- 6
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
+        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
 VALUES
         (
                 '1',
@@ -83,12 +89,13 @@ VALUES
                 'SAN302_LOGSE',
                 'Real Decreto 536/1995 02/06/1995',
                 'Real Decreto 548/1995 02/06/1995',
-                1
+                1,
+                'GS'
         );
 
 -- 7
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
+        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
 VALUES
         (
                 '2',
@@ -96,12 +103,13 @@ VALUES
                 'SAN302_LOGSE',
                 'Real Decreto 536/1995 02/06/1995',
                 'Real Decreto 548/1995 02/06/1995',
-                1
+                1,
+                'GS'
         );
 
 -- 8
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
+        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
 VALUES
         (
                 '1',
@@ -109,12 +117,13 @@ VALUES
                 'SAN301_LOE',
                 'Real Decreto 767/2014 04/10/2014',
                 'ORDEN de 5 de mayo de 2015 (BOA: 01/06/2015)',
-                2
+                2,
+                'GS'
         );
 
 -- 9
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
+        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
 VALUES
         (
                 '2',
@@ -122,12 +131,13 @@ VALUES
                 'SAN301_LOE',
                 'Real Decreto 767/2014 04/10/2014',
                 'ORDEN de 5 de mayo de 2015 (BOA: 01/06/2015)',
-                2
+                2,
+                'GS'
         );
 
 -- 10
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
+        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
 VALUES
         (
                 '1',
@@ -135,12 +145,13 @@ VALUES
                 'IFC302_LOE',
                 'Real Decreto 405/2023 29/05/2023',
                 'ORDEN de 25 de abril de 2011',
-                2
+                2,
+                'GS'
         );
 
 -- 11
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
+        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
 VALUES
         (
                 '2',
@@ -148,12 +159,13 @@ VALUES
                 'IFC302_LOE',
                 'Real Decreto 405/2023 29/05/2023',
                 'ORDEN de 25 de abril de 2011',
-                2
+                2,
+                'GS'
         );
 
 -- 12
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
+        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
 VALUES
         (
                 '1',
@@ -161,12 +173,13 @@ VALUES
                 'AFD301_LOE',
                 'Real Decreto 653/2017 23/06/2017',
                 'ORDEN de 31 de julio de 2018 (BOA: 21/08/2018)',
-                2
+                2,
+                'GS'
         );
 
 -- 13
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
+        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
 VALUES
         (
                 '2',
@@ -174,12 +187,13 @@ VALUES
                 'AFD301_LOE',
                 'Real Decreto 653/2017 23/06/2017',
                 'ORDEN de 31 de julio de 2018 (BOA: 21/08/2018)',
-                2
+                2,
+                'GS'
         );
 
 -- 14
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
+        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
 VALUES
         (
                 '1',
@@ -187,12 +201,13 @@ VALUES
                 'SAN202_LOE',
                 'Real Decreto 1689/2007 17/01/2008',
                 'ORDEN de 26 de mayo de 2009 (BOA: 16/06/2009)',
-                2
+                2,
+                'GM'
         );
 
 -- 15
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
+        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
 VALUES
         (
                 '2',
@@ -200,12 +215,13 @@ VALUES
                 'SAN202_LOE',
                 'Real Decreto 1689/2007 17/01/2008',
                 'ORDEN de 26 de mayo de 2009 (BOA: 16/06/2009)',
-                2
+                2,
+                'GM'
         );
 
 -- 16
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
+        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
 VALUES
         (
                 '1',
@@ -213,12 +229,13 @@ VALUES
                 'AFD201_LOE',
                 'Real Decreto 402/2020 27/02/2020',
                 'ORDEN de 5 de agosto de 2021 (BOA: 19/08/2021)',
-                2
+                2,
+                'GM'
         );
 
 -- 17
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
+        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
 VALUES
         (
                 '2',
@@ -226,12 +243,13 @@ VALUES
                 'AFD201_LOE',
                 'Real Decreto 402/2020 27/02/2020',
                 'ORDEN de 5 de agosto de 2021 (BOA: 19/08/2021)',
-                2
+                2,
+                'GM'
         );
 
 -- 18
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
+        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
 VALUES
         (
                 '1',
@@ -239,12 +257,13 @@ VALUES
                 'SAN305_LOE',
                 'Real Decreto 770/2014 04/10/2014',
                 'ORDEN de 5 de mayo de 2015 (BOA: 05/06/2015)',
-                2
+                2,
+                'GS'
         );
 
 -- 19
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
+        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
 VALUES
         (
                 '2',
@@ -252,12 +271,13 @@ VALUES
                 'SAN305_LOE',
                 'Real Decreto 770/2014 04/10/2014',
                 'ORDEN de 5 de mayo de 2015 (BOA: 05/06/2015)',
-                2
+                2,
+                'GS'
         );
 
 -- 20
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
+        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
 VALUES
         (
                 '1',
@@ -265,12 +285,13 @@ VALUES
                 'SAN305_LFP',
                 'Real Decreto 500/2024 21/05/2024',
                 'ORDEN de 25 de julio de 2024 (BOA: 31/07/2024)',
-                3
+                3,
+                'GS'
         );
 
 -- 21
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley)
+        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
 VALUES
         (
                 '2',
@@ -278,5 +299,6 @@ VALUES
                 'SAN305_LFP',
                 'Real Decreto 500/2024 21/05/2024',
                 'ORDEN de 25 de julio de 2024 (BOA: 31/07/2024)',
-                3
+                3,
+                'GS'
         );

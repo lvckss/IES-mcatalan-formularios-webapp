@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
     Dialog,
     DialogContent,
@@ -14,18 +14,20 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { UserRoundPlus } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { UserRoundPlus, Info, FolderPlus } from "lucide-react";
 import FormField from "@/components/StudentTable/FormField";
 import DatePicker from "@/components/StudentTable/DatePicker";
 import { api } from "@/lib/api";
 import { useQuery, useQueries, useMutation, useQueryClient } from "@tanstack/react-query";
 import SelectField from "@/components/StudentTable/SelectField";
-import { PostStudent, PostRecord, PostEnrollment, Law } from "@/types";
+import { PostStudent, PostRecord, PostEnrollment, Law, Student } from "@/types";
 
 import PhoneFormField from "./phone-input/phone-form-field";
+
+import { motion, AnimatePresence } from "framer-motion";
 
 // typing de las notas
 
@@ -131,17 +133,25 @@ async function createMatriculas(enrollmentData: PostEnrollment) {
     return response.json();
 }
 
-async function getStudentByLegalId(legal_id: string) {
-    const response = await api.students.legal_id[':legal_id'].$get({
-        param: { legal_id }
+type StudentFromApi = Omit<Student, "fecha_nac"> & { fecha_nac: string };
+
+async function getStudentByLegalId(legal_id: string): Promise<Student> {
+    const response = await api.students.legal_id[":legal_id"].$get({
+        param: { legal_id },
     });
 
     if (!response) {
-        throw new Error("No existe un estudiante con ese ID legal.")
+        throw new Error("No existe un estudiante con ese ID legal.");
     }
 
     const data = await response.json();
-    return data.estudiante;
+    const raw = data.estudiante as StudentFromApi;
+
+    return {
+        ...raw,
+        // la API manda string, aquí lo convertimos a Date
+        fecha_nac: new Date(raw.fecha_nac),
+    };
 }
 
 // -- Saber si la asignatura se puede aprobar o no
@@ -193,6 +203,9 @@ const AddStudentButton: React.FC = () => {
     const [selectedYear, setSelectedYear] = useState<string>("");
     const [vinoTraslado, setVinoTraslado] = useState<boolean>(false);
     const [requisitoAcademico, setRequisitoAcademico] = useState<boolean>(true);
+    const [filledFromExisting, setFilledFromExisting] = useState(false); // <- NUEVO
+    const [panelPosition, setPanelPosition] = useState<{ top: number; left: number } | null>(null);
+    const dialogContentRef = useRef<HTMLDivElement | null>(null);
     // Instantiate query client
     const queryClient = useQueryClient();
 
@@ -242,21 +255,25 @@ const AddStudentButton: React.FC = () => {
         })),
     });
 
-    const { data: existingStudent } = useQuery({
-        queryKey: ['student-by-legal', selectedIDType, selectedID],
+    const { data: existingStudent } = useQuery<Student | null>({
+        queryKey: ["student-by-legal", selectedIDType, selectedID],
         queryFn: async () => {
             if (!selectedID) return null;
             try {
                 const s = await getStudentByLegalId(selectedID);
-                return s as { id_estudiante: number } | null;
+                return s;
             } catch {
-                return null; // no existe → alumno nuevo
+                return null;
             }
         },
         enabled: Boolean(selectedIDType && selectedID && !errorLogicaID),
         staleTime: 5 * 60 * 1000,
     });
 
+    const isExistingStudentLocked =
+        !!existingStudent &&
+        existingStudent.id_legal === selectedID &&   // DNI actual coincide con el de BD
+        !errorLogicaID;
 
     const modulosByCurso = useMemo(() => {
         const out: Record<string, any[]> = {};
@@ -338,6 +355,75 @@ const AddStudentButton: React.FC = () => {
             setSelectedYear("");
         }
     }, [disabledYearSet, selectedYear]);
+
+    useEffect(() => {
+        // Caso 1: hay estudiante y el DNI actual coincide -> rellenamos
+        if (
+            existingStudent &&
+            existingStudent.id_legal === selectedID &&
+            !errorLogicaID
+        ) {
+            setNombre(existingStudent.nombre ?? "");
+            setApellido1(existingStudent.apellido_1 ?? "");
+            setApellido2(existingStudent.apellido_2 ?? null);
+            setSelectedSexo(existingStudent.sexo);
+            setFechaNacimiento(existingStudent.fecha_nac ?? undefined);
+            setNum_tfno(existingStudent.num_tfno ?? null);
+            setRequisitoAcademico(
+                typeof existingStudent.requisito_academico === "boolean"
+                    ? existingStudent.requisito_academico
+                    : true
+            );
+            setFilledFromExisting(true);
+            return;
+        }
+
+        // Caso 2: veníamos de rellenar desde BD y ya NO coincide el DNI
+        if (
+            filledFromExisting &&
+            (!existingStudent ||
+                existingStudent.id_legal !== selectedID ||
+                !!errorLogicaID)
+        ) {
+            // limpiamos solo los campos que venían de la BD
+            setNombre("");
+            setApellido1("");
+            setApellido2(null);
+            setSelectedSexo("");
+            setFechaNacimiento(undefined);
+            setNum_tfno(null);
+            setRequisitoAcademico(true);
+            setFilledFromExisting(false);
+        }
+    }, [existingStudent, selectedID, errorLogicaID, filledFromExisting]);
+
+    useEffect(() => {
+        const updatePosition = () => {
+            if (!open || !isExistingStudentLocked) {
+                setPanelPosition(null);
+                return;
+            }
+
+            const el = dialogContentRef.current;
+            if (!el) return;
+
+            const rect = el.getBoundingClientRect();
+            const margin = 16;
+            const panelWidth = 340;
+
+            let left = rect.right + margin;
+            const maxLeft = window.innerWidth - panelWidth - margin;
+            if (left > maxLeft) left = maxLeft;
+
+            const top = Math.max(rect.top, margin);
+
+            setPanelPosition({ top, left });
+        };
+
+        updatePosition();
+        window.addEventListener("resize", updatePosition);
+        return () => window.removeEventListener("resize", updatePosition);
+    }, [open, isExistingStudentLocked]);
 
 
     // ---------- Manejo de las IDs de los módulos en caso ya haberlos cursado -------
@@ -674,310 +760,463 @@ const AddStudentButton: React.FC = () => {
         }
     };
 
+    const resetForm = () => {
+        setNombre("");
+        setApellido1("");
+        setApellido2(null);
+        setNum_tfno(null);
+        setPhoneError(null);
+        setFechaNacimiento(undefined);
+        setSelectedCiclo("");
+        setSelectedSexo("");
+        setSelectedModules({});
+        setModulesFilter("");
+        setSelectedIDType("dni");
+        setSelectedID("");
+        setErrorLogicaID(null);
+        setSelectedYear("");
+        setSelectedTurno("");
+        setSelectedLey("");
+        setRequisitoAcademico(true);
+        setVinoTraslado(false);
+    };
+
+
     const closeDialog = (next: boolean) => {
         if (!next) {
-            // about to close → move focus out
             const el = document.activeElement as HTMLElement | null;
             el?.blur();
+
+            // solo resetea, no hace falta volver a hacer setOpen(false) aquí
+            setTimeout(() => {
+                resetForm();
+            }, 500);
         }
+
         setOpen(next);
     };
 
     return (
-        <Dialog open={open} onOpenChange={closeDialog}>
-            <DialogTrigger asChild>
-                <Button variant="outline">
-                    <UserRoundPlus className="mr-2 h-5 w-5" />Añadir estudiante
-                </Button>
-            </DialogTrigger>
-            <DialogContent
-                /* 1. keep the two possible widths you already had */
-                className={cn(
-                    selectedLey && selectedCiclo && selectedCiclo !== "unassigned"
-                        ? "sm:max-w-[1000px]"
-                        : "sm:max-w-[450px]",
-                    /* 2. NEW ­– freeze the height */
-                    "min-h-[700px] max-h-[700px]",   // pick any value / use 75vh, etc.
-                    /* 3. do NOT clip children, only show a vertical scrollbar if
-                        something outside your module column spills */
-                )}
-                aria-describedby={undefined}
-            >
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <DialogHeader>
-                        <DialogTitle className="text-xl font-semibold mb-4">Añadir nuevo estudiante (matrícula)</DialogTitle>
-                    </DialogHeader>
-                    <div className="flex flex-nowrap gap-8">
-                        <div className="flex-1 min-w-[320px] max-w-[420px]">
-                            <div className="space-y-4">
-                                <div className="relative">
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label htmlFor="id_legal" className="text-right font-medium">ID Legal</Label>
-                                        <div className="flex gap-2">
-                                            <SelectField
-                                                label="Tipo ID"
-                                                name="id_tipos"
-                                                value={selectedIDType ? selectedIDType : ""}
-                                                onValueChange={handleIDType}
-                                                placeholder="Tipo ID"
-                                                options={
-                                                    [
+        <>
+            <Dialog open={open} onOpenChange={closeDialog}>
+                <DialogTrigger asChild>
+                    <Button variant="outline">
+                        <UserRoundPlus className="mr-2 h-5 w-5" />
+                        Añadir estudiante
+                    </Button>
+                </DialogTrigger>
+
+                <DialogContent
+                    ref={dialogContentRef}
+                    className={cn(
+                        selectedLey && selectedCiclo && selectedCiclo !== "unassigned"
+                            ? "sm:max-w-[1000px]"
+                            : "sm:max-w-[450px]",
+                        "min-h-[700px] max-h-[700px]"
+                    )}
+                    aria-describedby={undefined}
+                >
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <DialogHeader>
+                            <DialogTitle className="text-xl font-semibold mb-4">Añadir nuevo estudiante (matrícula)</DialogTitle>
+                        </DialogHeader>
+                        <div className="flex flex-nowrap gap-8">
+                            <div className="flex-1 min-w-[320px] max-w-[420px]">
+                                <div className="space-y-4">
+                                    {/* 🔹 ID Legal (SIEMPRE editable) */}
+                                    <div className="relative">
+                                        <div className="grid grid-cols-4 items-center gap-4">
+                                            <Label htmlFor="id_legal" className="text-right font-medium">
+                                                ID Legal
+                                            </Label>
+                                            <div className="flex gap-2">
+                                                <SelectField
+                                                    label="Tipo ID"
+                                                    name="id_tipos"
+                                                    value={selectedIDType ? selectedIDType : ""}
+                                                    onValueChange={handleIDType}
+                                                    placeholder="Tipo ID"
+                                                    options={[
                                                         { value: "dni", label: "DNI" },
                                                         { value: "nie", label: "NIE" },
-                                                        { value: "pasaporte", label: "Pasaporte" }
-                                                    ]
-                                                }
-                                            />
-                                            <div className="w-200">
-                                                <Input
-                                                    placeholder="..."
-                                                    id="id_legal"
-                                                    name="id_legal"
-                                                    className="w-fit"
-                                                    value={selectedID}
-                                                    onChange={(e) => handleID(selectedIDType, e.target.value.toUpperCase())}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {errorLogicaID && (
-                                        <p className=" absolute text-xs text-red-500 top-9 ml-20">
-                                            {errorLogicaID}
-                                        </p>
-                                    )}
-                                </div>
-                                <FormField placeholder="..." label="Nombre" name="nombre" value={nombre} onChange={setNombre} />
-                                <FormField placeholder="..." label="Apellido 1" name="apellido1" value={apellido_1} onChange={setApellido1} uppercase={true} />
-                                <FormField placeholder="..." label="Apellido 2" name="apellido2" value={apellido_2 ?? ""} onChange={setApellido2} uppercase={true} />
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="sexo" className="text-right font-medium">Sexo</Label>
-                                    <SelectField
-                                        label="sexo"
-                                        name="sexo"
-                                        value={selectedSexo}
-                                        onValueChange={(value) => { setSelectedSexo(value) }}
-                                        placeholder="Seleccionar sexo"
-                                        options={[
-                                            { value: "Masculino", label: "Masculino" },
-                                            { value: "Femenino", label: "Femenino" },
-                                            { value: "Indefinido", label: "Indefinido" },
-                                        ]}
-                                        width={310}
-                                    />
-                                </div>
-                                <PhoneFormField
-                                    label="Teléfono"
-                                    name="num_tfno"
-                                    value={num_tfno ?? ""}
-                                    onChange={(value) => {
-                                        const v = value ?? "";
-                                        setNum_tfno(v || null);
-                                        validatePhone(v);
-                                    }}
-                                    placeholder="..."
-                                    defaultCountry="ES"
-                                    error={phoneError ?? undefined}
-                                />
-
-
-                                <div className="z-100">
-                                    <DatePicker label="Fecha de nacimiento" name="fecha_nacimiento" onChange={handleDateChange} />
-                                </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="ley" className="text-right font-medium">Ley educativa</Label>
-                                    <SelectField
-                                        label="Ley Educativa"
-                                        name="ley_educativa"
-                                        value={String(selectedLey)}
-                                        onValueChange={handleLeyChange}
-                                        placeholder="Seleccionar ley"
-                                        options={
-                                            leyesData.map((ley) => ({
-                                                value: `${ley.id_ley}`,
-                                                label: `${ley.nombre_ley}`
-                                            }))
-                                        }
-                                        width={310}
-                                    />
-                                </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="ciclo_formativo" className="text-right font-medium">Ciclo Formativo</Label>
-                                    <SelectField
-                                        label="Ciclo Formativo"
-                                        name="ciclo_formativo"
-                                        value={selectedCiclo ? `${selectedCiclo}` : ""}
-                                        onValueChange={handleCicloChange}
-                                        placeholder="Seleccionar ciclo"
-                                        options={
-                                            selectedLey
-                                                ? ciclosData.map((ciclo) => ({
-                                                    value: `${ciclo.codigo}`,
-                                                    label: `${ciclo.nombre} (${ciclo.codigo})`,
-                                                }))
-                                                : [{ label: "Selecciona una ley antes", value: 'nothing bro' }]
-                                        }
-                                        width={310}
-                                    />
-                                </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="ciclo_formativo" className="text-right font-medium">¿Vino de traslado?</Label>
-                                    <Checkbox
-                                        id="vino_traslado"
-                                        checked={vinoTraslado}
-                                        onCheckedChange={(value) => setVinoTraslado(value === true)}
-                                    />
-                                </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="ciclo_formativo" className="text-right font-medium">¿Requisito académico?</Label>
-                                    <Checkbox
-                                        id="requisito_academico"
-                                        checked={requisitoAcademico}
-                                        onCheckedChange={(value) => setRequisitoAcademico(value === true)}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                        <Separator
-                            orientation="vertical"
-                            className={`h-auto transition-opacity duration-500 ease-in-out ${showSeparator ? 'opacity-100' : 'opacity-0'
-                                }`}
-                        />
-                        {showModules && (
-                            <div
-                                className={`flex-1 transition-all duration-500 ease-in-out mb-3 max-h-[480px] ${showModules ? 'opacity-100' : 'opacity-0'
-                                    }`}
-                            >
-                                <input
-                                    type="text"
-                                    value={modulesFilter}
-                                    onChange={(e) => setModulesFilter(e.target.value)}
-                                    placeholder="Filtrar módulos"
-                                    className="p-1 border border-gray-300 rounded mb-5 mr-5 w-full pl-3"
-                                />
-                                {selectedLey && selectedCiclo && (
-                                    <>
-                                        {/* search bar … unchanged … */}
-                                        {/* ▸▸▸ NEW WRAPPER ◂◂◂  — 60 % viewport height max */}
-                                        <div className="max-h-[450px] overflow-y-auto pr-2 space-y-6 pb-5">
-                                            <div className="grid grid-cols-5 items-center mb-1 mt-1">
-                                                <Label htmlFor="ano_escolar" className="font-medium">Año Escolar:</Label>
-                                                <SelectField
-                                                    label="Año Escolar"
-                                                    name="school_year"
-                                                    value={selectedYear}
-                                                    onValueChange={(value) => setSelectedYear(value)}
-                                                    placeholder="Seleccionar año escolar"
-                                                    options={schoolYearOptions.map(o => {
-                                                        const isDisabled = disabledYearSet.has(o.value);
-                                                        return {
-                                                            value: o.value,
-                                                            label: isDisabled ? `${o.label} (ya existe)` : o.label,
-                                                            disabled: isDisabled,
-                                                        };
-                                                    })}
-                                                />
-                                            </div>
-                                            <div className="grid grid-cols-5 items-center mb-1 mt-1">
-                                                <Label htmlFor="turno" className="font-medium">Turno:</Label>
-                                                <SelectField
-                                                    label="turno"
-                                                    name="turno"
-                                                    value={selectedTurno}
-                                                    onValueChange={(value) => setSelectedTurno(value)}
-                                                    placeholder="Seleccionar turno"
-                                                    options={[
-                                                        { value: "Diurno", label: "Diurno" },
-                                                        { value: "Vespertino", label: "Vespertino" },
-                                                        { value: "Nocturno", label: "Nocturno" },
-                                                        { value: "A distancia", label: "A distancia" }
+                                                        { value: "pasaporte", label: "Pasaporte" },
                                                     ]}
                                                 />
+                                                <div className="w-200">
+                                                    <Input
+                                                        placeholder="..."
+                                                        id="id_legal"
+                                                        name="id_legal"
+                                                        className="w-fit"
+                                                        value={selectedID}
+                                                        onChange={(e) =>
+                                                            handleID(selectedIDType, e.target.value.toUpperCase())
+                                                        }
+                                                    />
+                                                </div>
                                             </div>
-                                            {/* ºººº 1º CURSO ºººº */}
-                                            {filteredPrimer.length > 0 && (
-                                                <>
-                                                    <Separator />
-                                                    <div className="flex items-center justify-between mb-2">
-                                                        <h4 className="font-medium">Primer curso</h4>
-                                                        <div className="flex items-center gap-2">
-                                                            <Checkbox
-                                                                id="select-all-1"
-                                                                checked={getCourseCheckedState(filteredPrimer) as any}
-                                                                disabled={getSelectableIds(filteredPrimer).length === 0}
-                                                                onCheckedChange={() => handleToggleAllForCourse(filteredPrimer)}
-                                                            />
-                                                            <Label htmlFor="select-all-1" className="text-sm cursor-pointer">
-                                                                Seleccionar todos
-                                                                <span className="ml-2 opacity-70">
-                                                                    (
-                                                                    {
-                                                                        getSelectableIds(filteredPrimer)
-                                                                            .filter(id => id in selectedModules).length
-                                                                    }
-                                                                    /
-                                                                    {getSelectableIds(filteredPrimer).length}
-                                                                    )
-                                                                </span>
-                                                            </Label>
-                                                        </div>
-                                                    </div>
-                                                    <ModuleList
-                                                        modules={filteredPrimer}
-                                                        selectedModules={selectedModules}
-                                                        onModuleToggle={handleModuleToggle}
-                                                        disabledSet={disabledSet}
-                                                    />
-                                                </>
-                                            )}
-                                            {/* ºººº 2º CURSO ºººº */}
-                                            {filteredSegundo.length > 0 && (
-                                                <>
-                                                    <Separator />
-                                                    <div className="flex items-center justify-between mb-2 sticky top-0 bg-white/90 backdrop-blur py-1">
-                                                        <h4 className="font-medium">Segundo curso</h4>
-                                                        <div className="flex items-center gap-2">
-                                                            <Checkbox
-                                                                id="select-all-2"
-                                                                checked={getCourseCheckedState(filteredSegundo) as any}
-                                                                disabled={getSelectableIds(filteredSegundo).length === 0}
-                                                                onCheckedChange={() => handleToggleAllForCourse(filteredSegundo)}
-                                                            />
-                                                            <Label htmlFor="select-all-2" className="text-sm cursor-pointer">
-                                                                Seleccionar todos
-                                                                <span className="ml-2 opacity-70">
-                                                                    (
-                                                                    {
-                                                                        getSelectableIds(filteredSegundo)
-                                                                            .filter(id => id in selectedModules).length
-                                                                    }
-                                                                    /
-                                                                    {getSelectableIds(filteredSegundo).length}
-                                                                    )
-                                                                </span>
-                                                            </Label>
-                                                        </div>
-                                                    </div>
-                                                    <ModuleList
-                                                        modules={filteredSegundo}
-                                                        selectedModules={selectedModules}
-                                                        onModuleToggle={handleModuleToggle}
-                                                        disabledSet={disabledSet}
-                                                    />
-                                                </>
-                                            )}
                                         </div>
-                                    </>
-                                )}
+
+                                        {errorLogicaID && (
+                                            <p className="absolute top-9 ml-20 text-xs text-red-500">
+                                                {errorLogicaID}
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    {/* 🔒 Resto de datos personales bloqueados si ya existe */}
+                                    <fieldset disabled={isExistingStudentLocked} className="space-y-4">
+                                        <FormField
+                                            placeholder="..."
+                                            label="Nombre"
+                                            name="nombre"
+                                            value={nombre}
+                                            onChange={setNombre}
+                                        />
+                                        <FormField
+                                            placeholder="..."
+                                            label="Apellido 1"
+                                            name="apellido1"
+                                            value={apellido_1}
+                                            onChange={setApellido1}
+                                            uppercase={true}
+                                        />
+                                        <FormField
+                                            placeholder="..."
+                                            label="Apellido 2"
+                                            name="apellido2"
+                                            value={apellido_2 ?? ""}
+                                            onChange={setApellido2}
+                                            uppercase={true}
+                                        />
+                                        <div className="grid grid-cols-4 items-center gap-4">
+                                            <Label htmlFor="sexo" className="text-right font-medium">
+                                                Sexo
+                                            </Label>
+                                            <SelectField
+                                                label="sexo"
+                                                name="sexo"
+                                                value={selectedSexo}
+                                                onValueChange={(value) => {
+                                                    setSelectedSexo(value);
+                                                }}
+                                                placeholder="Seleccionar sexo"
+                                                options={[
+                                                    { value: "Masculino", label: "Masculino" },
+                                                    { value: "Femenino", label: "Femenino" },
+                                                    { value: "Indefinido", label: "Indefinido" },
+                                                ]}
+                                                width={310}
+                                                disabled={isExistingStudentLocked}
+                                            />
+                                        </div>
+
+                                        <PhoneFormField
+                                            label="Teléfono"
+                                            name="num_tfno"
+                                            value={num_tfno ?? ""}
+                                            onChange={(value) => {
+                                                const v = value ?? "";
+                                                setNum_tfno(v || null);
+                                                validatePhone(v);
+                                            }}
+                                            placeholder="..."
+                                            defaultCountry="ES"
+                                            error={phoneError ?? undefined}
+                                        />
+
+                                        <div className="z-100">
+                                            <DatePicker
+                                                label="Fecha de nacimiento"
+                                                name="fecha_nacimiento"
+                                                value={fechaNacimiento}
+                                                onChange={handleDateChange}
+                                            />
+                                        </div>
+
+                                        <div className="grid grid-cols-4 items-center gap-4">
+                                            <Label htmlFor="ley" className="text-right font-medium">
+                                                Ley educativa
+                                            </Label>
+                                            <SelectField
+                                                label="Ley Educativa"
+                                                name="ley_educativa"
+                                                value={String(selectedLey)}
+                                                onValueChange={handleLeyChange}
+                                                placeholder="Seleccionar ley"
+                                                options={leyesData.map((ley) => ({
+                                                    value: `${ley.id_ley}`,
+                                                    label: `${ley.nombre_ley}`,
+                                                }))}
+                                                width={310}
+                                                disabled={isExistingStudentLocked}
+                                            />
+                                        </div>
+
+                                        <div className="grid grid-cols-4 items-center gap-4">
+                                            <Label htmlFor="ciclo_formativo" className="text-right font-medium">
+                                                Ciclo Formativo
+                                            </Label>
+                                            <SelectField
+                                                label="Ciclo Formativo"
+                                                name="ciclo_formativo"
+                                                value={selectedCiclo ? `${selectedCiclo}` : ""}
+                                                onValueChange={handleCicloChange}
+                                                placeholder="Seleccionar ciclo"
+                                                options={
+                                                    selectedLey
+                                                        ? ciclosData.map((ciclo) => ({
+                                                            value: `${ciclo.codigo}`,
+                                                            label: `${ciclo.nombre} (${ciclo.codigo})`,
+                                                        }))
+                                                        : [{ label: "Selecciona una ley antes", value: "nothing bro" }]
+                                                }
+                                                width={310}
+                                                disabled={isExistingStudentLocked}
+                                            />
+                                        </div>
+
+                                        <div className="grid grid-cols-4 items-center gap-4">
+                                            <Label
+                                                htmlFor="vino_traslado"
+                                                className="text-right font-medium"
+                                            >
+                                                ¿Vino de traslado?
+                                            </Label>
+                                            <Checkbox
+                                                id="vino_traslado"
+                                                checked={vinoTraslado}
+                                                onCheckedChange={(value) => setVinoTraslado(value === true)}
+                                            />
+                                        </div>
+
+                                        <div className="grid grid-cols-4 items-center gap-4">
+                                            <Label
+                                                htmlFor="requisito_academico"
+                                                className="text-right font-medium"
+                                            >
+                                                ¿Requisito académico?
+                                            </Label>
+                                            <Checkbox
+                                                id="requisito_academico"
+                                                checked={requisitoAcademico}
+                                                onCheckedChange={(value) =>
+                                                    setRequisitoAcademico(value === true)
+                                                }
+                                            />
+                                        </div>
+                                    </fieldset>
+                                </div>
                             </div>
-                        )}
-                    </div>
-                    <DialogFooter>
-                        <Button type="submit" className="px-5 mr-4">Guardar estudiante</Button>
-                    </DialogFooter>
-                </form>
-            </DialogContent>
-        </Dialog>
+
+                            <Separator
+                                orientation="vertical"
+                                className={`h-auto transition-opacity duration-500 ease-in-out ${showSeparator ? "opacity-100" : "opacity-0"
+                                    }`}
+                            />
+
+                            {showModules && (
+                                <fieldset
+                                    disabled={isExistingStudentLocked}
+                                    className={`flex-1 transition-all duration-500 ease-in-out mb-3 max-h-[480px] ${showModules ? "opacity-100" : "opacity-0"
+                                        }`}
+                                >
+                                    <div
+                                        className={`flex-1 transition-all duration-500 ease-in-out mb-3 max-h-[480px] ${showModules ? 'opacity-100' : 'opacity-0'
+                                            }`}
+                                    >
+                                        <input
+                                            type="text"
+                                            value={modulesFilter}
+                                            onChange={(e) => setModulesFilter(e.target.value)}
+                                            placeholder="Filtrar módulos"
+                                            className="p-1 border border-gray-300 rounded mb-5 mr-5 w-full pl-3"
+                                        />
+                                        {selectedLey && selectedCiclo && (
+                                            <>
+                                                {/* search bar … unchanged … */}
+                                                {/* ▸▸▸ NEW WRAPPER ◂◂◂  — 60 % viewport height max */}
+                                                <div className="max-h-[450px] overflow-y-auto pr-2 space-y-6 pb-5">
+                                                    <div className="grid grid-cols-5 items-center mb-1 mt-1">
+                                                        <Label htmlFor="ano_escolar" className="font-medium">Año Escolar:</Label>
+                                                        <SelectField
+                                                            label="Año Escolar"
+                                                            name="school_year"
+                                                            value={selectedYear}
+                                                            onValueChange={(value) => setSelectedYear(value)}
+                                                            placeholder="Seleccionar año escolar"
+                                                            options={schoolYearOptions.map(o => {
+                                                                const isDisabled = disabledYearSet.has(o.value);
+                                                                return {
+                                                                    value: o.value,
+                                                                    label: isDisabled ? `${o.label} (ya existe)` : o.label,
+                                                                    disabled: isDisabled,
+                                                                };
+                                                            })}
+                                                            disabled={isExistingStudentLocked}
+                                                        />
+                                                    </div>
+                                                    <div className="grid grid-cols-5 items-center mb-1 mt-1">
+                                                        <Label htmlFor="turno" className="font-medium">Turno:</Label>
+                                                        <SelectField
+                                                            label="turno"
+                                                            name="turno"
+                                                            value={selectedTurno}
+                                                            onValueChange={(value) => setSelectedTurno(value)}
+                                                            placeholder="Seleccionar turno"
+                                                            options={[
+                                                                { value: "Diurno", label: "Diurno" },
+                                                                { value: "Vespertino", label: "Vespertino" },
+                                                                { value: "Nocturno", label: "Nocturno" },
+                                                                { value: "A distancia", label: "A distancia" }
+                                                            ]}
+                                                            disabled={isExistingStudentLocked}
+                                                        />
+                                                    </div>
+                                                    {/* ºººº 1º CURSO ºººº */}
+                                                    {filteredPrimer.length > 0 && (
+                                                        <>
+                                                            <Separator />
+                                                            <div className="flex items-center justify-between mb-2">
+                                                                <h4 className="font-medium">Primer curso</h4>
+                                                                <div className="flex items-center gap-2">
+                                                                    <Checkbox
+                                                                        id="select-all-1"
+                                                                        checked={getCourseCheckedState(filteredPrimer) as any}
+                                                                        disabled={getSelectableIds(filteredPrimer).length === 0}
+                                                                        onCheckedChange={() => handleToggleAllForCourse(filteredPrimer)}
+                                                                    />
+                                                                    <Label htmlFor="select-all-1" className="text-sm cursor-pointer">
+                                                                        Seleccionar todos
+                                                                        <span className="ml-2 opacity-70">
+                                                                            (
+                                                                            {
+                                                                                getSelectableIds(filteredPrimer)
+                                                                                    .filter(id => id in selectedModules).length
+                                                                            }
+                                                                            /
+                                                                            {getSelectableIds(filteredPrimer).length}
+                                                                            )
+                                                                        </span>
+                                                                    </Label>
+                                                                </div>
+                                                            </div>
+                                                            <ModuleList
+                                                                modules={filteredPrimer}
+                                                                selectedModules={selectedModules}
+                                                                onModuleToggle={handleModuleToggle}
+                                                                disabledSet={disabledSet}
+                                                            />
+                                                        </>
+                                                    )}
+                                                    {/* ºººº 2º CURSO ºººº */}
+                                                    {filteredSegundo.length > 0 && (
+                                                        <>
+                                                            <Separator />
+                                                            <div className="flex items-center justify-between mb-2 sticky top-0 bg-white/90 backdrop-blur py-1">
+                                                                <h4 className="font-medium">Segundo curso</h4>
+                                                                <div className="flex items-center gap-2">
+                                                                    <Checkbox
+                                                                        id="select-all-2"
+                                                                        checked={getCourseCheckedState(filteredSegundo) as any}
+                                                                        disabled={getSelectableIds(filteredSegundo).length === 0}
+                                                                        onCheckedChange={() => handleToggleAllForCourse(filteredSegundo)}
+                                                                    />
+                                                                    <Label htmlFor="select-all-2" className="text-sm cursor-pointer">
+                                                                        Seleccionar todos
+                                                                        <span className="ml-2 opacity-70">
+                                                                            (
+                                                                            {
+                                                                                getSelectableIds(filteredSegundo)
+                                                                                    .filter(id => id in selectedModules).length
+                                                                            }
+                                                                            /
+                                                                            {getSelectableIds(filteredSegundo).length}
+                                                                            )
+                                                                        </span>
+                                                                    </Label>
+                                                                </div>
+                                                            </div>
+                                                            <ModuleList
+                                                                modules={filteredSegundo}
+                                                                selectedModules={selectedModules}
+                                                                onModuleToggle={handleModuleToggle}
+                                                                disabledSet={disabledSet}
+                                                            />
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                </fieldset>
+                            )}
+                        </div>
+                        <DialogFooter>
+                            <Button
+                                type="submit"
+                                className="px-5 mr-4"
+                                disabled={isExistingStudentLocked}
+                                title={
+                                    isExistingStudentLocked
+                                        ? "Este estudiante ya existe. Cierra este diálogo y usa “Añadir un nuevo año escolar” en la tabla."
+                                        : undefined
+                                }
+                            >
+                                Guardar estudiante
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+            {/* 🟦 Panel flotante a la derecha cuando el estudiante ya existe */}
+            <AnimatePresence>
+                {panelPosition && (
+                    <motion.div
+                        key="existing-student-panel"
+                        className="fixed z-[60] w-[340px] pointer-events-auto text-justify"
+                        style={{
+                            top: panelPosition.top,
+                            left: panelPosition.left,
+                        }}
+                        initial={{ opacity: 0, y: -4, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -4, scale: 0.98 }}
+                        transition={{ duration: 0.12, ease: "easeOut" }}
+                    >
+                        <Alert className="shadow-lg border bg-background pr-10 pb-6 pt-4">
+                            <Info className="h-4 w-4" />
+                            <AlertTitle className="underline">Este estudiante ya existe</AlertTitle>
+                            <AlertDescription className="space-y-2 text-sm">
+                                <p className="mt-3">
+                                    El ID legal introducido pertenece a un estudiante que ya está
+                                    dado de alta en la base de datos.
+                                </p>
+                                <p>
+                                    Sus datos personales se han cargado automáticamente en el
+                                    formulario (nombre, apellidos, fecha de nacimiento, etc.), pero
+                                    <strong> no se creará un nuevo expediente desde aquí</strong>.
+                                </p>
+                                <p>
+                                    Si necesitas crear un <strong>nuevo año escolar/expediente </strong>
+                                    para este alumno, cierra este diálogo y utiliza el botón:
+                                </p>
+                                <p className="flex items-center gap-2">
+                                    <span className="inline-flex items-center gap-1 rounded-md border px-2.5 py-2.5 text-[11px] font-mono">
+                                        <FolderPlus className="h-4 w-4" />
+                                    </span>
+                                    <span></span>
+                                    <span className="text-s leading-tight">
+                                        Añadir un nuevo año escolar
+                                        <br></br><span className="text-muted-foreground text-xs">(icono de carpeta con + en la fila del estudiante)</span>
+                                    </span>
+                                </p>
+                            </AlertDescription>
+                        </Alert>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </>
     );
 };
 

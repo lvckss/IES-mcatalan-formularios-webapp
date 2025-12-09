@@ -67,3 +67,24 @@
     @apply bg-background text-foreground;
   }
 }
+
+.panel-enter {
+  opacity: 0;
+  transform: translateY(-4px) scale(0.98);
+}
+.panel-enter-active {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition: opacity 140ms ease-out, transform 140ms ease-out;
+}
+
+/* Fade-out / slide-out */
+.panel-exit {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+.panel-exit-active {
+  opacity: 0;
+  transform: translateY(-4px) scale(0.98);
+  transition: opacity 140ms ease-in, transform 140ms ease-in;
+}

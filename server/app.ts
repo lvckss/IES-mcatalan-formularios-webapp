@@ -34,11 +34,11 @@ app.use(logger());
 // CORS SOLO en dev para /api/auth/*
 if (!isProd) {
   app.use(
-    "/api/auth/*",
+    "/api/*",
     cors({
       origin: devCorsOrigin,
       allowHeaders: ["Content-Type", "Authorization"],
-      allowMethods: ["GET", "POST", "OPTIONS"],
+      allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
       credentials: true,
     })
   );

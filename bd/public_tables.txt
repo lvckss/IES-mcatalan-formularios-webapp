@@ -34,6 +34,7 @@ CREATE TABLE Ciclos (
     norma_1 TEXT NOT NULL,
     norma_2 TEXT NOT NULL,
     ley INT NOT NULL,
+    tipo_ciclo VARCHAR(20) NOT NULL CHECK (tipo_ciclo IN ('GM', 'GS')),
     FOREIGN KEY (ley) REFERENCES Leyes(id_ley) ON DELETE CASCADE
 );
 

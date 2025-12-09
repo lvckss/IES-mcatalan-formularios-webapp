@@ -30,17 +30,37 @@ export const getRecordsByStudentId = async (student_id: number): Promise<Record[
   return results.map(record => RecordSchema.parse(record));
 }
 
-export const updateFechaPagoTitulo = async (record_id: number, fecha_pago_titulo: Date): Promise<Record> => {
+export const updateFechaPagoTitulo = async (
+  record_id: number,
+  fecha_pago_titulo: Date
+): Promise<Record[]> => {
   const results = await sql`
-    UPDATE Expedientes
-    SET fecha_pago_titulo = ${fecha_pago_titulo}
-    WHERE id_expediente = ${record_id}
-    RETURNING *
+    WITH base AS (
+      SELECT 
+        e.id_estudiante,
+        e.id_ciclo
+      FROM Expedientes e
+      WHERE e.id_expediente = ${record_id}
+    ),
+    updated AS (
+      UPDATE Expedientes e
+      SET fecha_pago_titulo = ${fecha_pago_titulo}
+      FROM base b
+      WHERE 
+        e.id_estudiante = b.id_estudiante
+        AND e.id_ciclo = b.id_ciclo
+      RETURNING e.*
+    )
+    SELECT * FROM updated
+    ORDER BY id_expediente;
   `;
 
-  if (!results[0]) throw new Error("No existe ese expediente");
-  return RecordSchema.parse(results[0]);
-}
+  if (!results[0]) {
+    throw new Error("No existe ese expediente o no hay expedientes asociados a ese ciclo para el alumno.");
+  }
+
+  return results.map((row: any) => RecordSchema.parse(row));
+};
 
 export const patchBajaEstudianteCiclo = async (id_estudiante: number, id_ciclo: number, dado_baja: boolean): Promise<Record[]> => {
   const results = await sql`

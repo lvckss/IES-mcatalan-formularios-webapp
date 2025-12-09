@@ -1,4 +1,3 @@
-// src/components/CertificadoDocument.jsx
 import {
   Document,
   Page,
@@ -47,6 +46,7 @@ const styles = StyleSheet.create({
   tableCol: { width: '20%', borderWidth: 1, borderColor: '#000', padding: 4 },
   tableCellHeader: { fontWeight: 'bold', fontSize: 8.5, textAlign: 'center' },
   tableCell: { fontSize: 8.5, textAlign: 'center' },
+  tableCellName: { fontSize: 8.5, textAlign: 'left' },
   tableColCode: { width: '20%', borderWidth: 1, borderColor: '#000', padding: 4, justifyContent: 'center', alignItems: 'center' },
   tableColName: { width: '60%', borderWidth: 1, borderColor: '#000', padding: 4, flex: 3, justifyContent: 'center' },
   tableColGrade: { width: '20%', borderWidth: 1, borderColor: '#000', padding: 4, flex: 1, justifyContent: 'center', alignItems: 'center' },
@@ -54,17 +54,18 @@ const styles = StyleSheet.create({
   anottations: { fontSize: 8 }
 });
 
-export function fechaHoyES(): string {
-  const hoy = new Date();
-
-  // Formateador para español (España) con día numérico, mes largo y año numérico
+export function formatFechaES(fecha: Date): string {
   const formatter = new Intl.DateTimeFormat('es-ES', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   });
 
-  return formatter.format(hoy);
+  return formatter.format(fecha);
+}
+
+export function fechaHoyES(): string {
+  return formatFechaES(new Date());
 }
 
 interface CertificateData {
@@ -78,6 +79,11 @@ interface CertificateData {
 export const CertificadoObtencionDocument = ({ data, }: { data: CertificateData }) => {
 
   const notasRaw = (data?.merged_enrollments ?? []).map((m) => m.mejor_nota);
+  // textos según tipo_ciclo
+  const gradoTexto =
+    data.cycle_data.tipo_ciclo === 'GM'
+      ? 'Grado Medio (Técnico)'
+      : 'Grado Superior (Técnico Superior)';
 
   // ✅ Convierte nota -> valor numérico para la media según las nuevas reglas
   const notaToNumber = (nota: (typeof notasRaw)[number]): number | null => {
@@ -115,7 +121,7 @@ export const CertificadoObtencionDocument = ({ data, }: { data: CertificateData 
     return Number.isFinite(n) ? n : null;
   };
 
-  // 👇 Nueva función auxiliar para mostrar la nota en tabla
+  // función auxiliar para mostrar la nota en tabla
   const notaDisplay = (nota: NotaEnum | null): string => {
     if (!nota) return "—";
 
@@ -137,8 +143,6 @@ export const CertificadoObtencionDocument = ({ data, }: { data: CertificateData 
     notasNumericas.length > 0
       ? notasNumericas.reduce((sum, n) => sum + n, 0) / notasNumericas.length
       : undefined;
-
-  const mediaFormateada = media !== undefined ? media.toFixed(2) : '—';
 
   // helper: ¿esta nota aprueba el módulo?
   const isAprobada = (nota: NotaEnum | null): boolean => {
@@ -177,6 +181,35 @@ export const CertificadoObtencionDocument = ({ data, }: { data: CertificateData 
 
   const notaFinalParaMostrar = todasAprobadas && media !== undefined ? media.toFixed(2) : '—';
 
+  const cursoFromModulo = (m: NotasMasAltasPorCicloReturn): number => {
+    // Intenta sacar "1" o "2" de algo tipo "... (1º)" o "... (2º)"
+    const match = m.modulo.match(/\((\d)º\)\s*$/);
+    if (match) {
+      return Number(match[1]); // 1 o 2
+    }
+    // Fallback: por si acaso no hay "(1º)" en el nombre, usa id_ciclo
+    return m.id_ciclo ?? 0;
+  };
+
+  // Buscar el expediente de este ciclo que tenga fecha_pago_titulo
+  const expedienteConPago = data.student_data.records.find(
+    (r) => r.id_ciclo === data.cycle_data.id_ciclo && r.fecha_pago_titulo != null
+  ) ?? data.student_data.records.find((r) => r.fecha_pago_titulo != null);
+
+  const fechaPagoTitulo =
+    expedienteConPago?.fecha_pago_titulo
+      ? new Date(expedienteConPago.fecha_pago_titulo)
+      : null;
+
+  const textoPagoTitulo = fechaPagoTitulo
+    ? ` y con fecha ${formatFechaES(fechaPagoTitulo)}, ha abonado las tasas para la expedición del título`
+    : '';
+
+  const textoTitulo =
+    data.cycle_data.tipo_ciclo === 'GM'
+      ? `Título de Técnico en ${data.cycle_data.nombre}`
+      : `Título de Técnico Superior en ${data.cycle_data.nombre}`;
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -201,7 +234,7 @@ export const CertificadoObtencionDocument = ({ data, }: { data: CertificateData 
 
         {/* Párrafo con datos del alumno */}
         <Text style={styles.paragraph}>
-          Que <Text style={styles.bold}>{data.student_data.student.nombre} {data.student_data.student.apellido_1} {data.student_data.student.apellido_2}</Text>, con {data.student_data.student.tipo_id_legal} <Text style={styles.bold}>{data.student_data.student.id_legal}</Text>, según consta en su expediente <Text style={styles.bold}>{data.student_data.student.id_estudiante}</Text>, ha superado todos los módulos profesionales de Ciclos Formativos de Grado Superior {data.cycle_data.codigo} en <Text style={styles.bold}>{data.cycle_data.nombre}</Text>, regulado por el {data.cycle_data.norma_1} y la {data.cycle_data.norma_2}, habiendo realizado sus estudios en el Centro Privado de Formación Profesional "Formacciona" con código de Centro 50019640 y domicilio en Calle Asín y Palacios, 18. Zaragoza, adscrito administrativamente a este Centro y cumple los requisitos de acceso a la formación profesional establecidos en el Real Decreto 1147/2011, obteniendo las siguientes calificaciones finales:
+          Que <Text style={styles.bold}>{data.student_data.student.nombre} {data.student_data.student.apellido_1} {data.student_data.student.apellido_2}</Text>, con {data.student_data.student.tipo_id_legal} <Text style={styles.bold}>{data.student_data.student.id_legal}</Text>, según consta en su expediente <Text style={styles.bold}>{data.student_data.student.id_estudiante}</Text>, ha superado todos los módulos profesionales de Ciclos Formativos de {gradoTexto} {data.cycle_data.codigo} en <Text style={styles.bold}>{data.cycle_data.nombre}</Text>, regulado por el {data.cycle_data.norma_1} y la {data.cycle_data.norma_2}, habiendo realizado sus estudios en el Centro Privado de Formación Profesional "Formacciona" con código de Centro 50019640 y domicilio en Calle Asín y Palacios, 18. Zaragoza, adscrito administrativamente a este Centro y cumple los requisitos de acceso a la formación profesional establecidos en el Real Decreto 1147/2011, obteniendo las siguientes calificaciones finales:
         </Text>
 
         {/* Tabla de módulos y calificaciones */}
@@ -224,14 +257,24 @@ export const CertificadoObtencionDocument = ({ data, }: { data: CertificateData 
           {/* Filas dinámicas */}
           {(data?.merged_enrollments ?? [])
             .slice()
-            .sort((a, b) => a.codigo_modulo.localeCompare(b.codigo_modulo))
+            .sort((a, b) => {
+              // 1º: curso 1º → 2º
+              const cursoA = cursoFromModulo(a);
+              const cursoB = cursoFromModulo(b);
+              if (cursoA !== cursoB) {
+                return cursoA - cursoB;
+              }
+
+              // 2º: dentro de cada curso, por código de módulo
+              return a.codigo_modulo.localeCompare(b.codigo_modulo);
+            })
             .map((m, i) => (
               <View style={styles.tableRow} key={i}>
                 <View style={styles.tableColCode}>
                   <Text style={styles.tableCell}>{m.codigo_modulo}</Text>
                 </View>
                 <View style={styles.tableColName}>
-                  <Text style={styles.tableCell}>{m.modulo}</Text>
+                  <Text style={styles.tableCellName}>{m.modulo}</Text>
                 </View>
                 <View style={styles.tableColGrade}>
                   <Text style={styles.tableCell}>{notaDisplay(m.mejor_nota)}</Text>
@@ -260,9 +303,11 @@ export const CertificadoObtencionDocument = ({ data, }: { data: CertificateData 
         {/* Pie de texto */}
         <Text style={[styles.paragraph, { marginBottom: 20 }]}>
           {todasAprobadas
-            ? `Cumple los requisitos vigentes para la obtención del Título de Técnico Superior en ${data.cycle_data.nombre}`
-            : `No cumple los requisitos vigentes para la obtención del Título de Técnico Superior en ${data.cycle_data.nombre}`
+            ? `Cumple los requisitos vigentes para la obtención del ${textoTitulo}`
+            : `No cumple los requisitos vigentes para la obtención del ${textoTitulo}`
           }
+          {textoPagoTitulo}
+          {textoPagoTitulo && '.'}
         </Text>
 
         <Text style={styles.paragraph}>

@@ -11,15 +11,16 @@ interface SelectFieldProps {
   placeholder: string
   options: Option[]
   width?: number
+  disabled?: boolean
 }
 
 const SelectField: React.FC<SelectFieldProps> = ({
-  label, name, value, onValueChange, placeholder, options, width = 310
+  label, name, value, onValueChange, placeholder, options, width = 310, disabled
 }) => {
   const maxWidth = typeof width === "number" ? `${width}px` : width;
   return (
     <div style={{ maxWidth }} className="w-fit">
-      <Select value={value} onValueChange={onValueChange} name={name}>
+      <Select value={value} onValueChange={onValueChange} name={name} disabled={disabled}>
         <SelectTrigger id={name}>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
