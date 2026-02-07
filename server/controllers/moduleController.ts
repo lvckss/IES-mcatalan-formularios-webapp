@@ -8,10 +8,29 @@ export const getModules = async (): Promise<Module[]> => {
 
 export const createModule = async (module: PostModule): Promise<Module> => {
   const results = await sql`
-    INSERT INTO Modulos (nombre, id_ciclo, curso)
-    VALUES (${module.nombre}, ${module.id_ciclo}, ${module.curso})
+    INSERT INTO Modulos (nombre, id_ciclo, curso, codigo_modulo)
+    VALUES (${module.nombre}, ${module.id_ciclo}, ${module.curso}, ${module.codigo_modulo})
     RETURNING *
   `;
+  return ModuleSchema.parse(results[0]);
+};
+
+export const updateModule = async (id: number, module: PostModule): Promise<Module> => {
+  const results = await sql`
+    UPDATE Modulos
+    SET
+      nombre        = ${module.nombre},
+      codigo_modulo = ${module.codigo_modulo},
+      id_ciclo      = ${module.id_ciclo},
+      curso         = ${module.curso}
+    WHERE id_modulo = ${id}
+    RETURNING *
+  `;
+
+  if (!results?.length) {
+    throw new Error("MODULE_NOT_FOUND");
+  }
+
   return ModuleSchema.parse(results[0]);
 };
 
@@ -32,7 +51,7 @@ export const getModulesByCycleCodeAndCurso = async (cycle_code: string, curso: s
     JOIN modulos AS m ON m.id_ciclo = c.id_ciclo
     WHERE c.codigo = ${cycle_code}
     AND c.curso = ${curso}`
-  ;
+    ;
 
   return results.map((result: any) => ModuleSchema.parse(result))
 }

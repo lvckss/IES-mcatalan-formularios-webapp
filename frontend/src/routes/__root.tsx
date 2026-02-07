@@ -5,7 +5,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { ThemeProvider } from "@/components/theme-provider";
 import SidebarAvatar from '@/components/sidebar-avatar';
 
-import { UsersIcon, FileIcon, Package2Icon } from '@/components/icons/index';
+import { Users, File, Package2, Settings } from "lucide-react";
 import logo from '@/assets/ies-mcatalan-logo.png';
 
 import { useSession } from '@/lib/auth-client';
@@ -33,7 +33,7 @@ function RootLayout() {
           {/* SIDEBAR */}
           <aside className="hidden md:block border-r border-r-gray-300">
             <a href="#" className="flex items-center gap-2 p-4">
-              <Package2Icon className="h-6 w-6" />
+              <Package2 className="h-6 w-6" />
               <span className="font-semibold">Gestor de Certificados</span>
             </a>
 
@@ -43,15 +43,22 @@ function RootLayout() {
                   to="/estudiantes"
                   className="[&.active]:font-bold [&.active]:text-black flex items-center gap-2 rounded-md px-3 py-2 text-muted-foreground hover:bg-muted hover:text-foreground"
                 >
-                  <UsersIcon className="h-4 w-4" />
+                  <Users className="h-5 w-5" />
                   Estudiantes
                 </Link>
                 <Link
                   to="/introducir-acta"
                   className="flex items-center gap-2 rounded-md px-3 py-2 text-muted-foreground hover:bg-muted hover:text-foreground [&.active]:font-bold [&.active]:text-black"
                 >
-                  <FileIcon className="h-4 w-4" />
+                  <File className="h-5 w-5" />
                   Introducir por acta
+                </Link>
+                <Link
+                  to="/configurar"
+                  className="flex items-center gap-2 rounded-md px-3 py-2 text-muted-foreground hover:bg-muted hover:text-foreground [&.active]:font-bold [&.active]:text-black"
+                >
+                  <Settings className="h-5 w-5" />
+                  Configurar
                 </Link>
               </div>
 

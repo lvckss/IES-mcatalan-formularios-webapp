@@ -34,16 +34,39 @@ export const getCycleByCode = async (code: string): Promise<Cycle[]> => {
   return results.map((result: any) => CycleSchema.parse(result));
 };
 
-export const getCycleByLaw = async (law: number): Promise<ReturnType<typeof ByNameCycleSchema.parse>[]> => {
+export const getCycleByLaw = async (law: number): Promise<Cycle[]> => {
   const results = await sql`
-    SELECT DISTINCT codigo, nombre, norma_1, norma_2, ley, tipo_ciclo
+    SELECT *
     FROM Ciclos
     WHERE ley = ${law}
+    ORDER BY tipo_ciclo, curso, nombre
   `;
-  return results.map((result: any) => ByNameCycleSchema.parse(result));
+  return results.map((result: any) => CycleSchema.parse(result));
 };
 
 export const deleteCycle = async (id: number): Promise<Cycle> => {
   const results = await sql`DELETE FROM Ciclos WHERE id_ciclo = ${id} RETURNING *`;
+  return CycleSchema.parse(results[0]);
+};
+
+export const updateCycle = async (id: number, cycle: PostCycle): Promise<Cycle> => {
+  const results = await sql`
+    UPDATE Ciclos
+    SET
+      curso     = ${cycle.curso},
+      nombre    = ${cycle.nombre},
+      codigo    = ${cycle.codigo},
+      norma_1   = ${cycle.norma_1},
+      norma_2   = ${cycle.norma_2},
+      ley       = ${cycle.ley},
+      tipo_ciclo= ${cycle.tipo_ciclo}
+    WHERE id_ciclo = ${id}
+    RETURNING *
+  `;
+
+  if (!results?.length) {
+    throw new Error("CYCLE_NOT_FOUND");
+  }
+
   return CycleSchema.parse(results[0]);
 };

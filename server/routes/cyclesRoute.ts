@@ -8,7 +8,8 @@ import {
   deleteCycle, 
   getCyclesByName, 
   getCycleByCode,
-  getCycleByLaw
+  getCycleByLaw,
+  updateCycle
 } from "../controllers/cycleController";
 
 import type { AppBindings } from "../app";
@@ -45,6 +46,27 @@ export const cyclesRoute = new Hono<AppBindings>()
     const validatedData = c.req.valid("json");
     const result = await createCycle(validatedData);
     return c.json({ ciclo: result }, 201);
+  })
+  .put("/:id", zValidator("json", createCycleSchema), async (c) => {
+    const id = Number(c.req.param("id"));
+    if (!Number.isInteger(id) || id <= 0) {
+      return c.json({ error: "ID inválido" }, 400);
+    }
+
+    const validatedData = c.req.valid("json");
+
+    try {
+      const result = await updateCycle(id, validatedData);
+      return c.json({ ciclo: result }, 200);
+    } catch (error: any) {
+      if (error?.message === "CYCLE_NOT_FOUND") {
+        return c.json({ error: "Ciclo no encontrado" }, 404);
+      }
+      if (error?.code === "23505") {
+        return c.json({ error: "UNIQUE_VIOLATION" }, 409);
+      }
+      return c.json({ error: "Error actualizando el ciclo" }, 500);
+    }
   })
   .get("/:id", async (c) => {
     const id = Number(c.req.param("id"));

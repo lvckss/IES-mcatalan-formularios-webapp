@@ -181,8 +181,9 @@ const generateSchoolYearOptions = (): { value: string; label: string }[] => {
 import type { CheckedState } from "@radix-ui/react-checkbox";
 
 type EnrollmentExtended = Omit<Enrollment, "id_expediente"> & {
-  codigo_modulo: string;
-  nombre_modulo: string;
+  codigo_modulo: string | null;
+  nombre_modulo: string | null;
+  module_curso: string | null;
 };
 
 interface NewEnrollmentButtonProps {
@@ -581,16 +582,21 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
               const already = prev.records?.some((r) => r.id_expediente === recordId);
               if (already) return prev;
 
+              const moduloCursoMap = buildModuloCursoMap();
+
               const enrollments: EnrollmentExtended[] = Object.keys(selectedModules).map((idStr) => {
                 const id = Number(idStr);
                 const meta = modulosIndex.get(id);
+                const curso = moduloCursoMap.get(id) ?? null;
+
                 return {
-                  id_matricula: -1,                 // temporal hasta que llegue el refetch
+                  id_matricula: -1,
                   id_estudiante: student_id,
                   id_modulo: id,
-                  codigo_modulo: meta?.codigo ?? String(id),
-                  nombre_modulo: meta?.nombre ?? "",
-                  nota: "NE",                       // cumple el union de Nota | null
+                  codigo_modulo: meta?.codigo ?? null,
+                  nombre_modulo: meta?.nombre ?? null,
+                  module_curso: curso,      // <- AQUÍ
+                  nota: "NE",
                 } satisfies EnrollmentExtended;
               });
 

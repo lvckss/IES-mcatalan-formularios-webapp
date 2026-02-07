@@ -1,14 +1,15 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { type Module, ModuleSchema, createModuleSchema } from "../models/Module";
-import { 
+import {
   getModules,
   createModule,
   getModuleById,
   deleteModule,
   getModuleByCycleId,
   getModulesByCycleCodeAndCurso,
-  countConvocatorias
+  countConvocatorias,
+  updateModule
 } from "../controllers/moduleController";
 
 import type { AppBindings } from "../app";
@@ -31,6 +32,27 @@ export const modulesRoute = new Hono<AppBindings>()
     const validatedData = c.req.valid("json");
     const result = await createModule(validatedData);
     return c.json({ modulo: result }, 201);
+  })
+  .put("/:id", zValidator("json", createModuleSchema), async (c) => {
+    const id = Number(c.req.param("id"));
+    if (!Number.isInteger(id) || id <= 0) {
+      return c.json({ error: "ID inválido" }, 400);
+    }
+
+    const validatedData = c.req.valid("json");
+
+    try {
+      const result = await updateModule(id, validatedData);
+      return c.json({ modulo: result }, 200);
+    } catch (error: any) {
+      if (error?.message === "MODULE_NOT_FOUND") {
+        return c.json({ error: "Módulo no encontrado" }, 404);
+      }
+      if (error?.code === "23505") {
+        return c.json({ error: "UNIQUE_VIOLATION" }, 409);
+      }
+      return c.json({ error: "Error actualizando el módulo" }, 500);
+    }
   })
   .get("/:id", async (c) => {
     const id = Number(c.req.param("id"));

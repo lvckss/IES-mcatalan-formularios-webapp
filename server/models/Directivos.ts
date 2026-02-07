@@ -5,4 +5,5 @@ export const DirectivoSchema = z.object({
     nombre: z.string().max(200),
 })
 
+export const modifyDirectivoSchema = DirectivoSchema.omit({ cargo: true })
 export type Directivo = z.infer<typeof DirectivoSchema>;

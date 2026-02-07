@@ -12,6 +12,7 @@ import { recordsRoute } from './routes/recordsRoute';
 import { studentsRoute } from './routes/studentsRoute';
 import { directivosRoute } from './routes/directivosRoute';
 import { groupsRoute } from './routes/groupsRoute';
+import { identidadesRoute } from './routes/identidadesRoute';
 
 const isProd = process.env.BUN_ENV === "production";
 
@@ -80,7 +81,8 @@ const apiRoutes = app.basePath("/api")
   .route("/records", recordsRoute)
   .route("/enrollments", enrollmentsRoute)
   .route("/directivos", directivosRoute)
-  .route("/groups", groupsRoute);
+  .route("/groups", groupsRoute)
+  .route("/identidades", identidadesRoute);
 
 // ----------------------------------------------------------------------------------------------------
 // Static frontend SOLO en producción

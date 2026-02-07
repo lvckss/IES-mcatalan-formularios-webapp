@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IntroducirActaRouteImport } from './routes/introducir-acta'
 import { Route as EstudiantesRouteImport } from './routes/estudiantes'
+import { Route as ConfigurarRouteImport } from './routes/configurar'
 import { Route as IndexRouteImport } from './routes/index'
 
 const LoginRoute = LoginRouteImport.update({
@@ -29,6 +30,11 @@ const EstudiantesRoute = EstudiantesRouteImport.update({
   path: '/estudiantes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConfigurarRoute = ConfigurarRouteImport.update({
+  id: '/configurar',
+  path: '/configurar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -37,12 +43,14 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/configurar': typeof ConfigurarRoute
   '/estudiantes': typeof EstudiantesRoute
   '/introducir-acta': typeof IntroducirActaRoute
   '/login': typeof LoginRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/configurar': typeof ConfigurarRoute
   '/estudiantes': typeof EstudiantesRoute
   '/introducir-acta': typeof IntroducirActaRoute
   '/login': typeof LoginRoute
@@ -50,20 +58,33 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/configurar': typeof ConfigurarRoute
   '/estudiantes': typeof EstudiantesRoute
   '/introducir-acta': typeof IntroducirActaRoute
   '/login': typeof LoginRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/estudiantes' | '/introducir-acta' | '/login'
+  fullPaths:
+    | '/'
+    | '/configurar'
+    | '/estudiantes'
+    | '/introducir-acta'
+    | '/login'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/estudiantes' | '/introducir-acta' | '/login'
-  id: '__root__' | '/' | '/estudiantes' | '/introducir-acta' | '/login'
+  to: '/' | '/configurar' | '/estudiantes' | '/introducir-acta' | '/login'
+  id:
+    | '__root__'
+    | '/'
+    | '/configurar'
+    | '/estudiantes'
+    | '/introducir-acta'
+    | '/login'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ConfigurarRoute: typeof ConfigurarRoute
   EstudiantesRoute: typeof EstudiantesRoute
   IntroducirActaRoute: typeof IntroducirActaRoute
   LoginRoute: typeof LoginRoute
@@ -92,6 +113,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EstudiantesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/configurar': {
+      id: '/configurar'
+      path: '/configurar'
+      fullPath: '/configurar'
+      preLoaderRoute: typeof ConfigurarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -104,6 +132,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ConfigurarRoute: ConfigurarRoute,
   EstudiantesRoute: EstudiantesRoute,
   IntroducirActaRoute: IntroducirActaRoute,
   LoginRoute: LoginRoute,

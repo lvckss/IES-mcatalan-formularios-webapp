@@ -1,3 +1,4 @@
+//frontend/src/components/auth/RequireAuth.tsx
 import { type ReactNode, useEffect } from "react";
 import { useSession } from "@/lib/auth-client";
 import { useNavigate, useRouterState } from "@tanstack/react-router";

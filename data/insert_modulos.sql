@@ -341,7 +341,7 @@ INSERT INTO
     Modulos (nombre, codigo_modulo, id_ciclo, curso)
 VALUES
     (
-        'Formación en centros d etrabajo (1º)',
+        'Formación en centros de trabajo (1º)',
         '009-AFD201',
         3,
         '1º'
