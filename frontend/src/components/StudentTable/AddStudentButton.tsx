@@ -246,6 +246,18 @@ const AddStudentButton: React.FC = () => {
         [cicloData],
     );
 
+    const uniqueCiclosData = useMemo(() => {
+        const map = new Map<string, any>();
+
+        ciclosData.forEach((ciclo) => {
+            if (!map.has(ciclo.codigo)) {
+                map.set(ciclo.codigo, ciclo);
+            }
+        });
+
+        return Array.from(map.values());
+    }, [ciclosData]);
+
     const modulosQueries = useQueries({
         queries: Object.entries(cursoIds).map(([curso, id]) => ({
             queryKey: ['modulos', id],                   // caches each curso separately
@@ -966,8 +978,8 @@ const AddStudentButton: React.FC = () => {
                                                 placeholder="Seleccionar ciclo"
                                                 options={
                                                     selectedLey
-                                                        ? ciclosData.map((ciclo) => ({
-                                                            value: `${ciclo.codigo}`,
+                                                        ? uniqueCiclosData.map((ciclo) => ({
+                                                            value: ciclo.codigo,
                                                             label: `${ciclo.nombre} (${ciclo.codigo})`,
                                                         }))
                                                         : [{ label: "Selecciona una ley antes", value: "nothing bro" }]
