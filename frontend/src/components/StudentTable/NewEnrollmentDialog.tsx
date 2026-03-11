@@ -243,6 +243,35 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
     staleTime: 5 * 60 * 1000, // Cacheamos los ciclos cada 5 minutos para evitar overloadear la API
   });
 
+  const ciclosUnicosByLey = useMemo(() => {
+    const map = new Map<string, any>();
+
+    (ciclosByLeyData ?? []).forEach((ciclo: any) => {
+      const existing = map.get(ciclo.codigo);
+
+      // Si no existe aún, lo guardamos
+      if (!existing) {
+        map.set(ciclo.codigo, ciclo);
+        return;
+      }
+
+      // Si ya existe, preferimos la fila de 1º frente a 2º
+      const cursoActual = String(ciclo.curso).trim();
+      const cursoExistente = String(existing.curso).trim();
+
+      const actualEsPrimero = cursoActual === "1" || cursoActual === "1º";
+      const existenteEsPrimero = cursoExistente === "1" || cursoExistente === "1º";
+
+      if (actualEsPrimero && !existenteEsPrimero) {
+        map.set(ciclo.codigo, ciclo);
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) =>
+      a.nombre.localeCompare(b.nombre, "es")
+    );
+  }, [ciclosByLeyData]);
+
   // --- 3. Ciclos según código seleccionado ---------------------
   const {
     data: ciclosData,
@@ -752,11 +781,11 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
               placeholder={canPickCiclo ? "Seleccionar ciclo" : "Selecciona ciclo primero"}
               options={
                 canPickCiclo
-                  ? (ciclosByLeyData ?? []).map((ciclo) => ({
+                  ? ciclosUnicosByLey.map((ciclo) => ({
                     value: `${ciclo.codigo}`,
                     label: `${ciclo.nombre} (${ciclo.codigo})`,
                   }))
-                  : [] // sin opciones hasta que haya ley (o lo que controle canPickCiclo)
+                  : []
               }
               width={1000}
             />
