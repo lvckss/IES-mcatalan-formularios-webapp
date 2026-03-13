@@ -2,37 +2,29 @@ import "dotenv/config";
 import postgres from "postgres";
 
 const isProd = process.env.BUN_ENV === "production";
-
 const { DATABASE_URL } = process.env;
 
+const debug = !isProd
+  ? (connection: any, query: string, params: any[]) => {
+      const pid = connection?.processID ?? "conn";
+      console.log(`[pg:${pid}] QUERY:\n${query}`);
+      console.log(`[pg:${pid}] PARAMS:`, params);
+    }
+  : undefined;
+
 const sql = DATABASE_URL
-  // Camino Render (hosting) / producción: usar la URL completa
   ? postgres(DATABASE_URL, {
-      // En Render Postgres normalmente hace falta cifrado SSL; "require" es el valor correcto.
-      ssl: "require",
-      debug: !isProd
-        ? (connection, query, params) => {
-            const pid = (connection as any)?.processID ?? "conn";
-            console.log(`[pg:${pid}] QUERY:\n${query}`);
-            console.log(`[pg:${pid}] PARAMS:`, params);
-          }
-        : undefined,
+      ssl: isProd ? "require" : false,
+      debug,
     })
-  // Camino local: variables separadas
   : postgres({
-      host: process.env.DB_HOST ?? "localhost",
+      host: process.env.DB_HOST ?? "127.0.0.1",
       port: Number(process.env.DB_PORT ?? 5432),
       database: process.env.DB_NAME ?? "mcatalan",
       username: process.env.DB_USER ?? "mcatalan_app",
       password: process.env.DB_PASSWORD ?? "cambia_esto",
-      ssl: isProd ? "require" : undefined,
-      debug: !isProd
-        ? (connection, query, params) => {
-            const pid = (connection as any)?.processID ?? "conn";
-            console.log(`[pg:${pid}] QUERY:\n${query}`);
-            console.log(`[pg:${pid}] PARAMS:`, params);
-          }
-        : undefined,
+      ssl: isProd ? "require" : false,
+      debug,
     });
 
 (async () => {

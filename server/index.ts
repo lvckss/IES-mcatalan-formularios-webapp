@@ -1,4 +1,8 @@
 import app from './app'
+import dotenv from "dotenv";
+import path from "path";
+
+dotenv.config({ path: path.resolve(process.cwd(), "server/.env") });
 
 const port = Number(process.env.PORT ?? 3000);
 

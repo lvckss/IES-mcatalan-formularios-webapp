@@ -24,8 +24,6 @@ import SelectField from "@/components/StudentTable/SelectField";
 import { toast } from "sonner";
 
 import { PostStudent, PostRecord, PostEnrollment, Law, Enrollment } from "@/types";
-import { useRowState } from "react-table";
-import { AirVent } from "lucide-react";
 
 
 // ===============================================================

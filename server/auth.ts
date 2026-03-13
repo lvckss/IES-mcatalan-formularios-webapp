@@ -5,6 +5,12 @@ import { admin } from "better-auth/plugins/admin";
 
 const APP_ORIGIN = process.env.APP_ORIGIN ?? "http://localhost:5173";
 
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  throw new Error("DATABASE_URL no está definida");
+}
+
 export const auth = betterAuth({
   // conexión a Postgres SOLO para Better Auth
   database: new Pool({
