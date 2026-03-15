@@ -27,8 +27,6 @@ type NotasMasAltasPorCicloReturn = {
   convocatoria: number | null;
 };
 
-import logoGobiernoAragon from '@/pdf/pdf-imgs/logo-gobierno-aragon.png';
-
 const styles = StyleSheet.create({
   page: { paddingBottom: 40, paddingTop: 40, paddingHorizontal: 30, fontSize: 9, fontFamily: 'Helvetica' },
   header: { flexDirection: 'row', marginBottom: 10, alignItems: 'center' },
@@ -54,6 +52,19 @@ const styles = StyleSheet.create({
   anottations: { fontSize: 8 }
 });
 
+const getCertificateLogoSrc = (): string => {
+  const version =
+    typeof window !== "undefined"
+      ? window.localStorage.getItem("certificate-logo-version") ?? "1"
+      : "1";
+
+  if (typeof window !== "undefined") {
+    return `${window.location.origin}/uploads/logo-certificado.png?v=${version}`;
+  }
+
+  return "/uploads/logo-certificado.png";
+};
+
 export function formatFechaES(fecha: Date): string {
   const formatter = new Intl.DateTimeFormat('es-ES', {
     day: 'numeric',
@@ -77,6 +88,8 @@ interface CertificateData {
 }
 
 export const CertificadoObtencionDocument = ({ data, }: { data: CertificateData }) => {
+
+  const logoSrc = getCertificateLogoSrc();
 
   const notasRaw = (data?.merged_enrollments ?? []).map((m) => m.mejor_nota);
   // textos según tipo_ciclo
@@ -215,7 +228,7 @@ export const CertificadoObtencionDocument = ({ data, }: { data: CertificateData 
       <Page size="A4" style={styles.page}>
         {/* Cabecera con logo y texto */}
         <View style={styles.header}>
-          <Image src={logoGobiernoAragon} style={styles.logo} />
+          <Image src={logoSrc} style={styles.logo} />
         </View>
 
         {/* Títulos */}

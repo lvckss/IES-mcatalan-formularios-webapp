@@ -14,6 +14,7 @@ import {
   getAllStudentsFullInfo,
   getStudentFullInfoByCycleCode
 } from "../controllers/studentController";
+import { importStudentsFromExcel } from "../services/importStudentFromExcel";
 
 import { z } from "zod";
 
@@ -63,6 +64,24 @@ export const studentsRoute = new Hono<AppBindings>()
         return c.json({ error: "El identificador legal ya existe." }, 409);
       }
       return c.json({ error: "Error interno del servidor." }, 500);
+    }
+  })
+  .post("/import", async (c) => {
+    try {
+      const body = await c.req.parseBody();
+      const file = body.file;
+
+      if (!(file instanceof File)) {
+        return c.json({ error: "Debes subir un archivo Excel válido." }, 400);
+      }
+
+      const result = await importStudentsFromExcel(file);
+      return c.json(result, 200);
+    } catch (error: any) {
+      return c.json(
+        { error: error?.message ?? "Error interno del servidor." },
+        500
+      );
     }
   })
   .get(

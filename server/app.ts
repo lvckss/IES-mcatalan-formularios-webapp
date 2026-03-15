@@ -13,6 +13,7 @@ import { studentsRoute } from './routes/studentsRoute';
 import { directivosRoute } from './routes/directivosRoute';
 import { groupsRoute } from './routes/groupsRoute';
 import { identidadesRoute } from './routes/identidadesRoute';
+import { settingsRoute } from './routes/settingsRoute';
 
 const isProd = process.env.BUN_ENV === "production";
 
@@ -82,7 +83,17 @@ const apiRoutes = app.basePath("/api")
   .route("/enrollments", enrollmentsRoute)
   .route("/directivos", directivosRoute)
   .route("/groups", groupsRoute)
-  .route("/identidades", identidadesRoute);
+  .route("/identidades", identidadesRoute)
+  .route("/settings", settingsRoute);
+
+
+// UPLOAD RUNTIME
+app.use(
+  "/uploads/*",
+  serveStatic({
+    root: "./storage",
+  })
+);
 
 // ----------------------------------------------------------------------------------------------------
 // Static frontend SOLO en producción

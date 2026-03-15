@@ -380,6 +380,22 @@ const IntroduceActa: React.FC = () => {
     staleTime: 5 * 60 * 1000,
   });
 
+  const ciclosOptions = useMemo(() => {
+    const seen = new Set<string>();
+
+    return (ciclosData ?? []).flatMap((c: any) => {
+      const code = String(c.codigo ?? "");
+      if (!code || seen.has(code)) return [];
+
+      seen.add(code);
+
+      return [{
+        value: code,
+        label: `${c.nombre} (${code})`,
+      }];
+    });
+  }, [ciclosData]);
+
   // módulos del curso seleccionado
   const { data: modulesData = [] } = useQuery({
     queryKey: ['modules-by-cycle-curso', selectedCiclo, selectedCurso],
@@ -1086,7 +1102,7 @@ const IntroduceActa: React.FC = () => {
               value={selectedCiclo || ""}
               onValueChange={setSelectedCiclo}
               placeholder="Seleccionar ciclo"
-              options={(ciclosData ?? []).map((c) => ({ value: `${c.codigo}`, label: `${c.nombre} (${c.codigo})` }))}
+              options={ciclosOptions}
               width={260}
             />
           </div>

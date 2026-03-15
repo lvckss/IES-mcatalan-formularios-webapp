@@ -28,8 +28,6 @@ type NotasMasAltasPorCicloReturn = {
   convocatoria: number | null;
 };
 
-import logoGobiernoAragon from '@/pdf/pdf-imgs/logo-gobierno-aragon.png';
-
 const styles = StyleSheet.create({
   page: { paddingBottom: 40, paddingTop: 20, paddingHorizontal: 20, fontSize: 9, fontFamily: 'Helvetica' },
   header: { flexDirection: 'row', marginBottom: 10, alignItems: 'center' },
@@ -41,7 +39,7 @@ const styles = StyleSheet.create({
   paragraph: { paddingHorizontal: 25, marginBottom: 6, lineHeight: 0.7, textAlign: 'justify' },
   bold: { fontWeight: 'bold' },
   highlight: { backgroundColor: '#f0f0f0' },
-  table: { /* display: 'table', */ borderWidth: 1, borderColor: '#000', marginVertical: 10 },
+  table: { borderWidth: 1, borderColor: '#000', marginVertical: 10 },
   tableRow: { flexDirection: 'row' },
   tableColHeader: { borderWidth: 1, borderColor: '#000', backgroundColor: '#eee', padding: 4 },
   tableCol: { width: '20%', borderWidth: 1, borderColor: '#000', padding: 4 },
@@ -56,27 +54,63 @@ const styles = StyleSheet.create({
   footer: { paddingHorizontal: 25, position: 'absolute', bottom: 40 },
   anottations: { fontSize: 8 },
   checkRow: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 45, marginBottom: 6 },
-  checkbox: { width: 10, height: 10, borderWidth: 1, borderColor: '#000', marginRight: 6 },
+  checkbox: {
+    width: 10,
+    height: 10,
+    borderWidth: 1,
+    borderColor: '#000',
+    marginRight: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxMark: {
+    fontSize: 8,
+    textAlign: 'center',
+    lineHeight: 1,
+  },
   textoEncimaTabla: { paddingHorizontal: 25, lineHeight: 0.7, textAlign: 'justify' },
   signatureRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    paddingHorizontal: 25,   // mismo padding que tus párrafos
+    paddingHorizontal: 25,
     marginTop: 24,
     marginBottom: 12,
   },
-  signatureNameRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingHorizontal: 25,   // mismo padding que tus párrafos
-    marginTop: 5,
-    marginBottom: 12,
+
+  signatureBlockLeft: {
+    width: '35%',
   },
-  signatureLeft: { width: '48%', textAlign: 'left' },
-  signatureRight: { width: '48%', textAlign: 'right' },
+
+  signatureBlockRight: {
+    width: '35%',
+  },
+
+  signatureLeft: {
+    textAlign: 'left',
+  },
+
+  signatureRight: {
+    textAlign: 'right',
+  },
+
+  signatureName: {
+    marginTop: 70,
+  },
 });
+
+const getCertificateLogoSrc = (): string => {
+  const version =
+    typeof window !== "undefined"
+      ? window.localStorage.getItem("certificate-logo-version") ?? "1"
+      : "1";
+
+  if (typeof window !== "undefined") {
+    return `${window.location.origin}/uploads/logo-certificado.png?v=${version}`;
+  }
+
+  return "/uploads/logo-certificado.png";
+};
 
 export function fechaHoyES(): string {
   const hoy = new Date();
@@ -100,6 +134,10 @@ interface CertificateData {
 }
 
 export const CertificadoTrasladoDocument = ({ data, }: { data: CertificateData }) => {
+
+  const logoSrc = getCertificateLogoSrc();
+
+  const tieneRequisitoAcademico = !!data.student_data.student.requisito_academico;
 
   // textos según tipo_ciclo
   const gradoTexto =
@@ -182,7 +220,7 @@ export const CertificadoTrasladoDocument = ({ data, }: { data: CertificateData }
       <Page size="A4" style={styles.page}>
         {/* Cabecera con logo y texto */}
         <View style={styles.header}>
-          <Image src={logoGobiernoAragon} style={styles.logo} />
+          <Image src={logoSrc} style={styles.logo} />
         </View>
 
         {/* Títulos */}
@@ -205,14 +243,22 @@ export const CertificadoTrasladoDocument = ({ data, }: { data: CertificateData }
         </Text>
 
         <View style={styles.checkRow}>
-          <View style={styles.checkbox} />
+          <View style={styles.checkbox}>
+            <Text style={styles.checkboxMark}>
+              {tieneRequisitoAcademico ? 'X' : ''}
+            </Text>
+          </View>
           <Text style={[styles.paragraph, { paddingHorizontal: 0, marginBottom: 0, flex: 1 }]}>
             SÍ posee, según consta en su expediente, algunos de los requisitos de acceso a la formación profesional establecidos en el Real Decreto 1147/2011, de 29 de julio de 2011.
           </Text>
         </View>
 
         <View style={styles.checkRow}>
-          <View style={styles.checkbox} />
+          <View style={styles.checkbox}>
+            <Text style={styles.checkboxMark}>
+              {!tieneRequisitoAcademico ? 'X' : ''}
+            </Text>
+          </View>
           <Text style={[styles.paragraph, { paddingHorizontal: 0, marginBottom: 0, flex: 1 }]}>
             NO posee los requisitos de acceso y está matriculado en oferta parcial para la actualización y adquisición de nuevas competencias profesionales de los trabajadores.
           </Text>
@@ -299,17 +345,23 @@ export const CertificadoTrasladoDocument = ({ data, }: { data: CertificateData }
 
         {/* Firma */}
         <View style={styles.signatureRow}>
-          <Text style={styles.signatureLeft}>
-            Vº Bº {data.director_data.cargo}
-          </Text>
-          <Text style={styles.signatureRight}>
-            {data.secretario_data.cargo}
-          </Text>
-        </View>
+          <View style={styles.signatureBlockLeft}>
+            <Text style={styles.signatureLeft}>
+              Vº Bº {data.director_data.cargo}
+            </Text>
+            <Text style={[styles.signatureLeft, styles.signatureName]}>
+              Fdo.: {data.director_data.nombre}
+            </Text>
+          </View>
 
-        <View style={styles.signatureNameRow}>
-          <Text style={styles.signatureLeft}>Fdo.: {data.director_data.nombre}</Text>
-          <Text style={styles.signatureRight}>Fdo.: {data.secretario_data.nombre}</Text>
+          <View style={styles.signatureBlockRight}>
+            <Text style={styles.signatureRight}>
+              {data.secretario_data.cargo}
+            </Text>
+            <Text style={[styles.signatureRight, styles.signatureName]}>
+              Fdo.: {data.secretario_data.nombre}
+            </Text>
+          </View>
         </View>
 
         {/* Pie de página con leyenda de códigos */}

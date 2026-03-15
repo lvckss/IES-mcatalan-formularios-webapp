@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge"
 import DatePicker from "@/components/StudentTable/DatePicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import { Pencil, X, Plus } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
@@ -59,10 +60,18 @@ async function getFullStudentData(id: number): Promise<FullStudentData> {
   return { student, records };
 }
 
+function toDateOnlyString(date: Date | null | undefined): string | null {
+  if (!date) return null;
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 async function patchFechaPagoTitulo(expediente_id: number, fecha_pago_titulo: Date | undefined) {
   const response = await api.records[":id"].fecha_pago_titulo.$patch({
     param: { id: String(expediente_id) },
-    json: { fecha_pago_titulo }
+    json: { fecha_pago_titulo: toDateOnlyString(fecha_pago_titulo) }
   });
 
   if (!response.ok) {
@@ -180,8 +189,6 @@ const NOTA_OPTIONS = [
   "RC", "NE", "APTO", "NO APTO", "EX"
 ] as const;
 
-const NOTA_OPTIONS_NO_CV = NOTA_OPTIONS.filter(o => !o.startsWith("CV")) as Nota[];
-
 type Nota = typeof NOTA_OPTIONS[number];
 
 // ===== ID helpers (DNI/NIE) =====
@@ -287,12 +294,11 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
     id_legal: "",
     fecha_nac: null as Date | null,
     num_tfno: "",
+    requisito_academico: false,
   });
 
   // NEW: error de ID legal + valor normalizado
   const [idError, setIdError] = useState<string | null>(null);
-
-  const [newModuleCode, setNewModuleCode] = useState("");
 
   const [selectedModuleIdToAdd, setSelectedModuleIdToAdd] = useState<string>("");
 
@@ -418,8 +424,11 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
     const fNew = formPersonal.fecha_nac ? new Date(formPersonal.fecha_nac) : null;
     const fOld = fullData!.student.fecha_nac ? new Date(fullData!.student.fecha_nac) : null;
     if ((fNew?.getTime() ?? null) !== (fOld?.getTime() ?? null)) {
-      changes.fecha_nac = fNew; // Date | null (API shape)
+      changes.fecha_nac = fNew;
     }
+
+    if (!cmp(f.num_tfno || null, s.num_tfno || null)) changes.num_tfno = f.num_tfno || null;
+    if (!cmp(f.requisito_academico, s.requisito_academico)) changes.requisito_academico = f.requisito_academico;
 
     return changes;
   };
@@ -758,11 +767,11 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
       apellido_1: s.apellido_1 ?? "",
       apellido_2: s.apellido_2 ?? "",
       sexo: (s.sexo as any) ?? "Indefinido",
-      // normaliza a minúscula si tu backend lo guarda en mayúsculas
       tipo_id_legal: (String(s.tipo_id_legal || "").toLowerCase() as any) || "",
       id_legal: s.id_legal ?? "",
       fecha_nac: s.fecha_nac ? new Date(s.fecha_nac) : null,
       num_tfno: s.num_tfno ?? "",
+      requisito_academico: !!s.requisito_academico,
     });
     const currentKind = (String(s.tipo_id_legal || "").toLowerCase() as "dni" | "nie" | "pasaporte" | "");
     setIdError(validateLegalId(currentKind, s.id_legal || ""));
@@ -816,7 +825,6 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
 
   // Year helpers
   const yearStr = (r: RecordExtended) => `${r.ano_inicio}-${r.ano_fin}`;
-  const parseYearStr = (s: string) => s.split("-").map(Number) as [number, number];
 
   const getOrdinariaYearsAsc = React.useCallback((cycleCode: string) => {
     if (!fullData) return [] as string[];
@@ -840,28 +848,6 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
     if (years.length) return years[years.length - 1]; // fallback: latest remaining
     return null;
   }, [getOrdinariaYearsAsc]);
-
-  const findModuleIdByCode = React.useCallback(
-    (code: string): number | null => {
-      if (!fullData || !selectedCycle) return null;
-
-      const normalized = code.trim().toUpperCase();
-
-      for (const rec of fullData.records) {
-        if (rec.ciclo_codigo !== selectedCycle) continue;
-
-        for (const m of rec.enrollments ?? []) {
-          const cod = String(m.codigo_modulo ?? "").trim().toUpperCase();
-          if (cod === normalized) {
-            const moduleId: number | undefined = m.id_modulo;
-            if (moduleId != null) return moduleId;
-          }
-        }
-      }
-      return null;
-    },
-    [fullData, selectedCycle]
-  );
 
 
   const handleAfterDelete = React.useCallback((deleted: RecordExtended | null) => {
@@ -1056,6 +1042,9 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
 
                       <div className="text-sm font-medium text-muted-foreground">Número de teléfono:</div>
                       <div>{fullData?.student.num_tfno || "-"}</div>
+
+                      <div className="text-sm font-medium text-muted-foreground">Requisito académico:</div>
+                      <div>{fullData?.student.requisito_academico ? "Sí" : "No"}</div>
                     </div>
 
                     <TextareaForm observaciones={fullData?.student.observaciones ?? ""} id_estudiante={id} />
@@ -1153,6 +1142,16 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
                         value={formPersonal.num_tfno}
                         onChange={(e) => setField("num_tfno", e.target.value)}
                       />
+
+                      <label className="text-sm text-muted-foreground">Requisito académico</label>
+                      <div className="flex items-center h-10">
+                        <Checkbox
+                          checked={formPersonal.requisito_academico}
+                          onCheckedChange={(checked) =>
+                            setField("requisito_academico", checked === true)
+                          }
+                        />
+                      </div>
                     </div>
 
                     {/* observaciones: lo mantengo en su propio TextareaForm (ya gestiona PATCH aparte) */}

@@ -37,6 +37,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 import { Cycle, Law, Module, PostModule, Directivo } from "@/types";
 
@@ -68,6 +69,25 @@ type IdentityUser = {
 };
 
 // helpers
+
+const CERTIFICATE_LOGO_URL = "uploads/logo-certificado.png";
+
+async function uploadCertificateLogo(file: File) {
+    const formData = new FormData();
+    formData.append("logo", file);
+
+    const res = await fetch("/api/settings/logo-certificado", {
+        method: "POST",
+        body: formData,
+    });
+
+    if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || "No se pudo subir el logo");
+    }
+
+    return res.json() as Promise<{ ok: true; updatedAt?: number }>;
+}
 
 function normalizeList<T>(data: any, keys: string[]): T[] {
     if (Array.isArray(data)) return data as T[];
@@ -1146,6 +1166,147 @@ function IdentityCreateDialog(props: {
     );
 }
 
+function CertificateLogoCard() {
+    const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+    const [file, setFile] = React.useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
+
+    const [logoVersion, setLogoVersion] = React.useState<number>(() => {
+        if (typeof window === "undefined") return Date.now();
+        const saved = window.localStorage.getItem("certificate-logo-version");
+        return saved ? Number(saved) : Date.now();
+    });
+
+    React.useEffect(() => {
+        if (!file) {
+            setPreviewUrl(null);
+            return;
+        }
+
+        const objectUrl = URL.createObjectURL(file);
+        setPreviewUrl(objectUrl);
+
+        return () => URL.revokeObjectURL(objectUrl);
+    }, [file]);
+
+    const uploadLogoM = useMutation({
+        mutationFn: uploadCertificateLogo,
+        onSuccess: () => {
+            const version = Date.now();
+
+            if (typeof window !== "undefined") {
+                window.localStorage.setItem("certificate-logo-version", String(version));
+                window.dispatchEvent(new Event("certificate-logo-updated"));
+            }
+
+            setLogoVersion(version);
+            setFile(null);
+            setPreviewUrl(null);
+
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
+
+            toast.success("Logo actualizado correctamente");
+        },
+        onError: (error: any) => {
+            toast.error(error?.message ?? "No se pudo actualizar el logo");
+        },
+    });
+
+    const currentLogoSrc = previewUrl ?? `${CERTIFICATE_LOGO_URL}?v=${logoVersion}`;
+    const canUpload = !!file && !uploadLogoM.isPending;
+
+    return (
+        <Card className="shrink-0">
+            <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                    <CardTitle className="text-base">Logo de certificados</CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">
+                        Sube un PNG nuevo para reemplazar el logo actual de los certificados.
+                    </p>
+                </div>
+            </CardHeader>
+
+            <CardContent className="grid gap-4 lg:grid-cols-[220px_1fr]">
+                <div className="rounded-lg border bg-muted/30 p-4 flex items-center justify-center min-h-[160px]">
+                    <img
+                        src={currentLogoSrc}
+                        alt="Logo actual"
+                        className="max-h-[120px] max-w-full object-contain"
+                    />
+                </div>
+
+                <div className="grid gap-3">
+                    <div className="grid gap-2">
+                        <Label htmlFor="certificate-logo-upload">Nuevo logo</Label>
+
+                        <input
+                            id="certificate-logo-upload"
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".png,image/png"
+                            className="hidden"
+                            onChange={(e) => {
+                                const selected = e.target.files?.[0] ?? null;
+
+                                if (!selected) {
+                                    setFile(null);
+                                    return;
+                                }
+
+                                if (selected.type !== "image/png") {
+                                    toast.error("Solo se permiten archivos PNG");
+                                    e.currentTarget.value = "";
+                                    setFile(null);
+                                    return;
+                                }
+
+                                setFile(selected);
+                            }}
+                        />
+
+                        <label
+                            htmlFor="certificate-logo-upload"
+                            className="group cursor-pointer rounded-lg border border-dashed bg-muted/30 px-4 py-6 transition-colors hover:bg-muted/50 hover:border-primary/40"
+                        >
+                            <div className="flex flex-col items-center justify-center gap-2 text-center">
+                                <span className="text-sm font-medium">
+                                    Seleccionar archivo PNG
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                    Haz clic para elegir un nuevo logo
+                                </span>
+                            </div>
+                        </label>
+
+                        <p className="text-xs text-muted-foreground">
+                            Recomendado: PNG con fondo transparente.
+                        </p>
+                    </div>
+
+                    {file ? (
+                        <div className="rounded-lg border p-3 text-sm">
+                            <div><span className="font-medium">Archivo:</span> {file.name}</div>
+                            <div><span className="font-medium">Tamaño:</span> {(file.size / 1024).toFixed(1)} KB</div>
+                        </div>
+                    ) : null}
+
+                    <div className="flex gap-2">
+                        <Button
+                            variant="secondary"
+                            onClick={() => file && uploadLogoM.mutate(file)}
+                            disabled={!canUpload}
+                        >
+                            {uploadLogoM.isPending ? "Subiendo..." : "Actualizar logo"}
+                        </Button>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+
 const AppSettingsPanel: React.FC = () => {
     const [selectedCycleCode, setSelectedCycleCode] = React.useState<string | null>(null);
     const [selectedCurso, setSelectedCurso] = React.useState<string | null>(null);
@@ -1810,121 +1971,125 @@ const AppSettingsPanel: React.FC = () => {
 
                     {/* 40% */}
                     <div className="min-h-0 basis-0 flex-[2] overflow-hidden">
-                        <div className="grid gap-4 lg:grid-cols-2 h-full items-stretch min-h-0 overflow-hidden">
-                            {/* DIRECTIVOS */}
-                            <Card className="h-full min-h-0 flex flex-col overflow-hidden">
-                                <CardHeader className="flex flex-row items-center justify-between shrink-0">
-                                    <CardTitle className="text-base">Directivos</CardTitle>
-                                    <div className="text-sm text-muted-foreground">
-                                        {directivosQ.isPending ? "Cargando..." : `${(directivosQ.data ?? []).length} total`}
-                                    </div>
-                                </CardHeader>
+                        <div className="h-full min-h-0 overflow-hidden">
+                            <div className="grid gap-4 h-full min-h-0 items-stretch overflow-hidden md:grid-cols-2 xl:grid-cols-3">
+                                <CertificateLogoCard />
 
-                                <CardContent className="flex-1 min-h-0 overflow-y-auto">
-                                    {directivosQ.isPending ? (
-                                        <div className="grid gap-2">
-                                            {Array.from({ length: 2 }).map((_, i) => (
-                                                <Skeleton key={i} className="h-10 w-full" />
-                                            ))}
+                                {/* DIRECTIVOS */}
+                                <Card className="h-full min-h-0 flex flex-col overflow-hidden">
+                                    <CardHeader className="flex flex-row items-center justify-between shrink-0">
+                                        <CardTitle className="text-base">Directivos</CardTitle>
+                                        <div className="text-sm text-muted-foreground">
+                                            {directivosQ.isPending ? "Cargando..." : `${(directivosQ.data ?? []).length} total`}
                                         </div>
-                                    ) : directivosQ.error ? (
-                                        <div className="rounded-lg border p-4 text-sm">
-                                            Error cargando directivos: {(directivosQ.error as any)?.message ?? "unknown"}
-                                        </div>
-                                    ) : (
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    <TableHead>Cargo</TableHead>
-                                                    <TableHead>Nombre</TableHead>
-                                                    <TableHead className="w-[220px] text-right">Acciones</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
+                                    </CardHeader>
 
-                                            <TableBody>
-                                                {(directivosQ.data ?? [])
-                                                    .sort((a, b) => a.cargo.localeCompare(b.cargo))
-                                                    .map((d) => (
-                                                        <TableRow key={d.cargo}>
-                                                            <TableCell className="font-medium">{d.cargo}</TableCell>
-                                                            <TableCell>{d.nombre}</TableCell>
-                                                            <TableCell className="text-right">
-                                                                <div className="flex justify-end gap-2">
-                                                                    <DirectivoEditDialog
-                                                                        directivo={d}
-                                                                        disabled={updateDirectivoM.isPending}
-                                                                        onSave={async (cargo, nombre) => {
-                                                                            await updateDirectivoM.mutateAsync({ cargo, nombre });
-                                                                        }}
-                                                                    />
-                                                                </div>
+                                    <CardContent className="flex-1 min-h-0 overflow-y-auto">
+                                        {directivosQ.isPending ? (
+                                            <div className="grid gap-2">
+                                                {Array.from({ length: 2 }).map((_, i) => (
+                                                    <Skeleton key={i} className="h-10 w-full" />
+                                                ))}
+                                            </div>
+                                        ) : directivosQ.error ? (
+                                            <div className="rounded-lg border p-4 text-sm">
+                                                Error cargando directivos: {(directivosQ.error as any)?.message ?? "unknown"}
+                                            </div>
+                                        ) : (
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow>
+                                                        <TableHead>Cargo</TableHead>
+                                                        <TableHead>Nombre</TableHead>
+                                                        <TableHead className="w-[220px] text-right">Acciones</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+
+                                                <TableBody>
+                                                    {(directivosQ.data ?? [])
+                                                        .sort((a, b) => a.cargo.localeCompare(b.cargo))
+                                                        .map((d) => (
+                                                            <TableRow key={d.cargo}>
+                                                                <TableCell className="font-medium">{d.cargo}</TableCell>
+                                                                <TableCell>{d.nombre}</TableCell>
+                                                                <TableCell className="text-right">
+                                                                    <div className="flex justify-end gap-2">
+                                                                        <DirectivoEditDialog
+                                                                            directivo={d}
+                                                                            disabled={updateDirectivoM.isPending}
+                                                                            onSave={async (cargo, nombre) => {
+                                                                                await updateDirectivoM.mutateAsync({ cargo, nombre });
+                                                                            }}
+                                                                        />
+                                                                    </div>
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ))}
+
+                                                    {(!directivosQ.data || directivosQ.data.length === 0) && (
+                                                        <TableRow>
+                                                            <TableCell colSpan={3} className="text-sm text-muted-foreground">
+                                                                No hay directivos registrados.
                                                             </TableCell>
                                                         </TableRow>
-                                                    ))}
+                                                    )}
+                                                </TableBody>
+                                            </Table>
+                                        )}
+                                    </CardContent>
+                                </Card>
 
-                                                {(!directivosQ.data || directivosQ.data.length === 0) && (
-                                                    <TableRow>
-                                                        <TableCell colSpan={3} className="text-sm text-muted-foreground">
-                                                            No hay directivos registrados.
-                                                        </TableCell>
-                                                    </TableRow>
-                                                )}
-                                            </TableBody>
-                                        </Table>
-                                    )}
-                                </CardContent>
-                            </Card>
+                                {/* CUENTAS */}
+                                <Card className="h-full min-h-0 flex flex-col overflow-hidden">
+                                    <CardHeader className="flex flex-row items-center justify-between shrink-0">
+                                        <CardTitle className="text-base">Cuentas</CardTitle>
+                                        <IdentityCreateDialog
+                                            disabled={createIdentidadM.isPending}
+                                            onCreate={(p) => createIdentidadM.mutateAsync(p)}
+                                        />
+                                    </CardHeader>
 
-                            {/* CUENTAS */}
-                            <Card className="h-full min-h-0 flex flex-col overflow-hidden">
-                                <CardHeader className="flex flex-row items-center justify-between shrink-0">
-                                    <CardTitle className="text-base">Cuentas</CardTitle>
-                                    <IdentityCreateDialog
-                                        disabled={createIdentidadM.isPending}
-                                        onCreate={(p) => createIdentidadM.mutateAsync(p)}
-                                    />
-                                </CardHeader>
-
-                                <CardContent className="flex-1 min-h-0 overflow-y-auto">
-                                    {identidadesQ.isPending ? (
-                                        <div className="grid gap-2">
-                                            {Array.from({ length: 6 }).map((_, i) => (
-                                                <Skeleton key={i} className="h-10 w-full" />
-                                            ))}
-                                        </div>
-                                    ) : identidadesQ.error ? (
-                                        <div className="rounded-lg border p-4 text-sm">
-                                            Error cargando cuentas: {(identidadesQ.error as any)?.message ?? "unknown"}
-                                        </div>
-                                    ) : (
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    <TableHead>Email</TableHead>
-                                                    <TableHead>Nombre</TableHead>
-                                                    <TableHead>Rol</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {(identidadesQ.data ?? []).map((u) => (
-                                                    <TableRow key={u.id}>
-                                                        <TableCell className="font-mono text-xs">{u.email}</TableCell>
-                                                        <TableCell>{u.name ?? "—"}</TableCell>
-                                                        <TableCell>{u.data?.role ?? "user"}</TableCell>
-                                                    </TableRow>
+                                    <CardContent className="flex-1 min-h-0 overflow-y-auto">
+                                        {identidadesQ.isPending ? (
+                                            <div className="grid gap-2">
+                                                {Array.from({ length: 6 }).map((_, i) => (
+                                                    <Skeleton key={i} className="h-10 w-full" />
                                                 ))}
-                                                {(!identidadesQ.data || identidadesQ.data.length === 0) && (
+                                            </div>
+                                        ) : identidadesQ.error ? (
+                                            <div className="rounded-lg border p-4 text-sm">
+                                                Error cargando cuentas: {(identidadesQ.error as any)?.message ?? "unknown"}
+                                            </div>
+                                        ) : (
+                                            <Table>
+                                                <TableHeader>
                                                     <TableRow>
-                                                        <TableCell colSpan={3} className="text-sm text-muted-foreground">
-                                                            No hay cuentas.
-                                                        </TableCell>
+                                                        <TableHead>Email</TableHead>
+                                                        <TableHead>Nombre</TableHead>
+                                                        <TableHead>Rol</TableHead>
                                                     </TableRow>
-                                                )}
-                                            </TableBody>
-                                        </Table>
-                                    )}
-                                </CardContent>
-                            </Card>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {(identidadesQ.data ?? []).map((u) => (
+                                                        <TableRow key={u.id}>
+                                                            <TableCell className="font-mono text-xs">{u.email}</TableCell>
+                                                            <TableCell>{u.name ?? "—"}</TableCell>
+                                                            <TableCell>{u.data?.role ?? "user"}</TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                    {(!identidadesQ.data || identidadesQ.data.length === 0) && (
+                                                        <TableRow>
+                                                            <TableCell colSpan={3} className="text-sm text-muted-foreground">
+                                                                No hay cuentas.
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    )}
+                                                </TableBody>
+                                            </Table>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api'
+import ImportStudentsButton from './ImportStudentsButton';
 
 
 async function getStudents() {
@@ -61,8 +62,9 @@ const Estudiantes: React.FC = () => {
           <StudentTable students={data} />
         </div>
       </div>
-      <div className="flex justify-center my-8">
+      <div className="flex justify-center my-8 gap-10">
         <AddStudentButton />
+        <ImportStudentsButton />
       </div>
     </main>
   );
