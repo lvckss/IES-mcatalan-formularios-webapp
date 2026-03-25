@@ -8,10 +8,17 @@
 --       ley VARCHAR(15) NOT NULL,
 --       tipo_ciclo VARCHAR(20) NOT NULL
 --   );
-
 -- 1
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
+        Ciclos (
+                curso,
+                nombre,
+                codigo,
+                norma_1,
+                norma_2,
+                ley,
+                tipo_ciclo
+        )
 VALUES
         (
                 '1',
@@ -25,7 +32,15 @@ VALUES
 
 --2
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
+        Ciclos (
+                curso,
+                nombre,
+                codigo,
+                norma_1,
+                norma_2,
+                ley,
+                tipo_ciclo
+        )
 VALUES
         (
                 '2',
@@ -39,7 +54,15 @@ VALUES
 
 -- 3
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
+        Ciclos (
+                curso,
+                nombre,
+                codigo,
+                norma_1,
+                norma_2,
+                ley,
+                tipo_ciclo
+        )
 VALUES
         (
                 '1',
@@ -53,7 +76,15 @@ VALUES
 
 -- 4
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
+        Ciclos (
+                curso,
+                nombre,
+                codigo,
+                norma_1,
+                norma_2,
+                ley,
+                tipo_ciclo
+        )
 VALUES
         (
                 '1',
@@ -67,7 +98,15 @@ VALUES
 
 -- 5
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
+        Ciclos (
+                curso,
+                nombre,
+                codigo,
+                norma_1,
+                norma_2,
+                ley,
+                tipo_ciclo
+        )
 VALUES
         (
                 '2',
@@ -81,7 +120,15 @@ VALUES
 
 -- 6
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
+        Ciclos (
+                curso,
+                nombre,
+                codigo,
+                norma_1,
+                norma_2,
+                ley,
+                tipo_ciclo
+        )
 VALUES
         (
                 '1',
@@ -95,7 +142,15 @@ VALUES
 
 -- 7
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
+        Ciclos (
+                curso,
+                nombre,
+                codigo,
+                norma_1,
+                norma_2,
+                ley,
+                tipo_ciclo
+        )
 VALUES
         (
                 '2',
@@ -109,7 +164,15 @@ VALUES
 
 -- 8
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
+        Ciclos (
+                curso,
+                nombre,
+                codigo,
+                norma_1,
+                norma_2,
+                ley,
+                tipo_ciclo
+        )
 VALUES
         (
                 '1',
@@ -123,7 +186,15 @@ VALUES
 
 -- 9
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
+        Ciclos (
+                curso,
+                nombre,
+                codigo,
+                norma_1,
+                norma_2,
+                ley,
+                tipo_ciclo
+        )
 VALUES
         (
                 '2',
@@ -137,7 +208,15 @@ VALUES
 
 -- 10
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
+        Ciclos (
+                curso,
+                nombre,
+                codigo,
+                norma_1,
+                norma_2,
+                ley,
+                tipo_ciclo
+        )
 VALUES
         (
                 '1',
@@ -151,7 +230,15 @@ VALUES
 
 -- 11
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
+        Ciclos (
+                curso,
+                nombre,
+                codigo,
+                norma_1,
+                norma_2,
+                ley,
+                tipo_ciclo
+        )
 VALUES
         (
                 '2',
@@ -165,7 +252,15 @@ VALUES
 
 -- 12
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
+        Ciclos (
+                curso,
+                nombre,
+                codigo,
+                norma_1,
+                norma_2,
+                ley,
+                tipo_ciclo
+        )
 VALUES
         (
                 '1',
@@ -179,7 +274,15 @@ VALUES
 
 -- 13
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
+        Ciclos (
+                curso,
+                nombre,
+                codigo,
+                norma_1,
+                norma_2,
+                ley,
+                tipo_ciclo
+        )
 VALUES
         (
                 '2',
@@ -193,7 +296,15 @@ VALUES
 
 -- 14
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
+        Ciclos (
+                curso,
+                nombre,
+                codigo,
+                norma_1,
+                norma_2,
+                ley,
+                tipo_ciclo
+        )
 VALUES
         (
                 '1',
@@ -207,7 +318,15 @@ VALUES
 
 -- 15
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
+        Ciclos (
+                curso,
+                nombre,
+                codigo,
+                norma_1,
+                norma_2,
+                ley,
+                tipo_ciclo
+        )
 VALUES
         (
                 '2',
@@ -221,7 +340,15 @@ VALUES
 
 -- 16
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
+        Ciclos (
+                curso,
+                nombre,
+                codigo,
+                norma_1,
+                norma_2,
+                ley,
+                tipo_ciclo
+        )
 VALUES
         (
                 '1',
@@ -235,7 +362,15 @@ VALUES
 
 -- 17
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
+        Ciclos (
+                curso,
+                nombre,
+                codigo,
+                norma_1,
+                norma_2,
+                ley,
+                tipo_ciclo
+        )
 VALUES
         (
                 '2',
@@ -249,7 +384,15 @@ VALUES
 
 -- 18
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
+        Ciclos (
+                curso,
+                nombre,
+                codigo,
+                norma_1,
+                norma_2,
+                ley,
+                tipo_ciclo
+        )
 VALUES
         (
                 '1',
@@ -263,7 +406,15 @@ VALUES
 
 -- 19
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
+        Ciclos (
+                curso,
+                nombre,
+                codigo,
+                norma_1,
+                norma_2,
+                ley,
+                tipo_ciclo
+        )
 VALUES
         (
                 '2',
@@ -277,7 +428,15 @@ VALUES
 
 -- 20
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
+        Ciclos (
+                curso,
+                nombre,
+                codigo,
+                norma_1,
+                norma_2,
+                ley,
+                tipo_ciclo
+        )
 VALUES
         (
                 '1',
@@ -291,7 +450,15 @@ VALUES
 
 -- 21
 INSERT INTO
-        Ciclos (curso, nombre, codigo, norma_1, norma_2, ley, tipo_ciclo)
+        Ciclos (
+                curso,
+                nombre,
+                codigo,
+                norma_1,
+                norma_2,
+                ley,
+                tipo_ciclo
+        )
 VALUES
         (
                 '2',
@@ -299,6 +466,226 @@ VALUES
                 'SAN305_LFP',
                 'Real Decreto 500/2024 21/05/2024',
                 'ORDEN de 25 de julio de 2024 (BOA: 31/07/2024)',
+                3,
+                'GS'
+        );
+
+-- 22
+INSERT INTO
+        Ciclos (
+                curso,
+                nombre,
+                codigo,
+                norma_1,
+                norma_2,
+                ley,
+                tipo_ciclo
+        )
+VALUES
+        (
+                '1',
+                'Anatomía Patológica y Citodiagnóstico',
+                'SAN301_LFP',
+                'Real Decreto 500/2024 de 21 de mayo de 2024 (BOE: 28/05/2024)',
+                'ORDEN 843 de 25 de julio de 2024 (BOA: 31/07/2024)',
+                3,
+                'GS'
+        );
+
+-- 23
+INSERT INTO
+        Ciclos (
+                curso,
+                nombre,
+                codigo,
+                norma_1,
+                norma_2,
+                ley,
+                tipo_ciclo
+        )
+VALUES
+        (
+                '2',
+                'Anatomía Patológica y Citodiagnóstico',
+                'SAN301_LFP',
+                'Real Decreto 500/2024 de 21 de mayo de 2024 (BOE: 28/05/2024)',
+                'ORDEN 843 de 25 de julio de 2024 (BOA: 31/07/2024)',
+                3,
+                'GS'
+        );
+
+-- 24
+INSERT INTO
+        Ciclos (
+                curso,
+                nombre,
+                codigo,
+                norma_1,
+                norma_2,
+                ley,
+                tipo_ciclo
+        )
+VALUES
+        (
+                '1',
+                'Desarrollo de Aplicaciones Multiplataforma',
+                'IFC302_LFP',
+                'Real Decreto 500/2024 de 21 de mayo de 2024 (BOE: 28/05/2024)',
+                'ORDEN 843 de 25 de julio de 2024 (BOA: 31/07/2024)',
+                3,
+                'GS'
+        );
+
+-- 25
+INSERT INTO
+        Ciclos (
+                curso,
+                nombre,
+                codigo,
+                norma_1,
+                norma_2,
+                ley,
+                tipo_ciclo
+        )
+VALUES
+        (
+                '2',
+                'Desarrollo de Aplicaciones Multiplataforma',
+                'IFC302_LFP',
+                'Real Decreto 500/2024 de 21 de mayo de 2024 (BOE: 28/05/2024)',
+                'ORDEN 843 de 25 de julio de 2024 (BOA: 31/07/2024)',
+                3,
+                'GS'
+        );
+
+-- 26
+INSERT INTO
+        Ciclos (
+                curso,
+                nombre,
+                codigo,
+                norma_1,
+                norma_2,
+                ley,
+                tipo_ciclo
+        )
+VALUES
+        (
+                '1',
+                'Farmacia y Parafarmacia',
+                'SAN202_LFP',
+                'Real Decreto 499/2024 de 21 de mayo de 2024 (BOE: 28/05/2024)',
+                'ORDEN 842 de 25 de julio de 2024 (BOA: 31/07/2024)',
+                3,
+                'GM'
+        );
+
+-- 27
+INSERT INTO
+        Ciclos (
+                curso,
+                nombre,
+                codigo,
+                norma_1,
+                norma_2,
+                ley,
+                tipo_ciclo
+        )
+VALUES
+        (
+                '2',
+                'Farmacia y Parafarmacia',
+                'SAN202_LFP',
+                'Real Decreto 499/2024 de 21 de mayo de 2024 (BOE: 28/05/2024)',
+                'ORDEN 842 de 25 de julio de 2024 (BOA: 31/07/2024)',
+                3,
+                'GM'
+        );
+
+-- 28
+INSERT INTO
+        Ciclos (
+                curso,
+                nombre,
+                codigo,
+                norma_1,
+                norma_2,
+                ley,
+                tipo_ciclo
+        )
+VALUES
+        (
+                '1',
+                'Guía en el Medio Natural y de Tiempo Libre',
+                'AFD201_LFP',
+                'Real Decreto 499/2024 de 21 de mayo de 2024 (BOE: 28/05/2024)',
+                'ORDEN 842 de 25 de julio de 2024 (BOA: 31/07/2024)',
+                3,
+                'GM'
+        );
+
+-- 29
+INSERT INTO
+        Ciclos (
+                curso,
+                nombre,
+                codigo,
+                norma_1,
+                norma_2,
+                ley,
+                tipo_ciclo
+        )
+VALUES
+        (
+                '2',
+                'Guía en el Medio Natural y de Tiempo Libre',
+                'AFD201_LFP',
+                'Real Decreto 499/2024 de 21 de mayo de 2024 (BOE: 28/05/2024)',
+                'ORDEN 842 de 25 de julio de 2024 (BOA: 31/07/2024)',
+                3,
+                'GM'
+        );
+
+-- 30
+INSERT INTO
+        Ciclos (
+                curso,
+                nombre,
+                codigo,
+                norma_1,
+                norma_2,
+                ley,
+                tipo_ciclo
+        )
+VALUES
+        (
+                '1',
+                'Enseñanza y Animación Sociodeportiva',
+                'AFD301_LFP',
+                'Real Decreto 500/2024 de 21 de mayo de 2024 (BOE: 28/05/2024)',
+                'ORDEN 843 de 25 de julio de 2024 (BOA: 31/07/2024)',
+                3,
+                'GS'
+        );
+
+-- 31
+INSERT INTO
+        Ciclos (
+                curso,
+                nombre,
+                codigo,
+                norma_1,
+                norma_2,
+                ley,
+                tipo_ciclo
+        )
+VALUES
+        (
+                '2',
+                'Enseñanza y Animación Sociodeportiva',
+                'AFD301_LFP',
+                'Real Decreto 500/2024 de 21 de mayo de 2024 (BOE: 28/05/2024)',
+                'ORDEN 843 de 25 de julio de 2024 (BOA: 31/07/2024)',
                 3,
                 'GS'
         );

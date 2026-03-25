@@ -105,12 +105,7 @@ VALUES
 INSERT INTO
     Modulos (nombre, codigo_modulo, id_ciclo, curso)
 VALUES
-    (
-        'Citología general (2º)',
-        '1382-SAN301',
-        9,
-        '2º'
-    );
+    ('Citología general (2º)', '1382-SAN301', 9, '2º');
 
 INSERT INTO
     Modulos (nombre, codigo_modulo, id_ciclo, curso)
@@ -595,12 +590,7 @@ VALUES
 INSERT INTO
     Modulos (nombre, codigo_modulo, id_ciclo, curso)
 VALUES
-    (
-        'Control alimentario (1º)',
-        '003-SAN302',
-        6,
-        '1º'
-    );
+    ('Control alimentario (1º)', '003-SAN302', 6, '1º');
 
 INSERT INTO
     Modulos (nombre, codigo_modulo, id_ciclo, curso)
@@ -830,12 +820,7 @@ VALUES
 INSERT INTO
     Modulos (nombre, codigo_modulo, id_ciclo, curso)
 VALUES
-    (
-        'Primeros auxilios (1º)',
-        '0020-SAN202',
-        14,
-        '1º'
-    );
+    ('Primeros auxilios (1º)', '0020-SAN202', 14, '1º');
 
 INSERT INTO
     Modulos (nombre, codigo_modulo, id_ciclo, curso)
@@ -960,12 +945,7 @@ VALUES
 INSERT INTO
     Modulos (nombre, codigo_modulo, id_ciclo, curso)
 VALUES
-    (
-        'Atención a grupos (1º)',
-        '1328-AFD201',
-        16,
-        '1º'
-    );
+    ('Atención a grupos (1º)', '1328-AFD201', 16, '1º');
 
 INSERT INTO
     Modulos (nombre, codigo_modulo, id_ciclo, curso)
@@ -990,12 +970,7 @@ VALUES
 INSERT INTO
     Modulos (nombre, codigo_modulo, id_ciclo, curso)
 VALUES
-    (
-        'Guía de bicicleta (1º)',
-        '1334-AFD201',
-        16,
-        '1º'
-    );
+    ('Guía de bicicleta (1º)', '1334-AFD201', 16, '1º');
 
 INSERT INTO
     Modulos (nombre, codigo_modulo, id_ciclo, curso)
@@ -1509,6 +1484,796 @@ VALUES
         'Módulo profesional optativo (2º)',
         'MLIB-SAN305',
         21,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    ('Inglés profesional (1º)', '179-SAN301', 22, '1º');
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Gestión de muestras biológicas (1º)',
+        '1367-SAN301',
+        22,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Técnicas generales de laboratorio (1º)',
+        '1368-SAN301',
+        22,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Biología molecular y citogenética (1º)',
+        '1369-SAN301',
+        22,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Fisiopatología general (1º)',
+        '1370-SAN301',
+        22,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    ('Necropsias (2º)', '1379-SAN301', 23, '2º');
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Procesamiento citológico y tisular (2º)',
+        '1380-SAN301',
+        23,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Citología ginecológica (2º)',
+        '1381-SAN301',
+        23,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    ('Citología general (2º)', '1382-SAN301', 23, '2º');
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Proyecto intermodular de anatomía patológica y citodiagnóstico (2º)',
+        '1383-SAN301',
+        23,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Digitalización aplicada a los sectores productivos (GS) (1º)',
+        '1665-SAN301',
+        22,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Sostenibilidad aplicada al sistema productivo (2º)',
+        '1708-SAN301',
+        23,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Itinerario personal para la empleabilidad I (1º)',
+        '1709-SAN301',
+        22,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Itinerario personal para la empleabilidad II (2º)',
+        '1710-SAN301',
+        23,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Modulo profesional optativo (2º)',
+        'MLIB-SAN301',
+        23,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    ('Inglés profesional (1º)', '179-IFC302', 24, '1º');
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Lenguajes de marcas y sistemas de gestión de información (1º)',
+        '373-IFC302',
+        24,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Sistemas informáticos (1º)',
+        '483-IFC302',
+        24,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    ('Bases de Datos (1º)', '484-IFC302', 24, '1º');
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    ('Programación (1º)', '485-IFC302', 24, '1º');
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    ('Acceso a datos (2º)', '486-IFC302', 25, '2º');
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Entornos de desarrollo (1º)',
+        '487-IFC302',
+        24,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Desarrollo de interfaces (2º)',
+        '488-IFC302',
+        25,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Programación multimedia y dispositivos móviles (2º)',
+        '489-IFC302',
+        25,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Programación de  servicios y procesos (2º)',
+        '490-IFC302',
+        25,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Sistemas de gestión empresarial (2º)',
+        '491-IFC302',
+        25,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Proyecto intermodular de aplicaciones multipplataforma (2º)',
+        '492-IFC302',
+        25,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Digitalización aplicada a los sectores productivos (GS) (1º)',
+        '1665-IFC302',
+        24,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Sostenibilidad aplicada al sistema productivo (2º)',
+        '1708-IFC302',
+        25,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Itinerario personal para la empleabilidad I (1º)',
+        '1709-IFC302',
+        24,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Itinerario personal para la empleabilidad II (2º)',
+        '1710-IFC302',
+        25,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Modulo profesional optativo (2º)',
+        'MLIB-IFC302',
+        25,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    ('Primeros auxilios (1º)', '0020-SAN202', 26, '1º');
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Anatomofisiología y patología básicas (1º)',
+        '0061-SAN202',
+        26,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Disposición y venta de productos (1º)',
+        '0099-SAN202',
+        26,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Oficina de Farmacia (1º)',
+        '0100-SAN202',
+        26,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Dispensación de productos farmacéuticos (1º)',
+        '0101-SAN202',
+        26,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Dispensación de productos parafarmacéuticos (2º)',
+        '0102-SAN202',
+        27,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Operaciones básicas de laboratorio (1º)',
+        '0103-SAN202',
+        26,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Formulación magistral (2º)',
+        '0104-SAN202',
+        27,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Promoción de la salud (2º)',
+        '0105-SAN202',
+        27,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Inglés profesional (GM) (1º)',
+        '0156-SAN202',
+        26,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    ('Tutoría II (2º)', 'A996-SAN202', 27, '2º');
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    ('Tutoría I (1º)', 'A997-SAN202', 26, '1º');
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Digitalización aplicada a los sectores productivos (GM) (1º)',
+        '1664-SAN202',
+        26,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Sostenibilidad aplicada al sistema productivo (2º)',
+        '1708-SAN202',
+        27,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Itinerario personal para la empleabilidad I (1º)',
+        '1709-SAN202',
+        26,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Itinerario personal para la empleabilidad II (2º)',
+        '1710-SAN202',
+        27,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Proyecto intermodular de farmacia y parafarmacia (2º)',
+        '1713-SAN202',
+        27,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Modulo profesional optativo (2º)',
+        'MLIB-SAN202',
+        27,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Técnicas de equitación (1º)',
+        '1325-AFD201',
+        28,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    ('Guía ecuestre (2º)', '1327-AFD201', 29, '2º');
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    ('Atención a grupos (1º)', '1328-AFD201', 28, '1º');
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Organización de itinerarios (1º)',
+        '1329-AFD201',
+        28,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Guía de baja y media montaña (1º)',
+        '1333-AFD201',
+        28,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    ('Guía de bicicleta (1º)', '1334-AFD201', 28, '1º');
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Técnicas de tiempo libre (2º)',
+        '1335-AFD201',
+        29,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Técnicas de natación (1º)',
+        '1336-AFD201',
+        28,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Socorrismo en el medio natural (2º)',
+        '1337-AFD201',
+        29,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Guía en el medio natural acuático (2º)',
+        '1338-AFD201',
+        29,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Maniobras con cuerdas (2º)',
+        '1339-AFD201',
+        29,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    ('Tutoría I (1º)', 'A997-AFD201', 28, '1º');
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    ('Tutoría II (2º)', 'A996-AFD201', 29, '2º');
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Itinerario personal para la empleabilidad I (1º)',
+        '1709-AFD201',
+        28,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Itinerario personal para la empleabilidad II (2º)',
+        '1710-AFD201',
+        29,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Digitalización aplicada a los sectores productivos (GM) (1º)',
+        '1664-AFD201',
+        28,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Sostenibilidad aplicada al sistema productivo (2º)',
+        '1708-AFD201',
+        29,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Inglés profesional (GM) (1º)',
+        '0156-AFD201',
+        28,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Proyecto intermodular (2º)',
+        '1713-AFD201',
+        29,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Modulo profesional optativo (2º)',
+        'MLIB-AFD201',
+        29,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Actividades de ocio y tiempo libre (2º)',
+        '1123-AFD301',
+        31,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Dinamización grupal (1º)',
+        '1124-AFD301',
+        30,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Valoración de la condición física e intervención en accidentes (1º)',
+        '1136-AFD301',
+        30,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Planificación de la animación sociodeportiva (2º)',
+        '1137-AFD301',
+        31,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Juegos y actividades físico-recreativas y de animación turística (1º)',
+        '1138-AFD301',
+        30,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Actividades físico-deportivas individuales (1º)',
+        '1139-AFD301',
+        30,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Actividades físico-deportivas de equipo (2º)',
+        '1140-AFD301',
+        31,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Actividades físico-deportivas de implementos (2º)',
+        '1141-AFD301',
+        31,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Actividades físico-deportivas para la inclusión social (2º)',
+        '1142-AFD301',
+        31,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Metodología de la enseñanza de actividades físicodeportivas (1º)',
+        '1143-AFD301',
+        30,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Proyecto intermodular de enseñanza y animación sociodeportiva (2º)',
+        '1144-AFD301',
+        31,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Itinerario personal para la empleabilidad I (1º)',
+        '1709-AFD301',
+        30,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Itinerario personal para la empleabilidad II (2º)',
+        '1710-AFD301',
+        31,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Digitalización aplicada a los sectores productivos (GS) (1º)',
+        '1665-AFD301',
+        30,
+        '1º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Sostenibilidad aplicada al sistema productivo (2º)',
+        '1708-AFD301',
+        31,
+        '2º'
+    );
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    ('Inglés profesional (1º)', '179-AFD301', 30, '1º');
+
+INSERT INTO
+    Modulos (nombre, codigo_modulo, id_ciclo, curso)
+VALUES
+    (
+        'Módulo profesional optativo (2º)',
+        'MLIB-AFD301',
+        31,
         '2º'
     );
 
