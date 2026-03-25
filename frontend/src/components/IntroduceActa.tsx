@@ -881,7 +881,15 @@ const IntroduceActa: React.FC = () => {
             const modId = modIdByCode.get(code);
             if (!modId) return;
 
-            const isHistoricalPass = !!sid && !!lockedByStudent.get(sid)?.has(code);
+            const currentNota = sid ? gradeByStudentCode.get(sid)?.[code] : undefined;
+
+            const isApprovedInCurrentRecord = typeof currentNota === "string" && isPassingNota(currentNota);
+
+            const isHistoricalPass =
+              !!sid &&
+              !!lockedByStudent.get(sid)?.has(code) &&
+              !isApprovedInCurrentRecord;
+
             if (isHistoricalPass) return;
 
             if (!enrolledSet || !enrolledSet.has(code)) return;
@@ -1443,19 +1451,26 @@ const IntroduceActa: React.FC = () => {
                                     ? enrolledCodesByStudent.get(sid)
                                     : undefined;
 
-                                  const passedHistorically =
-                                    !!sid && !!code && lockedByStudent.get(sid)?.has(code);
-
                                   const fetchedNotaRaw =
                                     sid && code
                                       ? gradeByStudentCode.get(sid)?.[code]
                                       : undefined;
 
                                   const fetchedNota =
-                                    typeof fetchedNotaRaw === "string" &&
-                                      NOTA_SET.has(fetchedNotaRaw)
+                                    typeof fetchedNotaRaw === "string" && NOTA_SET.has(fetchedNotaRaw)
                                       ? fetchedNotaRaw
                                       : "NE";
+
+                                  const hasFetchedReal = fetchedNota !== "NE";
+
+                                  const approvedSomewhere =
+                                    !!sid && !!code && lockedByStudent.get(sid)?.has(code);
+
+                                  const approvedInCurrentRecord =
+                                    hasFetchedReal && isPassingNota(fetchedNota);
+
+                                  const passedHistorically =
+                                    approvedSomewhere && !approvedInCurrentRecord;
 
                                   const candidate =
                                     field.value == null || field.value === ""
@@ -1465,7 +1480,6 @@ const IntroduceActa: React.FC = () => {
                                   const disabledBecauseNoCode = !code;
                                   const isEnrolled =
                                     !!code && enrolledSet?.has(code) === true;
-                                  const hasFetchedReal = fetchedNota !== "NE";
 
                                   const isLocked = Boolean(
                                     disabledBecauseNoCode ||
