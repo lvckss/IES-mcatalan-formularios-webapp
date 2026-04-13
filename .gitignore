@@ -4,6 +4,11 @@
 
 /frontend/dist
 
+# Local/generated Bun and Codex files
+bun.lock
+bun.lockb
+.codex
+
 # Logs
 
 logs
