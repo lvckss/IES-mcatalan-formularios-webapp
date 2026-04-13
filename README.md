@@ -1,4 +1,4 @@
-# Gestor de certificados IES Miguel Catalán
+# Gestor de alumnado para la compulsa de certificados externos | IES Miguel Catalán
 
 Aplicación interna para gestionar alumnado de Formacciona adscrito al IES Miguel Catalán y emitir certificaciones académicas oficiales desde el centro público.
 
