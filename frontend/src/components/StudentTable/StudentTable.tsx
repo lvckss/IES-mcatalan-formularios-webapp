@@ -415,8 +415,14 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
     const unique = new Map<string, { codigo: string; nombre: string }>();
 
     (allFullInfo ?? []).forEach(({ records }) => {
-      records.forEach(r => {
+      records.forEach((r) => {
         if (!r.ciclo_codigo) return;
+
+        const periodo = `${r.ano_inicio}-${r.ano_fin}`;
+        const okYear = schoolYear === "__all__" || periodo === schoolYear;
+
+        if (!okYear) return;
+
         if (!unique.has(r.ciclo_codigo)) {
           unique.set(r.ciclo_codigo, {
             codigo: r.ciclo_codigo,
@@ -426,8 +432,19 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
       });
     });
 
-    return Array.from(unique.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
-  }, [allFullInfo]);
+    return Array.from(unique.values()).sort((a, b) =>
+      a.nombre.localeCompare(b.nombre, "es")
+    );
+  }, [allFullInfo, schoolYear]);
+
+  React.useEffect(() => {
+    if (
+      schoolCycle !== "__all__" &&
+      !todosLosCiclos.some((c) => c.codigo === schoolCycle)
+    ) {
+      setSchoolCycle("__all__");
+    }
+  }, [schoolCycle, todosLosCiclos]);
 
   const turnosDisponibles = React.useMemo(() => {
     const s = new Set<string>();
@@ -588,8 +605,30 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
   }, [dataFiltrada]);
 
   // inicialización de la tabla
+  const dataOrdenada = React.useMemo(() => {
+    const collator = new Intl.Collator("es", {
+      sensitivity: "base",
+      numeric: true,
+    });
+
+    const compareText = (
+      a: string | null | undefined,
+      b: string | null | undefined
+    ) => collator.compare(a ?? "", b ?? "");
+
+    return [...dataFiltrada].sort((a, b) => {
+      return (
+        compareText(a.apellido_1, b.apellido_1) ||
+        compareText(a.apellido_2, b.apellido_2) ||
+        compareText(a.nombre, b.nombre) ||
+        a.id_estudiante - b.id_estudiante
+      );
+    });
+  }, [dataFiltrada]);
+
+  // inicialización de la tabla
   const table = useReactTable({
-    data: dataFiltrada,
+    data: dataOrdenada,
     columns,
     filterFns: {},
     state: { columnFilters },
@@ -600,6 +639,7 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
 
 
   const { rows } = table.getRowModel()
+  const displayedStudentsCount = rows.length;
 
   const parentRef = React.useRef(null);
 
@@ -620,9 +660,9 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
           {/* Periodo escolar */}
           <div className="flex items-center gap-2 flex-1 basis-0 min-w-0 pt-1">
             <Label className="text-sm">Periodo escolar</Label>
-            <div className="bg-white flex-1 min-w-0">
+            <div className=" flex-1 min-w-0">
               <Select value={schoolYear} onValueChange={setSchoolYear} disabled={isFullInfoLoading}>
-                <SelectTrigger className="w-full min-w-0">
+                <SelectTrigger className="w-[8.75rem] bg-yellow-200 font-bold">
                   <SelectValue placeholder="Selecciona periodo" className="truncate" />
                 </SelectTrigger>
                 <SelectContent>
@@ -636,24 +676,24 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
           </div>
 
           {/* Ciclo + Curso */}
-          <div className="flex items-center gap-2 flex-1 basis-0 min-w-0 pt-1">
+          <div className="flex items-center gap-2 flex-[1.5_1_0] basis-0 min-w-0 pt-1">
             <Label className="text-sm whitespace-nowrap">Ciclo</Label>
 
             {/* Ciclo: ancho fijo y estable */}
-            <div className="bg-white flex-none w-[150px] min-w-0">
+            <div className="bg-white flex-1 min-w-[14rem]">
               <Select
                 value={schoolCycle}
                 onValueChange={setSchoolCycle}
                 disabled={isFullInfoLoading}
               >
-                <SelectTrigger className="w-full min-w-0 h-9">
+                <SelectTrigger className="w-full min-w-0 h-9 bg-yellow-200 font-bold">
                   <SelectValue placeholder="Todos los ciclos" className="truncate" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__all__">...</SelectItem>
                   {todosLosCiclos.map(c => (
                     <SelectItem key={c.codigo} value={c.codigo}>
-                      {c.nombre} ({c.codigo})
+                      ({c.codigo}) {c.nombre}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -671,7 +711,7 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
                   cursosDelCicloSeleccionado.length === 0
                 }
               >
-                <SelectTrigger className="w-full h-9">
+                <SelectTrigger className="w-full h-9 bg-yellow-200 font-bold">
                   <SelectValue
                     placeholder={schoolCycle === "__all__" ? "—" : "Todos"}
                   />
@@ -727,7 +767,7 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
             <Label className="text-sm">Turno</Label>
             <div className="bg-white flex-1 min-w-0">
               <Select value={turno} onValueChange={setTurno} disabled={isFullInfoLoading || turnosDisponibles.length === 0}>
-                <SelectTrigger className="w-full min-w-0">
+                <SelectTrigger className="w-full min-w-0 bg-yellow-200 font-bold">
                   <SelectValue placeholder="Todos los turnos" className="truncate" />
                 </SelectTrigger>
                 <SelectContent>
@@ -862,6 +902,12 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
 
         {/* Acciones rápidas de selección sobre los alumnos visibles */}
         <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground whitespace-nowrap font-bold">
+            [ {displayedStudentsCount === 1
+              ? "1 alumno"
+              : `${displayedStudentsCount} alumnos`} ]
+          </span>
+
           <Button variant="ghost" size="sm" onClick={clearSelection}>
             Limpiar selección ({selectedIds.size})
           </Button>

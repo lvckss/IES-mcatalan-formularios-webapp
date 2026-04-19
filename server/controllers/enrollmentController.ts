@@ -2,6 +2,12 @@ import errorMap from 'zod/locales/en.js';
 import sql from '../db/db'
 import { type PostEnrollment, type Enrollment, EnrollmentSchema } from "../models/Enrollment";
 
+import {
+  calcularResumenNotasCiclo,
+  isNotaAprobada,
+  notaToNumber,
+} from "../services/grades";
+
 export const getEnrollments = async (): Promise<Enrollment[]> => {
   const results = await sql`SELECT * FROM Matriculas`;
   return results.map((result: any) => EnrollmentSchema.parse(result));
@@ -515,4 +521,25 @@ export const enrollmentsByRecord = async (
   `;
 
   return results.map(enrollment => EnrollmentSchema.parse(enrollment));
+};
+
+export const mediaEstudiantePorCicloCompleto = async (
+  id_estudiante: number,
+  any_id_ciclo_del_ciclo: number
+) => {
+  const notas = await notasMasAltasEstudiantePorCicloCompleto(
+    id_estudiante,
+    any_id_ciclo_del_ciclo
+  );
+
+  const resumen = calcularResumenNotasCiclo(notas);
+
+  return {
+    ...resumen,
+    notas: notas.map((m) => ({
+      ...m,
+      valor_numerico: notaToNumber(m.mejor_nota),
+      aprobada: isNotaAprobada(m.mejor_nota),
+    })),
+  };
 };

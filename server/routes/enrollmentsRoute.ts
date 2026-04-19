@@ -13,6 +13,7 @@ import {
   notasMasAltasEstudiantePorCicloCompletoSoloAprobadas,
   enrollmentsByRecord,
   addModuleToRecordIfAllowed,
+  mediaEstudiantePorCicloCompleto,
 } from "../controllers/enrollmentController";
 import { z } from "zod";
 
@@ -149,6 +150,20 @@ export const enrollmentsRoute = new Hono<AppBindings>()
       const id_estudiante = Number(c.req.param("id_estudiante"));
       const result = await enrollmentsByRecord(id_expediente, id_estudiante);
       return c.json({ expedientes: result })
+    }
+  )
+  .get(
+    "/mediaCiclo/:id_estudiante/:id_ciclo",
+    async (c) => {
+      const id_estudiante = Number(c.req.param("id_estudiante"));
+      const id_ciclo = Number(c.req.param("id_ciclo"));
+
+      const result = await mediaEstudiantePorCicloCompleto(
+        id_estudiante,
+        id_ciclo
+      );
+
+      return c.json({ result });
     }
   )
   ;

@@ -277,6 +277,38 @@ const notaToNumber = (v: unknown): number | null => {
   return null;
 };
 
+const notaMediaToNumber = (nota: unknown): number | null => {
+  if (nota == null || nota === "") return null;
+
+  const s = String(nota);
+
+  // No cuentan en la media
+  if (s === "APTO" || s === "EX" || s === "NO APTO") return null;
+
+  // Cuentan como 0
+  if (s === "NE" || s === "RC") return 0;
+
+  // 10 especiales
+  if (s === "10-MH" || s === "10-Matr. Honor") return 10;
+
+  // Convalidaciones
+  if (s === "CV") return 5;
+  if (s.startsWith("CV-")) {
+    const n = Number(s.split("-")[1]);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  // Traslados
+  if (s.startsWith("TRAS-")) {
+    const n = Number(s.split("-")[1]);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  // Notas numéricas directas
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+};
+
 const isPassingNota = (v: unknown): boolean => {
   // APTOS “puros”
   if (v === "APTO") return true;
@@ -620,6 +652,62 @@ const IntroduceActa: React.FC = () => {
     defaultValues: { students: [] },
   });
   const { fields, replace } = useFieldArray({ control: form.control, name: "students" });
+
+  const watchedStudents = form.watch("students");
+
+  const showMediaColumn = selectedCurso === "2";
+
+  const mediaCicloByStudent = useMemo(() => {
+    const map = new Map<number, number | null>();
+
+    if (!showMediaColumn) return map;
+
+    const allCycleModuleCodes = Array.from(
+      new Set(
+        [...(modulesOtherYear ?? []), ...(modulesData ?? [])]
+          .map((m: any) => m?.codigo_modulo)
+          .filter(Boolean)
+      )
+    );
+
+    (watchedStudents ?? []).forEach((st: any, rowIdx: number) => {
+      const sid =
+        st?.id_estudiante ??
+        (fields[rowIdx] as any)?.id_estudiante;
+
+      if (!sid) return;
+
+      const notasPorCodigo: Record<string, unknown> = {
+        ...(notasByStudent.get(sid) ?? {}),
+      };
+
+      (st?.notas ?? []).forEach((nota: unknown, colIdx: number) => {
+        const code = columnCodes[colIdx];
+        if (code) notasPorCodigo[code] = nota;
+      });
+
+      const notasNumericas = allCycleModuleCodes
+        .map((code) => notaMediaToNumber(notasPorCodigo[code]))
+        .filter((n): n is number => typeof n === "number");
+
+      const media =
+        notasNumericas.length > 0
+          ? notasNumericas.reduce((sum, n) => sum + n, 0) / notasNumericas.length
+          : null;
+
+      map.set(sid, media);
+    });
+
+    return map;
+  }, [
+    showMediaColumn,
+    watchedStudents,
+    fields,
+    notasByStudent,
+    columnCodes,
+    modulesData,
+    modulesOtherYear,
+  ]);
 
   // ---------- UTILITIES ----------
   const calculateAverage = useCallback((grades: (string | number | null | undefined)[]) => {
@@ -1081,7 +1169,7 @@ const IntroduceActa: React.FC = () => {
   );
 
   // ---------- TABLE LAYOUT ----------
-  const COL_W = { hash: 64, ape1: 160, ape2: 160, nombre: 180, modulo: 120 } as const;
+  const COL_W = { hash: 64, ape1: 160, ape2: 160, nombre: 180, modulo: 120, media: 120 } as const;
   const baseWidth = COL_W.hash + COL_W.ape1 + COL_W.ape2 + COL_W.nombre;
   const LEFT = { hash: 0, ape1: COL_W.hash, ape2: COL_W.hash + COL_W.ape1, nombre: COL_W.hash + COL_W.ape1 + COL_W.ape2 } as const;
 
@@ -1210,7 +1298,9 @@ const IntroduceActa: React.FC = () => {
                 >
                   <Table
                     className="table-fixed"
-                    style={{ minWidth: `${baseWidth + nCols * COL_W.modulo}px` }}
+                    style={{
+                      minWidth: `${baseWidth + nCols * COL_W.modulo + (showMediaColumn ? COL_W.media : 0)}px`,
+                    }}
                   >
                     {/* HEADER */}
                     <TableHeader className="sticky top-0 z-40 bg-background/95 border-b">
@@ -1340,6 +1430,18 @@ const IntroduceActa: React.FC = () => {
                             </TableHead>
                           );
                         })}
+                        {showMediaColumn && (
+                          <TableHead
+                            className="sticky right-0 z-50 bg-background border-l text-center shadow-[-8px_0_10px_-10px_rgba(0,0,0,0.35)]"
+                            style={{
+                              width: COL_W.media,
+                              minWidth: COL_W.media,
+                              maxWidth: COL_W.media,
+                            }}
+                          >
+                            Nota media
+                          </TableHead>
+                        )}
                       </TableRow>
                     </TableHeader>
 
@@ -1600,6 +1702,26 @@ const IntroduceActa: React.FC = () => {
                               />
                             </TableCell>
                           ))}
+                          {showMediaColumn && (() => {
+                            const sid =
+                              (form.getValues(`students.${studentIndex}.id_estudiante`) as number | undefined) ??
+                              (fields[studentIndex] as any)?.id_estudiante;
+
+                            const media = sid ? mediaCicloByStudent.get(sid) : null;
+
+                            return (
+                              <TableCell
+                                className="sticky right-0 z-30 bg-background border-l text-center font-bold shadow-[-8px_0_10px_-10px_rgba(0,0,0,0.35)]"
+                                style={{
+                                  width: COL_W.media,
+                                  minWidth: COL_W.media,
+                                  maxWidth: COL_W.media,
+                                }}
+                              >
+                                {typeof media === "number" ? media.toFixed(2) : "—"}
+                              </TableCell>
+                            );
+                          })()}
                         </TableRow>
                       ))}
                     </TableBody>
