@@ -114,8 +114,8 @@ export const CertificadoObtencionDocument = ({ data, }: { data: CertificateData 
     // Casos que valen 10
     if (s === "10-MH" || s === "10-Matr. Honor") return 10;
 
-    // Convalidaciones
-    if (s === "CV") return 5;
+    // Convalidaciones sin nota numérica: aprobadas, pero fuera de la media
+    if (s === "CV") return null;
     if (s.startsWith("CV-")) {
       // CV-5 ... CV-10, CV-10-MH -> tomar el número tras "CV-"
       const n = Number(s.split("-")[1]); // "10" de "CV-10" o "CV-10-MH"

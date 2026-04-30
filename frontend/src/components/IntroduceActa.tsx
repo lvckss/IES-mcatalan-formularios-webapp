@@ -291,8 +291,8 @@ const notaMediaToNumber = (nota: unknown): number | null => {
   // 10 especiales
   if (s === "10-MH" || s === "10-Matr. Honor") return 10;
 
-  // Convalidaciones
-  if (s === "CV") return 5;
+  // Convalidaciones sin nota numérica: aprobadas, pero fuera de la media
+  if (s === "CV") return null;
   if (s.startsWith("CV-")) {
     const n = Number(s.split("-")[1]);
     return Number.isFinite(n) ? n : null;
@@ -718,9 +718,10 @@ const IntroduceActa: React.FC = () => {
       if (typeof g === "number" && isFinite(g)) { sum += g; total += 1; continue; }
       if (typeof g === "string") {
         if (g === "NE") { total += 1; continue; }
+        if (g === "CV") { continue; }
         const mh = g.match(/^(\d{1,2})(?:-MH)?$/);
         if (mh) { sum += Number(mh[1]); total += 1; continue; }
-        const cv = g.match(/^CV-(\d{1,2})$/);
+        const cv = g.match(/^CV-(\d{1,2})(?:-MH)?$/);
         if (cv) { sum += Number(cv[1]); total += 1; continue; }
       }
     }

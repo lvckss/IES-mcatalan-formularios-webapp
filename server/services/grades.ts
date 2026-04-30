@@ -14,8 +14,8 @@ export function notaToNumber(nota: NotaEnum | null): number | null {
     // 10 especiales
     if (s === "10-MH" || s === "10-Matr. Honor") return 10;
 
-    // Convalidaciones
-    if (s === "CV") return 5;
+    // Convalidaciones sin nota numérica: aprobadas, pero fuera de la media
+    if (s === "CV") return null;
     if (s.startsWith("CV-")) {
         const n = Number(s.split("-")[1]);
         return Number.isFinite(n) ? n : null;
