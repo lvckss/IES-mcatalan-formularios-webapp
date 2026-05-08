@@ -1126,26 +1126,6 @@ INSERT INTO
     Modulos (nombre, codigo_modulo, id_ciclo, curso)
 VALUES
     (
-        'Digitalización aplicada a los sectores productivos (GS) (1º)',
-        '1665-SAN305',
-        18,
-        '1º'
-    );
-
-INSERT INTO
-    Modulos (nombre, codigo_modulo, id_ciclo, curso)
-VALUES
-    (
-        'Itinerario personal para la empleabilidad I (1º)',
-        '1709-SAN305',
-        18,
-        '1º'
-    );
-
-INSERT INTO
-    Modulos (nombre, codigo_modulo, id_ciclo, curso)
-VALUES
-    (
         'Lengua extranjera profesional: inglés1 (1º)',
         'A115-SAN305',
         18,
@@ -1236,38 +1216,8 @@ INSERT INTO
     Modulos (nombre, codigo_modulo, id_ciclo, curso)
 VALUES
     (
-        'Sostenibilidad aplicada al sistema productivo (2º)',
-        '1708-SAN305',
-        19,
-        '2º'
-    );
-
-INSERT INTO
-    Modulos (nombre, codigo_modulo, id_ciclo, curso)
-VALUES
-    (
-        'Itinerario personal para la empleabilidad II (2º)',
-        '1710-SAN305',
-        19,
-        '2º'
-    );
-
-INSERT INTO
-    Modulos (nombre, codigo_modulo, id_ciclo, curso)
-VALUES
-    (
         'Lengua extranjera profesional: inglés2 (2º)',
         'A116-SAN305',
-        19,
-        '2º'
-    );
-
-INSERT INTO
-    Modulos (nombre, codigo_modulo, id_ciclo, curso)
-VALUES
-    (
-        'Módulo profesional optativo (2º)',
-        'MLIB-SAN305',
         19,
         '2º'
     );
@@ -1441,16 +1391,6 @@ INSERT INTO
     Modulos (nombre, codigo_modulo, id_ciclo, curso)
 VALUES
     (
-        'Formación en centros de trabajo (2º)',
-        '1358-SAN305',
-        21,
-        '2º'
-    );
-
-INSERT INTO
-    Modulos (nombre, codigo_modulo, id_ciclo, curso)
-VALUES
-    (
         'Sostenibilidad aplicada al sistema productivo (2º)',
         '1708-SAN305',
         21,
@@ -1463,16 +1403,6 @@ VALUES
     (
         'Itinerario personal para la empleabilidad II (2º)',
         '1710-SAN305',
-        21,
-        '2º'
-    );
-
-INSERT INTO
-    Modulos (nombre, codigo_modulo, id_ciclo, curso)
-VALUES
-    (
-        'Lengua extranjera profesional: inglés2 (2º)',
-        'A116-SAN305',
         21,
         '2º'
     );
