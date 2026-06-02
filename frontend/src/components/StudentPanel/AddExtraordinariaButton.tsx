@@ -101,7 +101,27 @@ const AddExtraordinariaButton: React.FC<AddExtraordinariaButtonProps> = ({
             toast.success("Extraordinaria creada y matrículas (suspensas) copiadas.");
             qc.invalidateQueries({ queryKey: ["full-student-data", studentId] });
             qc.invalidateQueries({ queryKey: ["can-approve", studentId] });
-            qc.invalidateQueries({ queryKey: ["can-enroll-period", studentId] });
+            qc.invalidateQueries({
+                predicate: (q) =>
+                    Array.isArray(q.queryKey) &&
+                    q.queryKey[0] === "can-enroll-period" &&
+                    q.queryKey.includes(studentId),
+            });
+            qc.refetchQueries({
+                predicate: (q) =>
+                    Array.isArray(q.queryKey) &&
+                    q.queryKey[0] === "can-enroll-period" &&
+                    q.queryKey.includes(studentId),
+                type: "active",
+            });
+            qc.invalidateQueries({ queryKey: ["students-by-filter"] });
+            qc.refetchQueries({ queryKey: ["students-by-filter"], type: "active" });
+            qc.invalidateQueries({ queryKey: ["students-allFullInfo"] });
+            qc.refetchQueries({ queryKey: ["students-allFullInfo"], type: "active" });
+            qc.invalidateQueries({ queryKey: ["convocatorias", studentId] });
+            qc.refetchQueries({ queryKey: ["convocatorias", studentId], type: "active" });
+            qc.invalidateQueries({ queryKey: ["notas-altas", studentId] });
+            qc.refetchQueries({ queryKey: ["notas-altas", studentId], type: "active" });
             onCreated?.(newId);
         },
         onError: (err: any) => {

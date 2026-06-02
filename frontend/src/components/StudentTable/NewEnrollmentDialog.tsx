@@ -681,6 +681,21 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
                 q.queryKey.includes(student_id),
             }),
 
+            queryClient.invalidateQueries({
+              queryKey: ["convocatorias", student_id],
+            }),
+            queryClient.refetchQueries({
+              queryKey: ["convocatorias", student_id],
+              type: "active",
+            }),
+            queryClient.invalidateQueries({
+              queryKey: ["notas-altas", student_id],
+            }),
+            queryClient.refetchQueries({
+              queryKey: ["notas-altas", student_id],
+              type: "active",
+            }),
+
             // listados agregados
             queryClient.invalidateQueries({ queryKey: ["students-allFullInfo"] }),
             queryClient.invalidateQueries({ queryKey: ["students-by-filter"] }),

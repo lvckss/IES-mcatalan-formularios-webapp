@@ -330,7 +330,7 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
       await Promise.all(ops);
       return true;
     },
-    onSuccess: () => {
+    onSuccess: (_data, { expedienteId }) => {
       toast.success("Convocatoria modificada correctamente.");
       setIsEditingNotas(false);
 
@@ -346,17 +346,14 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
       queryClient.invalidateQueries({ queryKey: ["students-by-filter"] });
       queryClient.refetchQueries({ queryKey: ["students-by-filter"], type: "active" });
 
-      // forzar refresco de "notas-altas"
-      const cicloId = currentRecord?.id_ciclo ?? baseRecordCore?.id_ciclo;
-      if (cicloId != null) {
-        // invalida solo las queries del alumno + ciclo afectado
-        queryClient.invalidateQueries({ queryKey: ['notas-altas', id, cicloId] });
-        queryClient.refetchQueries({ queryKey: ['notas-altas', id, cicloId], type: 'active' });
-      } else {
-        // si no tienes el ciclo a mano, invalida por prefijo (todas las de ese alumno)
-        queryClient.invalidateQueries({ queryKey: ['notas-altas', id] });
-        queryClient.refetchQueries({ queryKey: ['notas-altas', id], type: 'active' });
-      }
+      // El mismo ciclo puede tener varios id_ciclo (por curso). Refrescamos
+      // todas las variantes del alumno y el expediente visible en las actas.
+      queryClient.invalidateQueries({ queryKey: ['notas-altas', id] });
+      queryClient.refetchQueries({ queryKey: ['notas-altas', id], type: 'active' });
+      queryClient.invalidateQueries({ queryKey: ["enrollments-by-record", expedienteId] });
+      queryClient.refetchQueries({ queryKey: ["enrollments-by-record", expedienteId], type: "active" });
+      queryClient.invalidateQueries({ queryKey: ["convocatorias", id] });
+      queryClient.refetchQueries({ queryKey: ["convocatorias", id], type: "active" });
     },
     onError: (err: any) =>
       toast.error(err.message ?? 'No ha sido posible modificar la convocatoria.')
@@ -389,6 +386,8 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
       queryClient.refetchQueries({ queryKey: ["can-approve", id], type: "active" });
       queryClient.invalidateQueries({ queryKey: ["can-enroll-period", id] });
       queryClient.refetchQueries({ queryKey: ["can-enroll-period", id], type: "active" });
+      queryClient.invalidateQueries({ queryKey: ["students-by-filter"] });
+      queryClient.refetchQueries({ queryKey: ["students-by-filter"], type: "active" });
     },
     onError: (err: any) => toast.error(err?.message ?? "No se pudo cambiar el estado del ciclo.")
   });
@@ -466,7 +465,11 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
       setIsEditingPersonal(false);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["full-student-data", id], refetchType: "inactive" });
+      queryClient.invalidateQueries({ queryKey: ["full-student-data", id], refetchType: "active" });
+      queryClient.invalidateQueries({ queryKey: ["get-total-students"] });
+      queryClient.invalidateQueries({ queryKey: ["students-allFullInfo"] });
+      queryClient.invalidateQueries({ queryKey: ["students-by-filter"] });
+      queryClient.invalidateQueries({ queryKey: ["student-by-legal"] });
     },
   });
 
@@ -474,7 +477,7 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
     mutationFn: async (vars: { expedienteId: number; moduloId: number }) => {
       return addModuleToRecord(vars.expedienteId, vars.moduloId);
     },
-    onSuccess: (_data, _vars) => {
+    onSuccess: (_data, { expedienteId }) => {
       toast.success("Módulo añadido al expediente.");
       setSelectedModuleIdToAdd("");
 
@@ -483,21 +486,21 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
       // refrescamos datos del alumno
       queryClient.invalidateQueries({ queryKey: ["full-student-data", sid] });
       queryClient.refetchQueries({ queryKey: ["full-student-data", sid], type: "active" });
+      queryClient.invalidateQueries({ queryKey: ["students-allFullInfo"] });
+      queryClient.refetchQueries({ queryKey: ["students-allFullInfo"], type: "active" });
 
-      // refrescamos notas-altas
-      const cicloId = currentRecord?.id_ciclo ?? baseRecordCore?.id_ciclo ?? null;
-      if (cicloId != null) {
-        queryClient.invalidateQueries({ queryKey: ["notas-altas", id, cicloId] });
-        queryClient.refetchQueries({ queryKey: ["notas-altas", id, cicloId], type: "active" });
-      } else {
-        queryClient.invalidateQueries({ queryKey: ["notas-altas", id] });
-        queryClient.refetchQueries({ queryKey: ["notas-altas", id], type: "active" });
-      }
+      // El ciclo puede tener varios id_ciclo según el curso.
+      queryClient.invalidateQueries({ queryKey: ["notas-altas", id] });
+      queryClient.refetchQueries({ queryKey: ["notas-altas", id], type: "active" });
+      queryClient.invalidateQueries({ queryKey: ["enrollments-by-record", expedienteId] });
+      queryClient.refetchQueries({ queryKey: ["enrollments-by-record", expedienteId], type: "active" });
 
       queryClient.invalidateQueries({ queryKey: ["can-approve", id] });
       queryClient.refetchQueries({ queryKey: ["can-approve", id], type: "active" });
       queryClient.invalidateQueries({ queryKey: ["can-enroll-period", id] });
       queryClient.refetchQueries({ queryKey: ["can-enroll-period", id], type: "active" });
+      queryClient.invalidateQueries({ queryKey: ["convocatorias", id] });
+      queryClient.refetchQueries({ queryKey: ["convocatorias", id], type: "active" });
     },
     onError: (err: any) => {
       toast.error(err?.message ?? "No se puede añadir el módulo al expediente.");
@@ -1275,7 +1278,6 @@ const StudentProfilePanel: React.FC<StudentProfilePanelProps> = ({ id, isOpen, o
                             <DeleteRecordCascadeButton
                               expedienteId={selectedExpedienteId!}
                               studentId={fullData!.student.id_estudiante}
-                              cicloId={currentRecord?.id_ciclo ?? null}
                               onDeleted={() => handleAfterDelete(currentRecord)}
                             />
                           </div>

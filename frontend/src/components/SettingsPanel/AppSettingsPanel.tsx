@@ -1381,7 +1381,10 @@ const AppSettingsPanel: React.FC = () => {
     const updateDirectivoM = useMutation({
         mutationFn: ({ cargo, nombre }: { cargo: string; nombre: string }) =>
             updateDirectivo(cargo, nombre),
-        onSuccess: () => invalidateDirectivos(),
+        onSuccess: (_data, { cargo }) => {
+            invalidateDirectivos();
+            qc.invalidateQueries({ queryKey: ["directivo", cargo] });
+        },
     });
 
     const identidadesQ = useQuery({

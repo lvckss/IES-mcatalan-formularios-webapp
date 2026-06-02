@@ -739,6 +739,16 @@ const AddStudentButton: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ["students-by-filter"] });
             queryClient.refetchQueries({ queryKey: ["students-by-filter"], type: "active" });
             queryClient.invalidateQueries({ queryKey: ['student-by-legal'] });
+            queryClient.invalidateQueries({ queryKey: ["convocatorias", studentId] });
+            queryClient.refetchQueries({ queryKey: ["convocatorias", studentId], type: "active" });
+            queryClient.invalidateQueries({ queryKey: ["notas-altas", studentId] });
+            queryClient.refetchQueries({ queryKey: ["notas-altas", studentId], type: "active" });
+            queryClient.invalidateQueries({
+                predicate: (q) =>
+                    Array.isArray(q.queryKey) &&
+                    q.queryKey[0] === "can-enroll-period" &&
+                    q.queryKey.includes(studentId),
+            });
 
             // Cerrar diálogo y resetear formulario
             setOpen(false);

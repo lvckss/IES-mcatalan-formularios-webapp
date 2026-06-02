@@ -63,6 +63,10 @@ export const DeleteModuleCascadeButton: React.FC<DeleteModuleCascadeButtonProps>
     const mutation = useMutation({
         mutationFn: async () => apiDeleteEnrollmentCascade(enrollmentId),
         onSuccess: (data) => {
+            const affectedRecordIds = Array.from(
+                new Set(data.matriculas_eliminadas.map((m) => m.id_expediente))
+            );
+
             // Invalida todo lo que depende de este alumno
             qc.invalidateQueries({ queryKey: ["full-student-data", studentId] });
             qc.refetchQueries({ queryKey: ["full-student-data", studentId], type: "active" });
@@ -70,11 +74,33 @@ export const DeleteModuleCascadeButton: React.FC<DeleteModuleCascadeButtonProps>
             qc.invalidateQueries({ queryKey: ["can-approve", studentId] });
             qc.refetchQueries({ queryKey: ["can-approve", studentId], type: "active" });
 
-            qc.invalidateQueries({ queryKey: ["can-enroll-period", studentId] });
-            qc.refetchQueries({ queryKey: ["can-enroll-period", studentId], type: "active" });
+            const isStudentCanEnrollQuery = (queryKey: readonly unknown[]) =>
+                queryKey[0] === "can-enroll-period" && queryKey.includes(studentId);
+
+            qc.invalidateQueries({
+                predicate: (q) => isStudentCanEnrollQuery(q.queryKey),
+            });
+            qc.refetchQueries({
+                predicate: (q) => isStudentCanEnrollQuery(q.queryKey),
+                type: "active",
+            });
 
             qc.invalidateQueries({ queryKey: ["students-by-filter"] });
             qc.refetchQueries({ queryKey: ["students-by-filter"], type: "active" });
+
+            qc.invalidateQueries({ queryKey: ["students-allFullInfo"] });
+            qc.refetchQueries({ queryKey: ["students-allFullInfo"], type: "active" });
+
+            qc.invalidateQueries({ queryKey: ["notas-altas", studentId] });
+            qc.refetchQueries({ queryKey: ["notas-altas", studentId], type: "active" });
+
+            qc.invalidateQueries({ queryKey: ["convocatorias", studentId] });
+            qc.refetchQueries({ queryKey: ["convocatorias", studentId], type: "active" });
+
+            affectedRecordIds.forEach((recordId) => {
+                qc.invalidateQueries({ queryKey: ["enrollments-by-record", recordId] });
+                qc.refetchQueries({ queryKey: ["enrollments-by-record", recordId], type: "active" });
+            });
 
             toast.success(`Módulo eliminado${data.count > 1 ? ` (${data.count} matrículas en cascada)` : ""}.`);
             setOpen(false);

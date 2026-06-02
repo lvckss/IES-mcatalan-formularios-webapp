@@ -10,7 +10,6 @@ import { deleteRecordCascade } from "@/components/StudentPanel/StudentProfilePan
 type DeleteRecordCascadeButtonProps = {
   expedienteId: number;
   studentId: number;            // for invalidations (full-student-data, etc.)
-  cicloId?: number | null;      // for invalidations of 'notas-altas' scoped by ciclo
   className?: string;
   onDeleted?: (payload: { count: number }) => void;
 };
@@ -18,7 +17,6 @@ type DeleteRecordCascadeButtonProps = {
 export const DeleteRecordCascadeButton: React.FC<DeleteRecordCascadeButtonProps> = ({
   expedienteId,
   studentId,
-  cicloId,
   className,
   onDeleted,
 }) => {
@@ -56,20 +54,29 @@ export const DeleteRecordCascadeButton: React.FC<DeleteRecordCascadeButtonProps>
 
       qc.invalidateQueries({ queryKey: ["students-by-filter"] });
       qc.refetchQueries({ queryKey: ["students-by-filter"], type: "active" });
+      qc.invalidateQueries({ queryKey: ["students-allFullInfo"] });
+      qc.refetchQueries({ queryKey: ["students-allFullInfo"], type: "active" });
 
       qc.invalidateQueries({ queryKey: ["can-approve", studentId] });
       qc.refetchQueries({ queryKey: ["can-approve", studentId], type: "active" });
 
-      qc.invalidateQueries({ queryKey: ["can-enroll-period", studentId] });
-      qc.refetchQueries({ queryKey: ["can-enroll-period", studentId], type: "active" });
+      const isStudentCanEnrollQuery = (queryKey: readonly unknown[]) =>
+        queryKey[0] === "can-enroll-period" && queryKey.includes(studentId);
 
-      if (cicloId != null) {
-        qc.invalidateQueries({ queryKey: ["notas-altas", studentId, cicloId] });
-        qc.refetchQueries({ queryKey: ["notas-altas", studentId, cicloId], type: "active" });
-      } else {
-        qc.invalidateQueries({ queryKey: ["notas-altas", studentId] });
-        qc.refetchQueries({ queryKey: ["notas-altas", studentId], type: "active" });
-      }
+      qc.invalidateQueries({
+        predicate: (q) => isStudentCanEnrollQuery(q.queryKey),
+      });
+      qc.refetchQueries({
+        predicate: (q) => isStudentCanEnrollQuery(q.queryKey),
+        type: "active",
+      });
+
+      qc.invalidateQueries({ queryKey: ["convocatorias", studentId] });
+      qc.refetchQueries({ queryKey: ["convocatorias", studentId], type: "active" });
+      qc.invalidateQueries({ queryKey: ["enrollments-by-record"] });
+
+      qc.invalidateQueries({ queryKey: ["notas-altas", studentId] });
+      qc.refetchQueries({ queryKey: ["notas-altas", studentId], type: "active" });
 
       onDeleted?.({ count });
       setStage(0);

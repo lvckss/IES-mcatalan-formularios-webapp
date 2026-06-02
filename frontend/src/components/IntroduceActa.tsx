@@ -1084,6 +1084,10 @@ const IntroduceActa: React.FC = () => {
             : Promise.resolve(),
           queryClient.invalidateQueries({ queryKey: ["enrollments-by-record"], refetchType: "active" }),
           queryClient.invalidateQueries({ queryKey: ["notas-altas"], refetchType: "active" }),
+          queryClient.invalidateQueries({ queryKey: ["convocatorias"], refetchType: "active" }),
+          extraPlanned > 0
+            ? queryClient.invalidateQueries({ queryKey: ["students-allFullInfo"], refetchType: "active" })
+            : Promise.resolve(),
         ]);
 
         return {

@@ -59,6 +59,8 @@ const TextareaForm: React.FC<TextareaFormProps> = ({ observaciones, id_estudiant
         onSuccess: () => {
             toast.success("Observaciones actualizadas ✅");
             queryClient.invalidateQueries({ queryKey: ['full-student-data', id_estudiante] });
+            queryClient.invalidateQueries({ queryKey: ["get-total-students"] });
+            queryClient.invalidateQueries({ queryKey: ["students-allFullInfo"] });
         },
         onError: (err: any) =>
             toast.error(err.message ?? "Error al actualizar las observaciones"),
