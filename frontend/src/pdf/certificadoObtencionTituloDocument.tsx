@@ -79,7 +79,7 @@ export function fechaHoyES(): string {
   return formatFechaES(new Date());
 }
 
-interface CertificateData {
+export interface CertificateData {
   student_data: FullStudentData;
   cycle_data: Cycle;
   director_data: Directivo;
@@ -87,7 +87,7 @@ interface CertificateData {
   merged_enrollments: NotasMasAltasPorCicloReturn[];
 }
 
-export const CertificadoObtencionDocument = ({ data, }: { data: CertificateData }) => {
+export const CertificadoObtencionPage = ({ data, }: { data: CertificateData }) => {
 
   const logoSrc = getCertificateLogoSrc();
 
@@ -224,8 +224,7 @@ export const CertificadoObtencionDocument = ({ data, }: { data: CertificateData 
       : `Título de Técnico Superior en ${data.cycle_data.nombre}`;
 
   return (
-    <Document>
-      <Page size="A4" style={styles.page}>
+    <Page size="A4" style={styles.page}>
         {/* Cabecera con logo y texto */}
         <View style={styles.header}>
           <Image src={logoSrc} style={styles.logo} />
@@ -350,7 +349,23 @@ export const CertificadoObtencionDocument = ({ data, }: { data: CertificateData 
           </Text>
         </Text>
 
-      </Page>
-    </Document>
+    </Page>
   )
 };
+
+export const CertificadoObtencionDocument = ({ data }: { data: CertificateData }) => (
+  <Document>
+    <CertificadoObtencionPage data={data} />
+  </Document>
+);
+
+export const CertificadosObtencionLoteDocument = ({ certificates }: { certificates: CertificateData[] }) => (
+  <Document>
+    {certificates.map((data) => (
+      <CertificadoObtencionPage
+        key={`${data.student_data.student.id_estudiante}-${data.cycle_data.codigo}`}
+        data={data}
+      />
+    ))}
+  </Document>
+);

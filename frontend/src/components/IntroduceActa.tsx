@@ -31,6 +31,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PostRecord, PostEnrollment, Enrollment, Student, Law } from '@/types';
 
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import BulkObtencionCertificatesPrintButton from "@/components/Acta/BulkObtencionCertificatesPrintButton";
 
 import {
   Command,
@@ -1735,6 +1736,12 @@ const IntroduceActa: React.FC = () => {
                       <Save />
                       <span className="ml-1">Guardar Evaluación</span>
                     </Button>
+                    <BulkObtencionCertificatesPrintButton
+                      studentIds={studentIds}
+                      cycleCode={selectedCiclo}
+                      cycleId={cicloIdFromModules}
+                      disabled={isSaving || isFetchingStudents}
+                    />
                   </div>
 
                   <div className="flex gap-2 items-center justify-end">
