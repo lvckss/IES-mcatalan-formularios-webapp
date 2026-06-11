@@ -14,8 +14,8 @@ import { Label } from "@/components/ui/label";
 
 import { FileUser, Loader2 } from "lucide-react";
 
-import { CertificadoObtencionDocument } from "@/pdf/certificadoObtencionTituloDocument";
 import { CertificadoTrasladoDocument } from "@/pdf/certificadoTrasladoDocument";
+import { generateObtencionCertificatePdf } from "@/pdf/obtencionCertificatePdf";
 
 async function getCicloByCodigo({ codigo }: { codigo: string }) {
   const response = await api.cycles.code[":codigo"].$get({ param: { codigo } });
@@ -160,14 +160,12 @@ const PdfCertificateGeneratorButton: React.FC<PdfCertificateGeneratorButtonProps
 
     try {
       setIsGenerating(true);
-      const element =
-        certType === "traslado" ? (
-          <CertificadoTrasladoDocument data={certificateData} />
-        ) : (
-          <CertificadoObtencionDocument data={certificateData} />
-        );
-
-      const blob = await pdf(element).toBlob();
+      const blob =
+        certType === "traslado"
+          ? await pdf(
+              <CertificadoTrasladoDocument data={certificateData} />
+            ).toBlob()
+          : await generateObtencionCertificatePdf(certificateData);
       const nombre = `${student_data.student.apellido_1 ?? ""} ${
         student_data.student.apellido_2 ?? ""
       } ${student_data.student.nombre ?? ""}`

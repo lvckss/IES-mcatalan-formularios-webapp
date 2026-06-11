@@ -1,14 +1,11 @@
 import React from "react";
-import { pdf } from "@react-pdf/renderer";
 import { Loader2, Printer } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
-import {
-  CertificadosObtencionLoteDocument,
-  type CertificateData,
-} from "@/pdf/certificadoObtencionTituloDocument";
+import type { CertificateData } from "@/pdf/certificadoObtencionTituloDocument";
+import { generateObtencionCertificatesPdf } from "@/pdf/obtencionCertificatePdf";
 import type {
   Cycle,
   Directivo,
@@ -222,9 +219,7 @@ const BulkObtencionCertificatesPrintButton: React.FC<BulkObtencionCertificatesPr
         throw new Error("La pestaña de impresión se cerró antes de terminar.");
       }
 
-      const blob = await pdf(
-        <CertificadosObtencionLoteDocument certificates={certificates} />
-      ).toBlob();
+      const blob = await generateObtencionCertificatesPdf(certificates);
 
       showPrintPreview(printWindow, blob);
       toast.success(`${certificates.length} certificados preparados para impresión.`);
