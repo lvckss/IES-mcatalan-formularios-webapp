@@ -149,6 +149,16 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
   const [requisitoEnabled, setRequisitoEnabled] = React.useState(false);
   const [requisitoValue, setRequisitoValue] = React.useState(true); // checked = tiene requisito
 
+  const handleSchoolYearChange = React.useCallback((value: string) => {
+    setSchoolYear(value);
+    setSchoolCourse("__all__");
+  }, []);
+
+  const handleSchoolCycleChange = React.useCallback((value: string) => {
+    setSchoolCycle(value);
+    setSchoolCourse("__all__");
+  }, []);
+
   const resetFilters = () => {
     setSchoolYear("__all__");
     setSchoolCycle("__all__");
@@ -304,14 +314,32 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
 
   // ==================================================================================
 
-  const extraerCursoDeNombre = (
-    nombre: string | null | undefined
-  ): number | null => {
-    if (!nombre) return null; // si no hay nombre, no hay curso
+  const getEnrollmentCourse = React.useCallback((enrollment: {
+    module_curso: string | null;
+    nombre_modulo: string | null;
+  }): number | null => {
+    const explicitCourse = Number(enrollment.module_curso);
+    if (Number.isInteger(explicitCourse) && explicitCourse > 0) {
+      return explicitCourse;
+    }
 
-    const m = nombre.match(/\((\d+)º\)/);
-    return m ? Number(m[1]) : null;
-  };
+    const courseFromName = enrollment.nombre_modulo?.match(/\((\d+)\s*º\)/);
+    return courseFromName ? Number(courseFromName[1]) : null;
+  }, []);
+
+  const recordHasCourse = React.useCallback((
+    record: FullStudentData["records"][number],
+    course: number
+  ): boolean => {
+    const recordCourse = Number(record.ciclo_curso);
+    if (Number.isInteger(recordCourse) && recordCourse > 0) {
+      return recordCourse === course;
+    }
+
+    return record.enrollments?.some(
+      (enrollment) => getEnrollmentCourse(enrollment) === course
+    ) ?? false;
+  }, [getEnrollmentCourse]);
 
   // columnas definidas y adicionalmente memorizadas para evitar re-renders innecesarios (React.useMemo)
   const columns = React.useMemo<ColumnDef<Student>[]>(
@@ -448,6 +476,8 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
 
   const turnosDisponibles = React.useMemo(() => {
     const s = new Set<string>();
+    const selectedCourse = schoolCourse === "__all__" ? null : Number(schoolCourse);
+
     (allFullInfo ?? []).forEach(({ records }) => {
       records.forEach(r => {
         const period = `${r.ano_inicio}-${r.ano_fin}`;
@@ -455,12 +485,27 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
         const okYear = (schoolYear === "__all__") || (period === schoolYear);
         const okCycle = (schoolCycle === "__all__") || (r.ciclo_codigo === schoolCycle);
         const okTransf = !trasladoEnabled || (r.vino_traslado === trasladoValue);
+        const okCourse = selectedCourse === null || recordHasCourse(r, selectedCourse);
 
-        if (okYear && okCycle && okTransf && r.turno) s.add(r.turno);
+        if (okYear && okCycle && okTransf && okCourse && r.turno) s.add(r.turno);
       });
     });
     return Array.from(s).sort((a, b) => a.localeCompare(b));
-  }, [allFullInfo, schoolYear, schoolCycle, trasladoEnabled, trasladoValue]);
+  }, [
+    allFullInfo,
+    schoolYear,
+    schoolCycle,
+    schoolCourse,
+    trasladoEnabled,
+    trasladoValue,
+    recordHasCourse,
+  ]);
+
+  React.useEffect(() => {
+    if (turno !== "__all__" && !turnosDisponibles.includes(turno)) {
+      setTurno("__all__");
+    }
+  }, [turno, turnosDisponibles]);
 
   // Opciones de curso disponibles para el ciclo seleccionado
   const cursosDelCicloSeleccionado = React.useMemo(() => {
@@ -477,16 +522,29 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
         const okShift = (turno === "__all__") || (r.turno === turno);
 
         if (okYear && okCycle && okTransf && okShift) {
-          r.enrollments?.forEach(enr => {
-            const c = extraerCursoDeNombre(enr.nombre_modulo);
-            if (c) set.add(c);
-          });
+          const recordCourse = Number(r.ciclo_curso);
+          if (Number.isInteger(recordCourse) && recordCourse > 0) {
+            set.add(recordCourse);
+          } else {
+            r.enrollments?.forEach(enr => {
+              const enrollmentCourse = getEnrollmentCourse(enr);
+              if (enrollmentCourse) set.add(enrollmentCourse);
+            });
+          }
         }
       });
     });
 
     return Array.from(set).sort((a, b) => a - b);
-  }, [allFullInfo, schoolCycle, schoolYear, trasladoEnabled, trasladoValue, turno]);
+  }, [
+    allFullInfo,
+    schoolCycle,
+    schoolYear,
+    trasladoEnabled,
+    trasladoValue,
+    turno,
+    getEnrollmentCourse,
+  ]);
 
   React.useEffect(() => {
     if (schoolCourse !== "__all__" && !cursosDelCicloSeleccionado.includes(Number(schoolCourse))) {
@@ -538,9 +596,7 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
         if (turno !== "__all__" && r.turno !== turno) return false;
 
         if (courseN !== null) {
-          return r.enrollments?.some(
-            (enr) => extraerCursoDeNombre(enr.nombre_modulo) === courseN
-          ) ?? false;
+          return recordHasCourse(r, courseN);
         }
         return true;
       });
@@ -559,6 +615,7 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
     turno,
     trasladoEnabled,
     trasladoValue,
+    recordHasCourse,
   ]);
 
   const exportToExcel = React.useCallback(() => {
@@ -661,7 +718,7 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
           <div className="flex items-center gap-2 flex-1 basis-0 min-w-0 pt-1">
             <Label className="text-sm">Periodo escolar</Label>
             <div className=" flex-1 min-w-0">
-              <Select value={schoolYear} onValueChange={setSchoolYear} disabled={isFullInfoLoading}>
+              <Select value={schoolYear} onValueChange={handleSchoolYearChange} disabled={isFullInfoLoading}>
                 <SelectTrigger className="w-[8.75rem] bg-yellow-200 font-bold">
                   <SelectValue placeholder="Selecciona periodo" className="truncate" />
                 </SelectTrigger>
@@ -683,7 +740,7 @@ const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
             <div className="bg-white flex-1 min-w-[14rem]">
               <Select
                 value={schoolCycle}
-                onValueChange={setSchoolCycle}
+                onValueChange={handleSchoolCycleChange}
                 disabled={isFullInfoLoading}
               >
                 <SelectTrigger className="w-full min-w-0 h-9 bg-yellow-200 font-bold">

@@ -187,6 +187,7 @@ export const getStudentFullInfo = async (studentId: number): Promise<FullStudent
         e.turno AS turno,
         c_record.nombre AS record_ciclo_nombre,
         c_record.codigo AS ciclo_codigo,
+        c_record.curso AS record_ciclo_curso,
         c_record.tipo_ciclo AS record_ciclo_tipo_ciclo,
         mat.id_matricula,
         mat.nota AS nota,
@@ -265,6 +266,7 @@ export const getStudentFullInfo = async (studentId: number): Promise<FullStudent
         id_ciclo: rec.record_id_ciclo,
         ciclo_codigo: rec.ciclo_codigo,
         ciclo_nombre: rec.record_ciclo_nombre,
+        ciclo_curso: rec.record_ciclo_curso,
         enrollments: []
       });
     }
@@ -319,6 +321,7 @@ export const getAllStudentsFullInfo = async (): Promise<FullStudentData[]> => {
 
         c_record.nombre AS record_ciclo_nombre,
         c_record.codigo AS ciclo_codigo,
+        c_record.curso AS record_ciclo_curso,
         c_record.tipo_ciclo AS record_ciclo_tipo_ciclo,
         c_module.tipo_ciclo AS module_ciclo_tipo_ciclo,
 
@@ -395,6 +398,7 @@ export const getAllStudentsFullInfo = async (): Promise<FullStudentData[]> => {
         id_ciclo: rec.record_id_ciclo,
         ciclo_codigo: rec.ciclo_codigo,
         ciclo_nombre: rec.record_ciclo_nombre,
+        ciclo_curso: rec.record_ciclo_curso,
         enrollments: []
       });
     }
@@ -413,7 +417,7 @@ export const getAllStudentsFullInfo = async (): Promise<FullStudentData[]> => {
       nota: rec.nota ?? null,
       nombre_modulo: rec.module_nombre,
       codigo_modulo: rec.codigo_modulo,
-      module_curso: rec.codigo_modulo
+      module_curso: rec.module_curso
     };
 
     currentRecord.enrollments.push(enrollment);
@@ -458,6 +462,7 @@ export const getStudentFullInfoByCycleCode = async (
 
         c_record.nombre AS record_ciclo_nombre,
         c_record.codigo AS ciclo_codigo,
+        c_record.curso AS record_ciclo_curso,
         c_record.tipo_ciclo AS record_ciclo_tipo_ciclo,
 
         mat.id_matricula,
@@ -542,6 +547,7 @@ export const getStudentFullInfoByCycleCode = async (
         id_ciclo: rec.record_id_ciclo,
         ciclo_codigo: rec.ciclo_codigo,
         ciclo_nombre: rec.record_ciclo_nombre,
+        ciclo_curso: rec.record_ciclo_curso,
         enrollments: []
       });
     }

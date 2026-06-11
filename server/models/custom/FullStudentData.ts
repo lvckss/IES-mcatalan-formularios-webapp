@@ -12,6 +12,7 @@ export type EnrollmentExtended = Omit<Enrollment, "id_expediente"> & {
 export type RecordExtended = Omit<Record, "id_estudiante"> & {
   ciclo_nombre: string;
   ciclo_codigo: string;
+  ciclo_curso: string;
   tipo_ciclo?: "GM" | "GS";
   enrollments: EnrollmentExtended[];
 };
@@ -45,6 +46,7 @@ type StudentRecord = {
 
   record_ciclo_nombre: string;
   ciclo_codigo: string;
+  record_ciclo_curso: string;
   record_ciclo_tipo_ciclo: "GM" | "GS";
 
   id_matricula: number | null;
@@ -104,6 +106,7 @@ const StudentRecordSchema = z.object({
 
   record_ciclo_nombre: z.string(),
   ciclo_codigo: z.string(),
+  record_ciclo_curso: z.string(),
   record_ciclo_tipo_ciclo: z.enum(["GM", "GS"]), // <- viene de c_record.tipo_ciclo
 
   id_matricula: z.number().nullable(),

@@ -646,6 +646,7 @@ const NewEnrollmentDialog: React.FC<NewEnrollmentButtonProps> = ({ student_id, i
                 id_ciclo: Number(targetCicloId),
                 ciclo_codigo: selectedCiclo,
                 ciclo_nombre: cicloNombre,
+                ciclo_curso: targetCurso,
                 enrollments,
               };
 
