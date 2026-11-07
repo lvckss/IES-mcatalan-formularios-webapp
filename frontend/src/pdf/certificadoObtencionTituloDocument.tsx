@@ -8,6 +8,7 @@ import {
 } from '@react-pdf/renderer';
 
 import { Cycle, FullStudentData, Directivo } from '@/types';
+import { getCursoFinalizacion, isAprobada } from './cursoFinalizacion';
 
 type NotaEnum =
   | "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10"
@@ -157,40 +158,14 @@ export const CertificadoObtencionPage = ({ data, }: { data: CertificateData }) =
       ? notasNumericas.reduce((sum, n) => sum + n, 0) / notasNumericas.length
       : undefined;
 
-  // helper: ¿esta nota aprueba el módulo?
-  const isAprobada = (nota: NotaEnum | null): boolean => {
-    if (!nota) return false;
-    const s = String(nota);
-
-    // Aprueban sin nota numérica
-    if (s === "APTO" || s === "EX") return true;
-
-    // No aprueban
-    if (s === "NO APTO" || s === "NE" || s === "RC") return false;
-
-    // Casos de 10
-    if (s === "10-MH" || s === "10-Matr. Honor") return true;
-
-    // Convalidaciones
-    if (s === "CV") return true;                 // equivale a 5 (aprobado)
-    if (s.startsWith("CV-")) {
-      const n = Number(s.split("-")[1]);         // CV-5 ... CV-10, CV-10-MH
-      return Number.isFinite(n) && n >= 5;
-    }
-
-    // Traslados
-    if (s.startsWith("TRAS-")) {
-      const n = Number(s.split("-")[1]);         // TRAS-5 ... TRAS-10, TRAS-10-MH
-      return Number.isFinite(n) && n >= 5;
-    }
-
-    // Numéricas directas
-    const n = Number(s);
-    return Number.isFinite(n) && n >= 5;
-  };
-
-  // …
-  const todasAprobadas = (data?.merged_enrollments ?? []).every(e => isAprobada(e.mejor_nota));
+  const modulos = data?.merged_enrollments ?? [];
+  const todasAprobadas = modulos.length > 0 && modulos.every(e => isAprobada(e.mejor_nota));
+  const cursoFinalizacion = data.cycle_data.codigo.endsWith('_LOE')
+    ? getCursoFinalizacion(modulos)
+    : null;
+  const textoCursoFinalizacion = cursoFinalizacion
+    ? `, obtenido en el curso ${cursoFinalizacion}`
+    : '';
 
   const notaFinalParaMostrar = todasAprobadas && media !== undefined ? media.toFixed(2) : '—';
 
@@ -318,8 +293,9 @@ export const CertificadoObtencionPage = ({ data, }: { data: CertificateData }) =
             ? `Cumple los requisitos vigentes para la obtención del ${textoTitulo}`
             : `No cumple los requisitos vigentes para la obtención del ${textoTitulo}`
           }
+          {textoCursoFinalizacion}
           {textoPagoTitulo}
-          {textoPagoTitulo && '.'}
+          {(textoPagoTitulo || textoCursoFinalizacion) && '.'}
         </Text>
 
         <Text style={styles.paragraph}>
