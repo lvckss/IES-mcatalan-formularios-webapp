@@ -28,6 +28,14 @@ type NotasMasAltasPorCicloReturn = {
   convocatoria: number | null;
 };
 
+const lfpTableCell = {
+  borderWidth: 1,
+  borderColor: '#000',
+  paddingHorizontal: 4,
+  paddingVertical: 2,
+  justifyContent: 'center' as const,
+};
+
 const styles = StyleSheet.create({
   page: { paddingBottom: 40, paddingTop: 40, paddingHorizontal: 30, fontSize: 9, fontFamily: 'Helvetica' },
   header: { flexDirection: 'row', marginBottom: 10, alignItems: 'center' },
@@ -49,6 +57,10 @@ const styles = StyleSheet.create({
   tableColCode: { width: '20%', borderWidth: 1, borderColor: '#000', padding: 4, justifyContent: 'center', alignItems: 'center' },
   tableColName: { width: '60%', borderWidth: 1, borderColor: '#000', padding: 4, flex: 3, justifyContent: 'center' },
   tableColGrade: { width: '20%', borderWidth: 1, borderColor: '#000', padding: 4, flex: 1, justifyContent: 'center', alignItems: 'center' },
+  lfpTableColCode: { ...lfpTableCell, width: '16%', alignItems: 'center' },
+  lfpTableColName: { ...lfpTableCell, width: '50%' },
+  lfpTableColGrade: { ...lfpTableCell, width: '16%', alignItems: 'center' },
+  lfpTableColYear: { ...lfpTableCell, width: '18%', alignItems: 'center' },
   footer: { paddingHorizontal: 45, position: 'absolute', bottom: 40 },
   anottations: { fontSize: 8 }
 });
@@ -91,6 +103,10 @@ export interface CertificateData {
 export const CertificadoObtencionPage = ({ data, }: { data: CertificateData }) => {
 
   const logoSrc = getCertificateLogoSrc();
+  const esLfp = data.cycle_data.codigo.endsWith('_LFP');
+  const colCodeStyle = esLfp ? styles.lfpTableColCode : styles.tableColCode;
+  const colNameStyle = esLfp ? styles.lfpTableColName : styles.tableColName;
+  const colGradeStyle = esLfp ? styles.lfpTableColGrade : styles.tableColGrade;
 
   const notasRaw = (data?.merged_enrollments ?? []).map((m) => m.mejor_nota);
   // textos según tipo_ciclo
@@ -145,6 +161,17 @@ export const CertificadoObtencionPage = ({ data, }: { data: CertificateData }) =
     }
 
     return nota;
+  };
+
+  const cursoAcademicoDisplay = (modulo: NotasMasAltasPorCicloReturn): string => {
+    const { mejor_ano_inicio: inicio, mejor_ano_fin: fin } = modulo;
+    if (!isAprobada(modulo.mejor_nota) || inicio == null || fin == null ||
+        !Number.isInteger(inicio) || !Number.isInteger(fin) ||
+        inicio <= 0 || fin !== inicio + 1) {
+      return '—';
+    }
+
+    return `${inicio}/${fin}`;
   };
 
   // Filtra solo las notas con valor numérico
@@ -225,20 +252,25 @@ export const CertificadoObtencionPage = ({ data, }: { data: CertificateData }) =
         </Text>
 
         {/* Tabla de módulos y calificaciones */}
-        <View style={[styles.table, { width: '65%', marginLeft: 'auto', marginRight: 'auto', borderBottomWidth: 0, borderTopWidth: 0, borderRightWidth: 0, borderLeftWidth: 0 }]}>
+        <View style={[styles.table, { width: esLfp ? '84%' : '65%', marginLeft: 'auto', marginRight: 'auto', borderBottomWidth: 0, borderTopWidth: 0, borderRightWidth: 0, borderLeftWidth: 0 }]}>
           {/* Header */}
           <View style={styles.tableRow}>
-            <View style={[styles.tableColCode, styles.tableColHeader]}>
+            <View style={[colCodeStyle, styles.tableColHeader]}>
               <Text style={styles.tableCellHeader}>Código <Text style={{ fontSize: 6 }}>(1)</Text></Text>
             </View>
-            <View style={[styles.tableColName, styles.tableColHeader]}>
+            <View style={[colNameStyle, styles.tableColHeader]}>
               <Text style={styles.tableCellHeader}>
                 Denominación del módulo profesional
               </Text>
             </View>
-            <View style={[styles.tableColGrade, styles.tableColHeader]}>
+            <View style={[colGradeStyle, styles.tableColHeader]}>
               <Text style={styles.tableCellHeader}>Calificación <Text style={{ fontSize: 6 }}>(2)</Text></Text>
             </View>
+            {esLfp && (
+              <View style={[styles.lfpTableColYear, styles.tableColHeader]}>
+                <Text style={styles.tableCellHeader}>Curso académico</Text>
+              </View>
+            )}
           </View>
 
           {/* Filas dinámicas */}
@@ -257,21 +289,26 @@ export const CertificadoObtencionPage = ({ data, }: { data: CertificateData }) =
             })
             .map((m, i) => (
               <View style={styles.tableRow} key={i}>
-                <View style={styles.tableColCode}>
+                <View style={colCodeStyle}>
                   <Text style={styles.tableCell}>{m.codigo_modulo}</Text>
                 </View>
-                <View style={styles.tableColName}>
+                <View style={colNameStyle}>
                   <Text style={styles.tableCellName}>{m.modulo}</Text>
                 </View>
-                <View style={styles.tableColGrade}>
+                <View style={colGradeStyle}>
                   <Text style={styles.tableCell}>{notaDisplay(m.mejor_nota)}</Text>
                 </View>
+                {esLfp && (
+                  <View style={styles.lfpTableColYear}>
+                    <Text style={styles.tableCell}>{cursoAcademicoDisplay(m)}</Text>
+                  </View>
+                )}
               </View>
             ))}
 
           {/* Fila de nota final */}
           <View style={styles.tableRow}>
-            <View style={[styles.tableColName, { width: '80%' }]}>
+            <View style={[colNameStyle, { width: esLfp ? '66%' : '80%' }]}>
               <Text
                 style={[
                   styles.tableCell,
@@ -280,9 +317,10 @@ export const CertificadoObtencionPage = ({ data, }: { data: CertificateData }) =
                 NOTA FINAL DEL CICLO FORMATIVO
               </Text>
             </View>
-            <View style={styles.tableColGrade}>
+            <View style={colGradeStyle}>
               <Text style={styles.tableCell}>{notaFinalParaMostrar}</Text>
             </View>
+            {esLfp && <View style={styles.lfpTableColYear} />}
           </View>
         </View>
 
